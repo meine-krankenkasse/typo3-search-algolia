@@ -12,4 +12,7 @@ declare(strict_types=1);
 defined('TYPO3') || exit('Access denied.');
 
 call_user_func(static function (): void {
+    // Add our custom style sheet
+    $GLOBALS['TYPO3_CONF_VARS']['BE']['stylesheets']['typo3_search_algolia']
+        = 'EXT:typo3_search_algolia/Resources/Public/Css/Module.css';
 });

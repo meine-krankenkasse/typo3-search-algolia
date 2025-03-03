@@ -1,0 +1,11 @@
+.typo3-module-typo3-search-algolia {
+    .brand-logo {
+        text-align: center;
+        padding: 1rem;
+        margin-bottom: 0;
+
+        > img {
+            max-width: 150px;
+        }
+    }
+}

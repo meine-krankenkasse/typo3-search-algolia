@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+    <file source-language="en" datatype="plaintext" original="messages">
+        <header/>
+        <body>
+            <!-- Errors -->
+            <trans-unit id="error.missingTranslation">
+                <source>Missing translation for:</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
