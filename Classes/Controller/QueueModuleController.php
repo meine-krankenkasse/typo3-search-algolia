@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * QueueModuleController.
@@ -26,20 +25,10 @@ class QueueModuleController extends AbstractBaseModuleController
     /**
      * The default action to call.
      *
-     * @param ServerRequestInterface $request
-     *
      * @return ResponseInterface
      */
-    public function indexAction(ServerRequestInterface $request): ResponseInterface
+    public function indexAction(): ResponseInterface
     {
-        return parent::indexAction($request);
-    }
-
-    /**
-     * @return ResponseInterface
-     */
-    protected function htmlResponse(): ResponseInterface
-    {
-        return $this->moduleTemplate->renderResponse('QueueModule');
+        return $this->moduleTemplate->renderResponse();
     }
 }

@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
@@ -19,6 +18,7 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 
 /**
  * AbstractBaseModuleController.
@@ -27,7 +27,7 @@ use TYPO3\CMS\Core\Type\Bitmask\Permission;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-abstract class AbstractBaseModuleController
+abstract class AbstractBaseModuleController extends ActionController
 {
     /**
      * @var ModuleTemplateFactory
@@ -58,55 +58,34 @@ abstract class AbstractBaseModuleController
     }
 
     /**
-     * The default action to call.
-     *
-     * @param ServerRequestInterface $request
-     *
-     * @return ResponseInterface
-     */
-    public function indexAction(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->initializeAction($request);
-
-        return $this->htmlResponse();
-    }
-
-    /**
      * Initializes the controller before invoking an action method.
-     *
-     * @param ServerRequestInterface $request
      */
-    private function initializeAction(ServerRequestInterface $request): void
+    protected function initializeAction(): void
     {
-        $this->pageUid        = $this->getPageId($request);
-        $this->moduleTemplate = $this->getModuleTemplate($request, $this->pageUid);
+        $this->pageUid        = $this->getPageId();
+        $this->moduleTemplate = $this->getModuleTemplate();
     }
 
     /**
      * Returns the page ID extracted from the given request object.
-     *
-     * @param ServerRequestInterface $request
-     *
+      *
      * @return int
      */
-    private function getPageId(ServerRequestInterface $request): int
+    private function getPageId(): int
     {
-        return (int) ($request->getParsedBody()['id'] ?? $request->getQueryParams()['id'] ?? -1);
+        return (int) ($this->request->getParsedBody()['id'] ?? $this->request->getQueryParams()['id'] ?? -1);
     }
 
     /**
-     * @param ServerRequestInterface $request
-     * @param int                    $pageUid
-     *
      * @return ModuleTemplate
      */
-    private function getModuleTemplate(ServerRequestInterface $request, int $pageUid): ModuleTemplate
+    private function getModuleTemplate(): ModuleTemplate
     {
-        $this->updateRoutePackageName($request);
+        $this->updateRoutePackageName();
 
-        $moduleTemplate   = $this->moduleTemplateFactory->create($request);
+        $moduleTemplate   = $this->moduleTemplateFactory->create($this->request);
         $permissionClause = $this->getBackendUserAuthentication()->getPagePermsClause(Permission::PAGE_SHOW);
-        $pageRecord       = BackendUtility::readPageAccess($pageUid, $permissionClause);
+        $pageRecord       = BackendUtility::readPageAccess($this->pageUid, $permissionClause);
 
         if ($pageRecord !== false) {
             $moduleTemplate
@@ -115,7 +94,7 @@ abstract class AbstractBaseModuleController
         }
 
         $additionalQueryParams = [
-            'id' => $this->getPageId($request),
+            'id' => $this->pageUid,
         ];
 
         $moduleTemplate->makeDocHeaderModuleMenu($additionalQueryParams);
@@ -129,15 +108,13 @@ abstract class AbstractBaseModuleController
      * Updates the package name of the current route to provide the correct templates
      * for third party extensions.
      *
-     * @param ServerRequestInterface $request
-     *
      * @return void
      *
      * @see \TYPO3\CMS\Backend\View\BackendViewFactory::create
      */
-    private function updateRoutePackageName(ServerRequestInterface $request): void
+    private function updateRoutePackageName(): void
     {
-        $route = $request->getAttribute('route');
+        $route = $this->request->getAttribute('route');
 
         if ($route instanceof Route) {
             $route->setOption(
@@ -154,9 +131,4 @@ abstract class AbstractBaseModuleController
     {
         return $GLOBALS['BE_USER'];
     }
-
-    /**
-     * @return ResponseInterface
-     */
-    abstract protected function htmlResponse(): ResponseInterface;
 }

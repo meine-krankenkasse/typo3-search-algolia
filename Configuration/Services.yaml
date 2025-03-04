@@ -7,9 +7,3 @@ services:
     MeineKrankenkasse\Typo3SearchAlgolia\:
         resource: '../Classes/*'
         exclude: '../Classes/Domain/Model/*'
-
-    MeineKrankenkasse\Typo3SearchAlgolia\Controller\AdministrationModuleController:
-        tags: [ 'backend.controller' ]
-
-    MeineKrankenkasse\Typo3SearchAlgolia\Controller\QueueModuleController:
-        tags: [ 'backend.controller' ]
