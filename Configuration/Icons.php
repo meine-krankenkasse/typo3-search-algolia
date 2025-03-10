@@ -12,12 +12,16 @@ declare(strict_types=1);
 use TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider;
 
 return [
-    'extension-mkk-module'               => [
+    'extension-mkk-module' => [
         'provider' => SvgIconProvider::class,
         'source'   => 'EXT:typo3_search_algolia/Resources/Public/Icons/Module.svg',
     ],
     'extension-mkk-typo3-search-algolia' => [
         'provider' => SvgIconProvider::class,
         'source'   => 'EXT:typo3_search_algolia/Resources/Public/Icons/Extension.svg',
+    ],
+    'extension-mkk-typo3-search-logo-algolia' => [
+        'provider' => SvgIconProvider::class,
+        'source'   => 'EXT:typo3_search_algolia/Resources/Public/Icons/Algolia.svg',
     ],
 ];

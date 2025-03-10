@@ -1,12 +1,107 @@
 <html data-namespace-typo3-fluid="true"
       xmlns="http://www.w3.org/1999/xhtml" lang="en"
       xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+      xmlns:backend="http://typo3.org/ns/TYPO3/CMS/Backend/ViewHelpers"
+      xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+      xmlns:mkk="http://typo3.org/ns/MeineKrankenkasse/Typo3SearchAlgolia/ViewHelpers"
 >
     <f:layout name="Module" />
 
     <f:section name="Content">
+        <f:be.pageRenderer
+            includeJavaScriptModules="{
+                0: '@typo3/backend/multi-record-selection.js',
+                1: '@typo3/backend/ajax-data-handler.js',
+            }"
+        />
 
-        QUEUE
+        <h1><f:translate key="index_queue" /></h1>
+        <p><f:translate key="index_queue.description" /></p>
+
+        <f:form class="form-inline form-inline-spaced settings" object="{queueDemand}" name="queueDemand" enctype="multipart/form-data">
+            <div class="table-fit">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th class="col-checkbox" data-sort-method="none">
+                                <f:render partial="DropdownRecordSelectionButton" />
+                            </th>
+                            <th>
+                                <f:translate key="index_queue.table.column.id" />
+                            </th>
+                            <th class="col-task">
+                                <f:translate key="index_queue.table.column.indexer" />
+                            </th>
+                            <th class="col-control" data-sort-method="none"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-multi-record-selection-row-selection="true">
+                        <f:for each="{indexers}" as="indexer">
+                            <tr data-task-id="{indexer.uid}"
+                                data-task-disabled="{f:if(condition: indexer.hidden, then: 'true', else: 'false')}"
+                                data-multi-record-selection-element="true"
+                            >
+                                <td class="col-checkbox">
+                                    <span class="form-check form-check-type-toggle">
+                                        <f:form.checkbox class="form-check-input t3js-multi-record-selection-check"
+                                                         property="indexers"
+                                                         multiple="true"
+                                                         value="{indexer.uid}"
+                                        />
+                                    </span>
+                                </td>
+                                <td class="align-top">{indexer.uid}</td>
+                                <td class="align-top col-task">
+                                    <div class="name">
+                                        <core:icon identifier="{mkk:indexer.icon(type: indexer.type)}" />
+                                        <backend:link.editRecord
+                                                table="tx_typo3searchalgolia_domain_model_indexer"
+                                                uid="{indexer.uid}"
+                                        >
+                                            <strong>{indexer.title}</strong>
+                                        </backend:link.editRecord>
+                                    </div>
+                                    <f:if condition="{indexer.description} != ''">
+                                        <div class="text-body-secondary" style="margin-top: 0.5em;">
+                                            <f:format.nl2br>{indexer.description}</f:format.nl2br>
+                                        </div>
+                                    </f:if>
+                                </td>
+                                <td class="col-control align-top">
+                                    <div class="btn-group" role="group">
+                                        <backend:link.editRecord
+                                                class="btn btn-default"
+                                                table="tx_typo3searchalgolia_domain_model_indexer"
+                                                uid="{indexer.uid}"
+                                                title="{f:translate(key: 'LLL:EXT:core/Resources/Private/Language/locallang_mod_web_list.xlf:edit')}"
+                                        >
+                                            <core:icon identifier="actions-open" />
+                                        </backend:link.editRecord>
+
+                                        <f:render partial="VisibilityToggleButton" arguments="{indexer: indexer}" />
+                                    </div>
+                                </td>
+                            </tr>
+                        </f:for>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4">
+                                {f:translate(key: 'index_queue.indexers.available')}
+                                <span class="t3js-table-total-items">{indexers -> f:count()}</span>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <f:form.button class="btn btn-default" type="submit">
+                <core:icon identifier="actions-document-add" />
+                <f:translate key="index_queue.button.submit" />
+            </f:form.button>
+
+            <f:render partial="InformationCallout" />
+        </f:form>
 
         <f:render partial="BrandLogo" />
     </f:section>

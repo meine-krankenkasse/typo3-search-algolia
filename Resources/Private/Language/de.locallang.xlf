@@ -3,6 +3,98 @@
     <file target-language="de" datatype="plaintext" original="messages">
         <header/>
         <body>
+            <!-- Indexer -->
+            <trans-unit id="indexer.page.title">
+                <target>Seiten</target>
+            </trans-unit>
+            <trans-unit id="indexer.tt_content.title">
+                <target>Inhaltselemente</target>
+            </trans-unit>
+
+            <!-- tx_typo3searchalgolia_domain_model_indexer -->
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer">
+                <target>Indexierer</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.title">
+                <target>Titel</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.title.description">
+                <target>Der Titel des Indexers.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.description">
+                <target>Beschreibung</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.description.description">
+                <target>Eine optionale Beschreibung für was dieser Indexer verwendet wird.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.search_engine">
+                <target>Suchmaschine</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.search_engine.description">
+                <target>Wählen Sie die Suchmaschine aus, die zur Indizierung verwendet werden soll.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.type">
+                <target>Typ</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.type.description">
+                <target>Wählen Sie den zu verwendenden Indexertyp aus.</target>
+            </trans-unit>
+
+            <!-- tx_typo3searchalgolia_domain_model_searchengine -->
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine">
+                <target>Suchmaschine</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.title">
+                <target>Titel</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.title.description">
+                <target>Der Titel der Suchmaschine.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.description">
+                <target>Beschreibung</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.description.description">
+                <target>Eine optionale Beschreibung für was diese Suchmaschine verwendet wird.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.engine">
+                <target>Suchmaschinendienst</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.engine.description">
+                <target>Wählen Sie den Suchmaschinendienst aus, der für die Suche/Indizierung verwendet werden soll.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.index_name">
+                <target>Indexname</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.index_name.description">
+                <target>Der Name des Indexes, der für die Speicherung der indizierten Daten innerhalb der Suchmaschine verwendet wird.</target>
+            </trans-unit>
+
+            <!-- Backend -->
+            <trans-unit id="index_queue">
+                <target>Warteschlange</target>
+            </trans-unit>
+            <trans-unit id="index_queue.description">
+                <target>Die Warteschlange verwaltet die Inhaltsindizierung. Inhalte gelangen durch die unten stehende Initialisierung oder wenn basierend auf der Konfiguration neue Inhalte erstellt werden, in die Warteschlange. Die Elemente in der Warteschlange werden zuerst nach den neuesten Änderungen indexiert, gefolgt von den restlichen Elementen.</target>
+            </trans-unit>
+            <trans-unit id="index_queue.table.column.id">
+                <target>ID</target>
+            </trans-unit>
+            <trans-unit id="index_queue.table.column.indexer">
+                <target>Indexer</target>
+            </trans-unit>
+            <trans-unit id="index_queue.indexers.available">
+                <target>Verfügbare Indexer:</target>
+            </trans-unit>
+            <trans-unit id="index_queue.button.submit">
+                <target>Ausgewählten Inhalt zur Indizierung in die Warteschlange stellen</target>
+            </trans-unit>
+            <trans-unit id="index_queue.information.title">
+                <target>Information</target>
+            </trans-unit>
+            <trans-unit id="index_queue.information.body">
+                <target>Es werden jeweils nur die aktiven Indexer ausgeführt. Das Initialisieren der Warteschlange ist eine Möglichkeit, eine komplette Neuindizierung zu erreichen oder den Index erstmalig zu befüllen. Die Scheduler-Aufgabe „Index Queue Worker“ indiziert dann die in der Warteschlange aufgelisteten Elemente.</target>
+            </trans-unit>
+
             <!-- Errors -->
             <trans-unit id="error.missingTranslation">
                 <target>Fehlende Übersetzung für:</target>

@@ -1,0 +1,21 @@
+# Module configuration
+module {
+    tx_typo3searchalgolia {
+        # Field mapping TYPO3 <=> Search Engine
+        indexer {
+            page {
+                title = title
+                subtitle = subtitle
+                description = description
+                abstract = abstract
+                keywords = keywords
+            }
+
+            tt_content {
+                header = title
+                subheader = subtitle
+                bodytext = description
+            }
+        }
+    }
+}

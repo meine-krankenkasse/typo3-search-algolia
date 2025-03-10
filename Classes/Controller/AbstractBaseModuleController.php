@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
-use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
@@ -68,7 +67,7 @@ abstract class AbstractBaseModuleController extends ActionController
 
     /**
      * Returns the page ID extracted from the given request object.
-      *
+     *
      * @return int
      */
     private function getPageId(): int
@@ -97,9 +96,11 @@ abstract class AbstractBaseModuleController extends ActionController
             'id' => $this->pageUid,
         ];
 
-        $moduleTemplate->makeDocHeaderModuleMenu($additionalQueryParams);
-        $moduleTemplate->setModuleId('typo3-module-typo3-search');
-        $moduleTemplate->setModuleClass('typo3-module-typo3-search');
+        $moduleTemplate
+            ->setFlashMessageQueue($this->getFlashMessageQueue())
+            ->makeDocHeaderModuleMenu($additionalQueryParams)
+            ->setModuleId('typo3-module-typo3-search')
+            ->setModuleClass('typo3-module-typo3-search');
 
         return $moduleTemplate;
     }

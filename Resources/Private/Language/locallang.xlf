@@ -3,6 +3,98 @@
     <file source-language="en" datatype="plaintext" original="messages">
         <header/>
         <body>
+            <!-- Indexer -->
+            <trans-unit id="indexer.page.title">
+                <source>Pages</source>
+            </trans-unit>
+            <trans-unit id="indexer.tt_content.title">
+                <source>Content elements</source>
+            </trans-unit>
+
+            <!-- tx_typo3searchalgolia_domain_model_indexer -->
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer">
+                <source>Indexer</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.title">
+                <source>Title</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.title.description">
+                <source>The title of the indexer.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.description">
+                <source>Description</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.description.description">
+                <source>An optional description of what this indexer is used for.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.type">
+                <source>Type</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.type.description">
+                <source>Select the type of indexer to be used.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.search_engine">
+                <source>Search Engine</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.search_engine.description">
+                <source>Select the search engine to be used for indexing.</source>
+            </trans-unit>
+
+            <!-- tx_typo3searchalgolia_domain_model_searchengine -->
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine">
+                <source>Search Engine</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.title">
+                <source>Title</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.title.description">
+                <source>The title of the search engine.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.description">
+                <source>Description</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.description.description">
+                <source>An optional description of what this search engine is used for.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.engine">
+                <source>Search Engine Service</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.engine.description">
+                <source>Select the search service to be used for searching/indexing.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.index_name">
+                <source>Index name</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.index_name.description">
+                <source>The name of the index used to store indexed data within the search engine.</source>
+            </trans-unit>
+
+            <!-- Backend -->
+            <trans-unit id="index_queue">
+                <source>Queue</source>
+            </trans-unit>
+            <trans-unit id="index_queue.description">
+                <source>The queue manages content indexing. Content enters the queue through the initialization below or when new content is created based on the configuration. The items in the queue are indexed first by the most recent changes, followed by the rest of the items.</source>
+            </trans-unit>
+            <trans-unit id="index_queue.table.column.id">
+                <source>ID</source>
+            </trans-unit>
+            <trans-unit id="index_queue.table.column.indexer">
+                <source>Indexer</source>
+            </trans-unit>
+            <trans-unit id="index_queue.indexers.available">
+                <source>Available indexers:</source>
+            </trans-unit>
+            <trans-unit id="index_queue.button.submit">
+                <source>Queue selected content for indexing</source>
+            </trans-unit>
+            <trans-unit id="index_queue.information.title">
+                <source>Information</source>
+            </trans-unit>
+            <trans-unit id="index_queue.information.body">
+                <source>Only the active indexers are executed at a time. Initializing the queue is one way to achieve a complete reindex or to populate the index for the first time. The Index Queue Worker scheduler task then indexes the items listed in the queue.</source>
+            </trans-unit>
+
             <!-- Errors -->
             <trans-unit id="error.missingTranslation">
                 <source>Missing translation for:</source>

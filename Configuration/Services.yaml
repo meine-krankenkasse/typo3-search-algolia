@@ -7,3 +7,16 @@ services:
     MeineKrankenkasse\Typo3SearchAlgolia\:
         resource: '../Classes/*'
         exclude: '../Classes/Domain/Model/*'
+
+    MeineKrankenkasse\Typo3SearchAlgolia\Command\IndexQueueWorkerCommand:
+        tags:
+            - name: 'console.command'
+              command: 'mkk:queue:index:worker'
+              description: 'A worker indexing the items in the index queue.'
+              schedulable: true
+
+    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer:
+        public: true
+
+    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer:
+        public: true
