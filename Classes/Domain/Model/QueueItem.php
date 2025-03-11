@@ -44,11 +44,6 @@ class QueueItem extends AbstractEntity
     protected DateTime $changed;
 
     /**
-     * @var DateTime
-     */
-    protected DateTime $indexed;
-
-    /**
      * @var int
      */
     protected int $priority = 0;
@@ -129,26 +124,6 @@ class QueueItem extends AbstractEntity
     public function setChanged(DateTime $changed): QueueItem
     {
         $this->changed = $changed;
-
-        return $this;
-    }
-
-    /**
-     * @return DateTime
-     */
-    public function getIndexed(): DateTime
-    {
-        return $this->indexed;
-    }
-
-    /**
-     * @param DateTime $indexed
-     *
-     * @return QueueItem
-     */
-    public function setIndexed(DateTime $indexed): QueueItem
-    {
-        $this->indexed = $indexed;
 
         return $this;
     }

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\ViewHelpers\Indexer;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -68,7 +69,7 @@ class IconViewHelper extends AbstractViewHelper
     {
         $type = $this->arguments['type'] ?? '';
 
-        foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['typo3_search_algolia']['indexer'] as $indexerConfiguration) {
+        foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'] as $indexerConfiguration) {
             /** @var IndexerInterface $indexerInstance */
             $indexerInstance = GeneralUtility::makeInstance($indexerConfiguration['className']);
 

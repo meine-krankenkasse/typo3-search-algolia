@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+
 /**
  * Class IndexerRegistry.
  *
@@ -32,7 +34,7 @@ class IndexerRegistry
         string $className,
         ?string $icon = null,
     ): void {
-        $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['typo3_search_algolia']['indexer'][] = [
+        $GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'][] = [
             'title'     => $title,
             'className' => $className,
             'icon'      => $icon,

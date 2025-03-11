@@ -12,11 +12,13 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Command;
 
 use Doctrine\DBAL\Exception;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexerRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\Console\Command\Command;
@@ -27,6 +29,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 
@@ -45,6 +48,11 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      * @var SymfonyStyle
      */
     private SymfonyStyle $io;
+
+    /**
+     * @var PersistenceManagerInterface
+     */
+    private PersistenceManagerInterface $persistenceManager;
 
     /**
      * @var Registry
@@ -67,25 +75,36 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     private IndexerRepository $indexerRepository;
 
     /**
+     * @var QueueStatusService
+     */
+    private QueueStatusService $queueStatusService;
+
+    /**
      * Constructor.
      *
-     * @param Registry            $registry
-     * @param ConnectionPool      $connectionPool
-     * @param QueueItemRepository $queueItemRepository
-     * @param IndexerRepository   $indexerRepository
+     * @param PersistenceManagerInterface $persistenceManager
+     * @param Registry                    $registry
+     * @param ConnectionPool              $connectionPool
+     * @param QueueItemRepository         $queueItemRepository
+     * @param IndexerRepository           $indexerRepository
+     * @param QueueStatusService          $queueStatusService
      */
     public function __construct(
+        PersistenceManagerInterface $persistenceManager,
         Registry $registry,
         ConnectionPool $connectionPool,
         QueueItemRepository $queueItemRepository,
         IndexerRepository $indexerRepository,
+        QueueStatusService $queueStatusService,
     ) {
         parent::__construct();
 
+        $this->persistenceManager  = $persistenceManager;
         $this->registry            = $registry;
         $this->connectionPool      = $connectionPool;
         $this->queueItemRepository = $queueItemRepository;
         $this->indexerRepository   = $indexerRepository;
+        $this->queueStatusService  = $queueStatusService;
     }
 
     /**
@@ -149,7 +168,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
 
         /** @var QueueItem $item */
         foreach ($queueItems as $item) {
-            $queryBuilderTable = $this->connectionPool
+            $queryBuilder = $this->connectionPool
                 ->getQueryBuilderForTable($item->getTableName());
 
             // Multiple indexers may exist for each type
@@ -157,11 +176,11 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 ->findByType($item->getIndexerType());
 
             // Query record
-            $record = $queryBuilderTable
+            $record = $queryBuilder
                 ->select('*')
                 ->from($item->getTableName())
                 ->where(
-                    $queryBuilderTable->expr()->in(
+                    $queryBuilder->expr()->in(
                         'uid',
                         $item->getRecordUid()
                     )
@@ -172,7 +191,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             /** @var Indexer $indexerModel */
             foreach ($indexerModels as $indexerModel) {
                 // Find matching indexer
-                foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['typo3_search_algolia']['indexer'] as $indexerConfiguration) {
+                foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'] as $indexerConfiguration) {
                     /** @var IndexerInterface $indexerInstance */
                     $indexerInstance = GeneralUtility::makeInstance($indexerConfiguration['className']);
 
@@ -184,6 +203,10 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 }
             }
 
+            // Remove index item from queue
+            $this->queueItemRepository->remove($item);
+            $this->persistenceManager->persistAll();
+
             $progressBar->advance();
 
             // Track progress in the registry
@@ -193,6 +216,9 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 $progressBar->getProgressPercent()
             );
         }
+
+        $this->queueStatusService
+            ->setLastExecutionTime(time());
 
         $progressBar->finish();
         $this->io->newLine(2);

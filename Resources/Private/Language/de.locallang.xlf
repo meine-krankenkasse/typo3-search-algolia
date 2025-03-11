@@ -76,6 +76,30 @@
             <trans-unit id="index_queue.description">
                 <target>Die Warteschlange verwaltet die Inhaltsindizierung. Inhalte gelangen durch die unten stehende Initialisierung oder wenn basierend auf der Konfiguration neue Inhalte erstellt werden, in die Warteschlange. Die Elemente in der Warteschlange werden zuerst nach den neuesten Änderungen indexiert, gefolgt von den restlichen Elementen.</target>
             </trans-unit>
+            <trans-unit id="index_queue.statistics">
+                <target>Warteschlangenstatistik</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.total">
+                <target><![CDATA[Die Warteschlange enthält derzeit <strong>%s</strong> Einträge.]]></target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.last_execution.info">
+                <target>Die letzte Indizierung erfolgte am:</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.last_execution.never">
+                <target>noch nie</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.last_execution.date_format">
+                <target>d.m.Y H:i:s</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.column.type">
+                <target>Art des Inhalts</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.column.count">
+                <target>Anzahl</target>
+            </trans-unit>
+            <trans-unit id="index_queue.table.overview">
+                <target>Verfügbare Indexer</target>
+            </trans-unit>
             <trans-unit id="index_queue.table.column.id">
                 <target>ID</target>
             </trans-unit>
@@ -93,6 +117,12 @@
             </trans-unit>
             <trans-unit id="index_queue.information.body">
                 <target>Es werden jeweils nur die aktiven Indexer ausgeführt. Das Initialisieren der Warteschlange ist eine Möglichkeit, eine komplette Neuindizierung zu erreichen oder den Index erstmalig zu befüllen. Die Scheduler-Aufgabe „Index Queue Worker“ indiziert dann die in der Warteschlange aufgelisteten Elemente.</target>
+            </trans-unit>
+            <trans-unit id="index_queue.flash_message.title">
+                <target>Einreihen in die Warteschlange</target>
+            </trans-unit>
+            <trans-unit id="index_queue.flash_message.body">
+                <target>%s Elemente erfolgreich zur Warteschlange hinzugefügt.</target>
             </trans-unit>
 
             <!-- Errors -->

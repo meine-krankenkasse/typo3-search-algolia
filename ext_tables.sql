@@ -61,7 +61,6 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_queueitem
     record_uid   int(11)              DEFAULT '0' NOT NULL,
     indexer_type varchar(32)          DEFAULT ''  NOT NULL,
     changed      int(11) unsigned     DEFAULT '0' NOT NULL,
-    indexed      int(11)              DEFAULT '0' NOT NULL,
     priority     smallint(5) unsigned DEFAULT '0' NOT NULL,
 
     PRIMARY KEY (uid),

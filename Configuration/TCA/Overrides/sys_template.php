@@ -9,6 +9,7 @@
 
 declare(strict_types=1);
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 
 defined('TYPO3') || exit('Access denied.');
@@ -16,7 +17,7 @@ defined('TYPO3') || exit('Access denied.');
 // TCA override for sys_template table
 call_user_func(static function (): void {
     ExtensionManagementUtility::addStaticFile(
-        'typo3_search_algolia',
+        Constants::EXTENSION_NAME,
         'Configuration/TypoScript',
         'MKK: TYPO3 Search Algolia'
     );

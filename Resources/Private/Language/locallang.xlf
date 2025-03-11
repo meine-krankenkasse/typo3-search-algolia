@@ -76,6 +76,30 @@
             <trans-unit id="index_queue.description">
                 <source>The queue manages content indexing. Content enters the queue through the initialization below or when new content is created based on the configuration. The items in the queue are indexed first by the most recent changes, followed by the rest of the items.</source>
             </trans-unit>
+            <trans-unit id="index_queue.statistics">
+                <source>Queue Statistic</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.total">
+                <source><![CDATA[The queue currently contains <strong>%s</strong> entries.]]></source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.last_execution.info">
+                <source>The last indexing was on:</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.last_execution.never">
+                <source>never</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.last_execution.date_format">
+                <source>Y-m-d H:i:s</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.column.type">
+                <source>Type of enqueued content</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.column.count">
+                <source>Count</source>
+            </trans-unit>
+            <trans-unit id="index_queue.table.overview">
+                <source>Available Indexer</source>
+            </trans-unit>
             <trans-unit id="index_queue.table.column.id">
                 <source>ID</source>
             </trans-unit>
@@ -93,6 +117,12 @@
             </trans-unit>
             <trans-unit id="index_queue.information.body">
                 <source>Only the active indexers are executed at a time. Initializing the queue is one way to achieve a complete reindex or to populate the index for the first time. The Index Queue Worker scheduler task then indexes the items listed in the queue.</source>
+            </trans-unit>
+            <trans-unit id="index_queue.flash_message.title">
+                <source>Enqueuing</source>
+            </trans-unit>
+            <trans-unit id="index_queue.flash_message.body">
+                <source>%s items successfully added to queue.</source>
             </trans-unit>
 
             <!-- Errors -->

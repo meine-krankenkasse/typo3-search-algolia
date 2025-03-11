@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
 use Doctrine\DBAL\Exception;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
@@ -165,7 +166,7 @@ abstract class AbstractIndexer implements IndexerInterface
         $configurationManager    = GeneralUtility::makeInstance(ConfigurationManager::class);
         $typoscriptConfiguration = $configurationManager->getConfiguration(
             ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT,
-            'typo3_search_algolia'
+            Constants::EXTENSION_NAME
         );
 
         return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'];

@@ -182,7 +182,6 @@ return [
                 'maxitems'      => 1,
                 'required'      => true,
             ],
-            //            'onChange'    => 'reload',
         ],
         'search_engine' => [
             'exclude'     => false,

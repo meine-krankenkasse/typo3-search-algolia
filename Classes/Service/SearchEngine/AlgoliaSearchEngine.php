@@ -18,6 +18,7 @@ use Algolia\AlgoliaSearch\Model\Search\OperationType;
 use Algolia\AlgoliaSearch\Model\Search\SaveObjectResponse;
 use Algolia\AlgoliaSearch\Model\Search\UpdatedAtResponse;
 use Exception;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Throwable;
@@ -61,7 +62,7 @@ class AlgoliaSearchEngine implements SearchEngineInterface
         ExtensionConfiguration $extensionConfiguration,
     ) {
         try {
-            $configuration = $extensionConfiguration->get('typo3_search_algolia');
+            $configuration = $extensionConfiguration->get(Constants::EXTENSION_NAME);
         } catch (Exception) {
             $configuration = [];
         }
