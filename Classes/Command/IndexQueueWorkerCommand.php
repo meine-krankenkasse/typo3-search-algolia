@@ -204,8 +204,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
 
             // Track progress in the registry
             $this->registry->set(
+                'tx_typo3searchalgolia',
                 'indexQueueWorkerProgress',
-                'progress',
                 $progressBar->getProgressPercent()
             );
         }
@@ -244,7 +244,10 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     public function getProgress(): float
     {
         /** @var int|null $progress */
-        $progress = $this->registry->get('indexQueueWorkerProgress', 'progress');
+        $progress = $this->registry->get(
+            'tx_typo3searchalgolia',
+            'indexQueueWorkerProgress',
+        );
 
         return $progress !== null ? $progress * 100.0 : 0;
     }

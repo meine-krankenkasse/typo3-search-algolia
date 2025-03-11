@@ -14,6 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
@@ -38,8 +39,6 @@ use function is_array;
  */
 abstract class AbstractIndexer implements IndexerInterface
 {
-    private const string QUEUE_TABLE = 'tx_typo3searchalgolia_domain_model_queueitem';
-
     /**
      * @var ConnectionPool
      */
@@ -56,6 +55,11 @@ abstract class AbstractIndexer implements IndexerInterface
     protected PageRepository $pageRepository;
 
     /**
+     * @var QueueItemRepository
+     */
+    private QueueItemRepository $queueItemRepository;
+
+    /**
      * @var string
      */
     private string $title = '';
@@ -68,18 +72,21 @@ abstract class AbstractIndexer implements IndexerInterface
     /**
      * Constructor.
      *
-     * @param ConnectionPool $connectionPool
-     * @param SiteFinder     $siteFinder
-     * @param PageRepository $pageRepository
+     * @param ConnectionPool      $connectionPool
+     * @param SiteFinder          $siteFinder
+     * @param PageRepository      $pageRepository
+     * @param QueueItemRepository $queueItemRepository
      */
     public function __construct(
         ConnectionPool $connectionPool,
         SiteFinder $siteFinder,
         PageRepository $pageRepository,
+        QueueItemRepository $queueItemRepository,
     ) {
         $this->connectionPool = $connectionPool;
         $this->siteFinder     = $siteFinder;
         $this->pageRepository = $pageRepository;
+        $this->queueItemRepository = $queueItemRepository;
     }
 
     /**
@@ -124,11 +131,13 @@ abstract class AbstractIndexer implements IndexerInterface
 
     public function enqueue(): int
     {
-        $this->removeItemsFromQueue();
+        $this->queueItemRepository
+            ->deleteByType($this->getType());
 
-        return $this->addItemsToQueue(
-            $this->queryItems()
-        );
+        return $this->queueItemRepository
+            ->bulkInsert(
+                $this->queryItems()
+            );
     }
 
     public function dequeue(): void
@@ -141,7 +150,7 @@ abstract class AbstractIndexer implements IndexerInterface
             $indexer->getSearchEngine()->getEngine()
         );
 
-        if ($searchEngineService === null) {
+        if (!($searchEngineService instanceof SearchEngineInterface)) {
             return false;
         }
 
@@ -152,7 +161,7 @@ abstract class AbstractIndexer implements IndexerInterface
         /** @var Document $document */
         $document = GeneralUtility::makeInstance(Document::class);
 
-        // Fill The document with configured fields for each type
+        // Fill the document with configured fields for each type
         $this->addRecordFieldsToDocument($indexer, $document, $record);
 
         // var_dump($document);
@@ -297,60 +306,6 @@ abstract class AbstractIndexer implements IndexerInterface
             ->where(...$constraints)
             ->executeQuery()
             ->fetchAllAssociative();
-    }
-
-    /**
-     * Adds records from the current indexer table to the queue table. Returns the number of
-     * enqueued items.
-     *
-     * @param array<int, array<string, int|string>> $records
-     *
-     * @return int
-     */
-    private function addItemsToQueue(array $records): int
-    {
-        $itemCount = count($records);
-
-        if ($itemCount <= 0) {
-            return 0;
-        }
-
-        // Prevent errors with to many records, so split up in chunks
-        $recordsChunks = array_chunk($records, 1000);
-
-        foreach ($recordsChunks as $recordsChunk) {
-            $this->connectionPool
-                ->getConnectionForTable(self::QUEUE_TABLE)
-                ->bulkInsert(
-                    self::QUEUE_TABLE,
-                    $recordsChunk,
-                    array_keys($records[0])
-                );
-        }
-
-        return $itemCount;
-    }
-
-    /**
-     * Removes previously added items from the queue. Removes only the items of
-     * the current processed indexer.
-     *
-     * @return void
-     */
-    private function removeItemsFromQueue(): void
-    {
-        $queryBuilder = $this->connectionPool
-            ->getQueryBuilderForTable(self::QUEUE_TABLE);
-
-        $queryBuilder
-            ->delete(self::QUEUE_TABLE)
-            ->where(
-                $queryBuilder->expr()->in(
-                    'indexer_type',
-                    $queryBuilder->createNamedParameter($this->getType())
-                )
-            )
-            ->executeStatement();
     }
 
     /**

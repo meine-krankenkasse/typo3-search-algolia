@@ -17,6 +17,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
 use TYPO3\CMS\Extbase\Persistence\Repository;
+use function count;
 
 /**
  * The domain model queue item repository.
@@ -29,6 +30,21 @@ use TYPO3\CMS\Extbase\Persistence\Repository;
  */
 class QueueItemRepository extends Repository
 {
+    private const string TABLE_NAME = 'tx_typo3searchalgolia_domain_model_queueitem';
+
+    /**
+     * Constructor.
+     *
+     * @param ConnectionPool $connectionPool
+     */
+    public function __construct(
+        ConnectionPool $connectionPool
+    ) {
+        parent::__construct();
+
+        $this->connectionPool = $connectionPool;
+    }
+
     /**
      * Initializes the repository.
      *
@@ -53,15 +69,72 @@ class QueueItemRepository extends Repository
      */
     public function getStatistics(): array
     {
-        $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
-        $queryBuilder   = $connectionPool->getQueryBuilderForTable('tx_typo3searchalgolia_domain_model_queueitem');
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable(self::TABLE_NAME);
 
         return $queryBuilder
             ->select('indexer_type')
             ->addSelectLiteral('COUNT(*) AS count')
-            ->from('tx_typo3searchalgolia_domain_model_queueitem')
+            ->from(self::TABLE_NAME)
             ->groupBy('indexer_type')
             ->executeQuery()
             ->fetchAllAssociative();
+    }
+
+    /**
+     * Adds multiple records to the queue table. Returns the number of enqueued items.
+     *
+     * @param array<int, array<string, int|string>> $records
+     *
+     * @return int
+     */
+    public function bulkInsert(array $records): int
+    {
+        $itemCount = count($records);
+
+        if ($itemCount <= 0) {
+            return 0;
+        }
+
+        $connection = $this->connectionPool
+            ->getConnectionForTable(self::TABLE_NAME);
+
+        // Avoid errors caused by too many records by dividing them into blocks.
+        $recordsChunks = array_chunk($records, 1000);
+
+        foreach ($recordsChunks as $recordsChunk) {
+            $connection
+                ->bulkInsert(
+                    self::TABLE_NAME,
+                    $recordsChunk,
+                    array_keys($records[0])
+                );
+        }
+
+        return $itemCount;
+    }
+
+    /**
+     * Deletes previously added items from the queue. Removes only the items of
+     * the given indexer type.
+     *
+     * @param string $indexerType
+     *
+     * @return void
+     */
+    public function deleteByType(string $indexerType): void
+    {
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable(self::TABLE_NAME);
+
+        $queryBuilder
+            ->delete(self::TABLE_NAME)
+            ->where(
+                $queryBuilder->expr()->in(
+                    'indexer_type',
+                    $queryBuilder->createNamedParameter($indexerType)
+                )
+            )
+            ->executeStatement();
     }
 }
