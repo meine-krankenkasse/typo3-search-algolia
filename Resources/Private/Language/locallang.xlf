@@ -3,6 +3,14 @@
     <file source-language="en" datatype="plaintext" original="messages">
         <header/>
         <body>
+            <!-- Scheduler -->
+            <trans-unit id="executeSchedulableCommandTask.name">
+                <source>Execute console commands with progress bar</source>
+            </trans-unit>
+            <trans-unit id="executeSchedulableCommandTask.description">
+                <source>Allows regular console commands to be configured and executed through the scheduler framework. Allows the current progress to be passed to the task.</source>
+            </trans-unit>
+
             <!-- Indexer -->
             <trans-unit id="indexer.page.title">
                 <source>Pages</source>

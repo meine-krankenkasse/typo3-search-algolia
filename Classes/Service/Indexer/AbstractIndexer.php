@@ -56,6 +56,16 @@ abstract class AbstractIndexer implements IndexerInterface
     protected PageRepository $pageRepository;
 
     /**
+     * @var string
+     */
+    private string $title = '';
+
+    /**
+     * @var string
+     */
+    private string $icon = '';
+
+    /**
      * Constructor.
      *
      * @param ConnectionPool $connectionPool
@@ -70,6 +80,46 @@ abstract class AbstractIndexer implements IndexerInterface
         $this->connectionPool = $connectionPool;
         $this->siteFinder     = $siteFinder;
         $this->pageRepository = $pageRepository;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+
+    /**
+     * @param string $title
+     *
+     * @return AbstractIndexer
+     */
+    public function setTitle(string $title): AbstractIndexer
+    {
+        $this->title = $title;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getIcon(): string
+    {
+        return $this->icon;
+    }
+
+    /**
+     * @param string $icon
+     *
+     * @return AbstractIndexer
+     */
+    public function setIcon(string $icon): AbstractIndexer
+    {
+        $this->icon = $icon;
+
+        return $this;
     }
 
     public function enqueue(): int

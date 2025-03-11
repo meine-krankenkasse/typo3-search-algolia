@@ -12,12 +12,11 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Command;
 
 use Doctrine\DBAL\Exception;
-use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexerRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -28,7 +27,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Registry;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
@@ -129,6 +127,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     }
 
     /**
+     * Executes the current command.
+     *
      * @param InputInterface  $input
      * @param OutputInterface $output
      *
@@ -138,9 +138,6 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     {
         $this->io = new SymfonyStyle($input, $output);
         $this->io->title($this->getName() ?? '');
-
-        // Authenticate CommandLineUserAuthentication user for DataHandler usage
-        $GLOBALS['BE_USER']->backendCheckLogin();
 
         $this->indexItems(
             (int) $input->getOption('documentsToIndex')
@@ -163,7 +160,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
 
         $queueItems = $this->getItemsFromQueue($documentsToIndex);
 
-        $progressBar = $this->io->createProgressBar($documentsToIndex);
+        $progressBar = $this->io->createProgressBar($queueItems->count());
         $progressBar->start();
 
         /** @var QueueItem $item */
@@ -191,16 +188,12 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             /** @var Indexer $indexerModel */
             foreach ($indexerModels as $indexerModel) {
                 // Find matching indexer
-                foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'] as $indexerConfiguration) {
-                    /** @var IndexerInterface $indexerInstance */
-                    $indexerInstance = GeneralUtility::makeInstance($indexerConfiguration['className']);
+                $indexerInstance = IndexerRegistry::getIndexerByType($indexerModel->getType());
 
-                    if ($indexerInstance->getType() !== $indexerModel->getType()) {
-                        continue;
-                    }
-
-                    $indexerInstance->indexRecord($indexerModel, $record);
-                }
+                $indexerInstance?->indexRecord(
+                    $indexerModel,
+                    $record
+                );
             }
 
             // Remove index item from queue

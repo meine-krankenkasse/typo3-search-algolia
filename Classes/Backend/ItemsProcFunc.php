@@ -11,12 +11,8 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Backend;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-
-use function is_array;
 
 /**
  * Provides methods to dynamically populate table and field selection lists.
@@ -50,19 +46,12 @@ class ItemsProcFunc
      */
     public function getIndexerTypes(array &$config): void
     {
-        if (isset($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'])
-            && is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'])
-        ) {
-            foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'] as $indexerConfiguration) {
-                /** @var IndexerInterface $indexerInstance */
-                $indexerInstance = GeneralUtility::makeInstance($indexerConfiguration['className']);
-
-                $config['items'][] = [
-                    $indexerConfiguration['title'],
-                    $indexerInstance->getType(),
-                    $indexerConfiguration['icon'],
-                ];
-            }
+        foreach (IndexerRegistry::getIndexers() as $indexer) {
+            $config['items'][] = [
+                $indexer->getTitle(),
+                $indexer->getType(),
+                $indexer->getIcon(),
+            ];
         }
     }
 }

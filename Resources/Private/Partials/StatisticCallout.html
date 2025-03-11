@@ -1,0 +1,31 @@
+<html data-namespace-typo3-fluid="true"
+      xmlns="http://www.w3.org/1999/xhtml" lang="en"
+      xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+      xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+      xmlns:mkk="http://typo3.org/ns/MeineKrankenkasse/Typo3SearchAlgolia/ViewHelpers"
+>
+    <div class="t3js-infobox callout callout-info">
+        <div class="media">
+            <div class="media-left">
+                <span class="icon-emphasized">
+                    <core:icon identifier="actions-info" />
+                </span>
+            </div>
+            <div class="media-body">
+                <div class="callout-body">
+                    <f:format.raw><f:translate key="index_queue.statistics.total" arguments="{0: '{mkk:queue.totalCount(statistics: queueStatistics) -> f:format.number(decimals: 0, thousandsSeparator: \'.\')}'}" /></f:format.raw>
+                    <br>
+                    <f:translate key="index_queue.statistics.last_execution.info" />
+                    <f:if condition="{lastExecutionTime} == 0">
+                        <f:then>
+                            <f:translate key="index_queue.statistics.last_execution.never" />
+                        </f:then>
+                        <f:else>
+                            <f:format.date date="{lastExecutionTime}" format="{f:translate(key: 'index_queue.statistics.last_execution.date_format')}" />
+                        </f:else>
+                    </f:if>
+                </div>
+            </div>
+        </div>
+    </div>
+</html>

@@ -3,6 +3,14 @@
     <file target-language="de" datatype="plaintext" original="messages">
         <header/>
         <body>
+            <!-- Scheduler -->
+            <trans-unit id="executeSchedulableCommandTask.name">
+                <target>Ausführen von Konsolenbefehlen mit Fortschrittsbalken</target>
+            </trans-unit>
+            <trans-unit id="executeSchedulableCommandTask.description">
+                <target>Ermöglicht die Konfiguration und Ausführung regulärer Konsolenbefehle über das Scheduler-Framework. Ermöglicht die Weitergabe des aktuellen Fortschritts an die Aufgabe.</target>
+            </trans-unit>
+
             <!-- Indexer -->
             <trans-unit id="indexer.page.title">
                 <target>Seiten</target>

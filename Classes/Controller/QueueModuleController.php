@@ -16,6 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Dto\QueueDemand;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexerRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
 use Psr\Http\Message\ResponseInterface;
@@ -79,13 +80,12 @@ class QueueModuleController extends AbstractBaseModuleController
      */
     public function indexAction(?QueueDemand $queueDemand = null): ResponseInterface
     {
-        // TODO Use PropertyMapper to map selected indexers directly into the matching Indexer-Model
-
         if (!($queueDemand instanceof QueueDemand)) {
             /** @var QueueDemand $searchDemand */
             $queueDemand = GeneralUtility::makeInstance(QueueDemand::class);
         }
 
+        // TODO Use PropertyMapper to map selected indexers directly into the matching Indexer-Model
         $indexerUIDs = array_map(
             '\intval',
             $queueDemand->getIndexers()
@@ -99,14 +99,9 @@ class QueueModuleController extends AbstractBaseModuleController
 
             /** @var Indexer $indexerModel */
             foreach ($indexerModels as $indexerModel) {
-                foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'] as $indexerConfiguration) {
-                    /** @var IndexerInterface $indexerInstance */
-                    $indexerInstance = GeneralUtility::makeInstance($indexerConfiguration['className']);
+                $indexerInstance = IndexerRegistry::getIndexerByType($indexerModel->getType());
 
-                    if ($indexerInstance->getType() !== $indexerModel->getType()) {
-                        continue;
-                    }
-
+                if ($indexerInstance instanceof IndexerInterface) {
                     $itemCount += $indexerInstance->enqueue();
                 }
             }
@@ -130,10 +125,12 @@ class QueueModuleController extends AbstractBaseModuleController
             'indexers',
             $this->indexerRepository->findAll()
         );
+
         $this->moduleTemplate->assign(
             'queueStatistics',
             $this->queueItemRepository->getStatistics()
         );
+
         $this->moduleTemplate->assign(
             'lastExecutionTime',
             $this->queueStatusService->getLastExecutionTime()

@@ -23,57 +23,36 @@
                 <h3 class="mb-3"><f:translate key="index_queue.statistics" /></h3>
 
                 <div>
-                    <div class="t3js-infobox callout callout-info">
-                        <div class="media">
-                            <div class="media-left">
-                            <span class="icon-emphasized">
-                                <core:icon identifier="actions-info" />
-                            </span>
-                            </div>
-                            <div class="media-body">
-                                <div class="callout-body">
-                                    <f:format.raw><f:translate key="index_queue.statistics.total" arguments="{0: '{mkk:queue.totalCount(statistics: queueStatistics) -> f:format.number(decimals: 0, thousandsSeparator: \'.\')}'}" /></f:format.raw>
-                                    <br>
-                                    <f:translate key="index_queue.statistics.last_execution.info" />
-                                    <f:if condition="{lastExecutionTime} == 0">
-                                        <f:then>
-                                            <f:translate key="index_queue.statistics.last_execution.never" />
-                                        </f:then>
-                                        <f:else>
-                                            <f:format.date date="{lastExecutionTime}" format="{f:translate(key: 'index_queue.statistics.last_execution.date_format')}" />
-                                        </f:else>
-                                    </f:if>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <f:render partial="StatisticCallout" arguments="{_all}" />
 
-                    <div class="table-fit">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <f:translate key="index_queue.statistics.column.type" />
-                                    </th>
-                                    <th class="text-end">
-                                        <f:translate key="index_queue.statistics.column.count" />
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <f:for each="{queueStatistics}" as="statistic">
+                    <f:if condition="{queueStatistics}">
+                        <div class="table-fit">
+                            <table class="table table-striped table-hover">
+                                <thead>
                                     <tr>
-                                        <td>
-                                            <f:translate key="indexer.{statistic.indexer_type}.title" />
-                                        </td>
-                                        <td class="text-end">
-                                            {statistic.count -> f:format.number(decimals: 0, thousandsSeparator: '.')}
-                                        </td>
+                                        <th>
+                                            <f:translate key="index_queue.statistics.column.type" />
+                                        </th>
+                                        <th class="text-end">
+                                            <f:translate key="index_queue.statistics.column.count" />
+                                        </th>
                                     </tr>
-                                </f:for>
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    <f:for each="{queueStatistics}" as="statistic">
+                                        <tr>
+                                            <td>
+                                                <f:translate key="indexer.{statistic.indexer_type}.title" />
+                                            </td>
+                                            <td class="text-end">
+                                                {statistic.count -> f:format.number(decimals: 0, thousandsSeparator: '.')}
+                                            </td>
+                                        </tr>
+                                    </f:for>
+                                </tbody>
+                            </table>
+                        </div>
+                    </f:if>
                 </div>
             </div>
 
@@ -154,7 +133,7 @@
                         </table>
                     </div>
 
-                    <f:render partial="InformationCallout" />
+                    <f:render partial="InformationCallout" arguments="{_all}" />
 
                     <f:form.button class="btn btn-default" type="submit">
                         <core:icon identifier="actions-document-add" />

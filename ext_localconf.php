@@ -12,10 +12,12 @@ declare(strict_types=1);
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerRegistry;
+use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine\AlgoliaSearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine\SolrSearchEngine;
+use MeineKrankenkasse\Typo3SearchAlgolia\Task\ExecuteSchedulableCommandTask;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Scheduler\Task\ExecuteSchedulableCommandAdditionalFieldProvider;
 
 defined('TYPO3') || exit('Access denied.');
 
@@ -72,6 +74,14 @@ call_user_func(static function (): void {
         ContentIndexer::class,
         'form-content-element',
     );
+
+    // Add task
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][ExecuteSchedulableCommandTask::class] = [
+        'extension'        => 'typo3_search_algolia',
+        'title'            => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:executeSchedulableCommandTask.name',
+        'description'      => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:executeSchedulableCommandTask.description',
+        'additionalFields' => ExecuteSchedulableCommandAdditionalFieldProvider::class,
+    ];
 
     // Add our custom style sheet
     $GLOBALS['TYPO3_CONF_VARS']['BE']['stylesheets'][Constants::EXTENSION_NAME]
