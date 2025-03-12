@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Command;
 
-use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexerRepository;
@@ -25,6 +24,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
@@ -150,8 +150,6 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      * @param int $documentsToIndex
      *
      * @return void
-     *
-     * @throws Exception
      */
     private function indexItems(int $documentsToIndex): void
     {
@@ -165,25 +163,16 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
 
         /** @var QueueItem $item */
         foreach ($queueItems as $item) {
-            $queryBuilder = $this->connectionPool
-                ->getQueryBuilderForTable($item->getTableName());
+            // Get underlying record
+            $record = $this->fetchRecord($item);
+
+            if ($record === false) {
+                continue;
+            }
 
             // Multiple indexers may exist for each type
             $indexerModels = $this->indexerRepository
                 ->findByType($item->getIndexerType());
-
-            // Query record
-            $record = $queryBuilder
-                ->select('*')
-                ->from($item->getTableName())
-                ->where(
-                    $queryBuilder->expr()->in(
-                        'uid',
-                        $item->getRecordUid()
-                    )
-                )
-                ->executeQuery()
-                ->fetchAssociative();
 
             /** @var Indexer $indexerModel */
             foreach ($indexerModels as $indexerModel) {
@@ -217,6 +206,35 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         $this->io->newLine(2);
 
         $this->io->success('Indexing done');
+    }
+
+    /**
+     * Queries a record from the table the item belongs to.
+     *
+     * @param QueueItem $item
+     *
+     * @return array<string, mixed>|false
+     */
+    private function fetchRecord(QueueItem $item): array|bool
+    {
+        try {
+            $queryBuilder = $this->connectionPool
+                ->getQueryBuilderForTable($item->getTableName());
+
+            return $queryBuilder
+                ->select('*')
+                ->from($item->getTableName())
+                ->where(
+                    $queryBuilder->expr()->in(
+                        'uid',
+                        $item->getRecordUid()
+                    )
+                )
+                ->executeQuery()
+                ->fetchAssociative();
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**

@@ -11,6 +11,9 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
+
 /**
  * The interface that every indexer must implement.
  *
@@ -57,13 +60,13 @@ interface IndexerInterface
      */
     public function dequeue(): void;
 
-    //    /**
-    //     * Performs the actual indexing. Queries the related items from the queue, creates the indexing document
-    //     * for each item and triggers the actual index at the configured search engine.
-    //     *
-    //     * @param array $record
-    //     *
-    //     * @return void
-    //     */
-    //    public function index(array $record): void;
+    /**
+     * Index a record.
+     *
+     * @param Indexer $indexer
+     * @param array   $record
+     *
+     * @return bool
+     */
+    public function indexRecord(Indexer $indexer, array $record): bool;
 }

@@ -19,8 +19,10 @@
     "require": {
         "typo3/cms-core": "^12.4",
         "typo3/cms-backend": "^12.4",
+        "typo3/cms-frontend": "^12.4",
         "typo3/cms-extbase": "^12.4",
         "typo3/cms-fluid": "^12.4",
+        "typo3/cms-scheduler": "^12.4",
         "algolia/algoliasearch-client-php": "^4.0"
     },
     "require-dev": {

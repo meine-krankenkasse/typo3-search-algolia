@@ -18,6 +18,9 @@
             <trans-unit id="indexer.tt_content.title">
                 <target>Inhaltselemente</target>
             </trans-unit>
+            <trans-unit id="indexer.news.title">
+                <target>Nachrichten</target>
+            </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_indexer -->
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexer">

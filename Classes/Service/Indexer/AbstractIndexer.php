@@ -12,10 +12,9 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
 use Doctrine\DBAL\Exception;
-use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -24,11 +23,6 @@ use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Configuration\ConfigurationManager;
-use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
-
-use function count;
-use function is_array;
 
 /**
  * Class AbstractIndexer.
@@ -57,7 +51,7 @@ abstract class AbstractIndexer implements IndexerInterface
     /**
      * @var QueueItemRepository
      */
-    private QueueItemRepository $queueItemRepository;
+    protected QueueItemRepository $queueItemRepository;
 
     /**
      * @var string
@@ -70,23 +64,31 @@ abstract class AbstractIndexer implements IndexerInterface
     private string $icon = '';
 
     /**
+     * @var DocumentBuilder
+     */
+    private DocumentBuilder $documentBuilder;
+
+    /**
      * Constructor.
      *
      * @param ConnectionPool      $connectionPool
      * @param SiteFinder          $siteFinder
      * @param PageRepository      $pageRepository
      * @param QueueItemRepository $queueItemRepository
+     * @param DocumentBuilder     $documentBuilder
      */
     public function __construct(
         ConnectionPool $connectionPool,
         SiteFinder $siteFinder,
         PageRepository $pageRepository,
         QueueItemRepository $queueItemRepository,
+        DocumentBuilder $documentBuilder,
     ) {
-        $this->connectionPool = $connectionPool;
-        $this->siteFinder     = $siteFinder;
-        $this->pageRepository = $pageRepository;
+        $this->connectionPool      = $connectionPool;
+        $this->siteFinder          = $siteFinder;
+        $this->pageRepository      = $pageRepository;
         $this->queueItemRepository = $queueItemRepository;
+        $this->documentBuilder     = $documentBuilder;
     }
 
     /**
@@ -142,6 +144,7 @@ abstract class AbstractIndexer implements IndexerInterface
 
     public function dequeue(): void
     {
+        // TODO
     }
 
     public function indexRecord(Indexer $indexer, array $record): bool
@@ -154,18 +157,16 @@ abstract class AbstractIndexer implements IndexerInterface
             return false;
         }
 
+        // Build the document
+        $document = $this->documentBuilder
+            ->setIndexer($this)
+            ->setRecord($record)
+            ->assemble()
+            ->getDocument();
+
         $searchEngineService->indexOpen(
             $indexer->getSearchEngine()->getIndexName()
         );
-
-        /** @var Document $document */
-        $document = GeneralUtility::makeInstance(Document::class);
-
-        // Fill the document with configured fields for each type
-        $this->addRecordFieldsToDocument($indexer, $document, $record);
-
-        // var_dump($document);
-        // exit;
 
         $result = $searchEngineService->documentUpdate($document);
 
@@ -173,62 +174,6 @@ abstract class AbstractIndexer implements IndexerInterface
         $searchEngineService->indexClose();
 
         return $result;
-    }
-
-    /**
-     * @param Indexer  $indexer
-     * @param Document $document
-     * @param array    $record
-     *
-     * @return void
-     */
-    private function addRecordFieldsToDocument(Indexer $indexer, Document $document, array $record): void
-    {
-        $typoscriptConfiguration = $this->getTypoScriptConfiguration();
-
-        foreach ($record as $fieldName => $recordValue) {
-            if (!isset($typoscriptConfiguration['indexer'][$indexer->getType()][$fieldName])) {
-                continue;
-            }
-
-            $fieldName  = $typoscriptConfiguration['indexer'][$indexer->getType()][$fieldName];
-            $fieldValue = $this->resolveFieldValue($indexer, $fieldName, $recordValue);
-
-            // Ignore empty field values
-            if (($fieldValue === null)
-                || ($fieldValue === '')
-                || (is_array($fieldValue) && empty($fieldValue))
-            ) {
-                continue;
-            }
-
-            $document->setField(
-                $fieldName,
-                $fieldValue
-            );
-        }
-    }
-
-    /**
-     * @param int|string $key
-     * @param mixed      $value
-     *
-     * @return array|float|int|string|null
-     */
-    private function resolveFieldValue(Indexer $indexer, int|string $key, mixed $value): array|float|int|string|null
-    {
-        return $value;
-    }
-
-    private function getTypoScriptConfiguration(): array
-    {
-        $configurationManager    = GeneralUtility::makeInstance(ConfigurationManager::class);
-        $typoscriptConfiguration = $configurationManager->getConfiguration(
-            ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT,
-            Constants::EXTENSION_NAME
-        );
-
-        return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'];
     }
 
     /**
@@ -306,6 +251,11 @@ abstract class AbstractIndexer implements IndexerInterface
             ->where(...$constraints)
             ->executeQuery()
             ->fetchAllAssociative();
+    }
+
+    public function getIndexerConstraints(): array
+    {
+        return [];
     }
 
     /**

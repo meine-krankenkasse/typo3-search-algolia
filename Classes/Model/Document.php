@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Model;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+
 /**
  * Class Document.
  *
@@ -21,9 +23,47 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Model;
 class Document
 {
     /**
+     * @var IndexerInterface
+     */
+    private IndexerInterface $indexer;
+
+    /**
+     * @var array<mixed>
+     */
+    private array $record;
+
+    /**
      * @var array<int, mixed>
      */
     private array $fields = [];
+
+    /**
+     * Constructor.
+     *
+     * @param IndexerInterface $indexer
+     * @param mixed[]          $record
+     */
+    public function __construct(IndexerInterface $indexer, array $record)
+    {
+        $this->indexer = $indexer;
+        $this->record  = $record;
+    }
+
+    /**
+     * @return IndexerInterface
+     */
+    public function getIndexer(): IndexerInterface
+    {
+        return $this->indexer;
+    }
+
+    /**
+     * @return array
+     */
+    public function getRecord(): array
+    {
+        return $this->record;
+    }
 
     /**
      * @return array<int, mixed>

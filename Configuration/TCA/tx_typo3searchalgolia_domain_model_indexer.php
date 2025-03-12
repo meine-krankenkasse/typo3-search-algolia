@@ -178,9 +178,12 @@ return [
                     ],
                 ],
                 'itemsProcFunc' => ItemsProcFunc::class . '->getIndexerTypes',
-                'minitems'      => 1,
-                'maxitems'      => 1,
-                'required'      => true,
+                'sortItems'     => [
+                    'label' => 'asc',
+                ],
+                'minitems' => 1,
+                'maxitems' => 1,
+                'required' => true,
             ],
         ],
         'search_engine' => [

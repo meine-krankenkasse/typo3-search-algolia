@@ -135,47 +135,29 @@ class AlgoliaSearchEngine implements SearchEngineInterface
     }
 
     /**
-     * @param string $extKey
-     * @param string $contentType
-     * @param string $uid
+     * Returns a unique document ID for the document to index.
+     *
+     * @param Document $document
      *
      * @return string
      */
-    private function getUniqueObjectId(string $extKey, string $contentType, string $uid): string
+    private function getDocumentId(Document $document): string
     {
-        return $extKey . ':' . $contentType . '-' . $uid;
+        return $document->getIndexer()->getTable() . ':' . $document->getRecord()['uid'];
     }
 
     public function documentAdd(Document $document): bool
     {
-        $record = $document->getFields();
-
-        //        // Primary key data (fields are all scalar)
-        //        $primaryKeyData = $document->getPrimaryKey();
-        //
-        //        foreach ($primaryKeyData as $key => $field) {
-        // //            if ($field instanceof tx_mksearch_model_IndexerFieldBase) {
-        // //                $record[$key] = tx_mksearch_util_Misc::utf8Encode($field->getValue());
-        // //            }
-        //        }
-        //
-        //        foreach ($document->getData() as $key => $field) {
-        // //            if ($field instanceof tx_mksearch_model_IndexerFieldBase) {
-        // //                $record[$key] = tx_mksearch_util_Misc::utf8Encode($field->getValue());
-        // //            }
-        //        }
-        //
-        //        // An objectID must be specified for each record.
-        //        $record['objectID'] = $this->getUniqueObjectId(
-        //            $primaryKeyData['extKey']->getValue(),
-        //            $primaryKeyData['contentType']->getValue(),
-        //            $primaryKeyData['uid']->getValue()
-        //        );
+        // Add the unique ID
+        $document->setField(
+            'objectID',
+            $this->getDocumentId($document)
+        );
 
         $responseData = $this->client
             ->saveObject(
                 $this->indexName,
-                $record
+                $document->getFields()
             );
 
         return (new SaveObjectResponse($responseData))

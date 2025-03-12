@@ -1,20 +1,36 @@
 # Module configuration
 module {
     tx_typo3searchalgolia {
-        # Field mapping TYPO3 <=> Search Engine
+        # This section defines what fields of a record should go into the index.
+        #
+        # Field mapping TYPO3 field name <=> Search Engine field name
         indexer {
+            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer::TYPE
             page {
                 title = title
-                subtitle = subtitle
+                subtitle = subTitle
+                nav_title = navTitle
                 description = description
                 abstract = abstract
+                author = author
                 keywords = keywords
             }
 
+            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer::TYPE
             tt_content {
                 header = title
-                subheader = subtitle
+                subheader = subTitle
                 bodytext = description
+            }
+
+            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer::TYPE
+            news {
+                title = title
+                abstract = teaser
+                bodytext = description
+                author = author
+                author_email = authorEmail
+                keywords = keywords
             }
         }
     }

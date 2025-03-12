@@ -18,6 +18,9 @@
             <trans-unit id="indexer.tt_content.title">
                 <source>Content elements</source>
             </trans-unit>
+            <trans-unit id="indexer.news.title">
+                <source>News</source>
+            </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_indexer -->
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexer">

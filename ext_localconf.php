@@ -10,11 +10,11 @@
 declare(strict_types=1);
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine\AlgoliaSearchEngine;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine\SolrSearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Task\ExecuteSchedulableCommandTask;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Scheduler\Task\ExecuteSchedulableCommandAdditionalFieldProvider;
@@ -46,23 +46,7 @@ call_user_func(static function (): void {
         ]
     );
 
-    ExtensionManagementUtility::addService(
-        Constants::EXTENSION_NAME,
-        'mkk_search_engine',
-        SolrSearchEngine::class,
-        [
-            'title'       => 'Solr Search Service',
-            'description' => 'Service which provides access to Solr search engine',
-            'subtype'     => 'solr',
-            'available'   => true,
-            'priority'    => 50,
-            'quality'     => 50,
-            'os'          => '',
-            'exec'        => '',
-            'className'   => AlgoliaSearchEngine::class,
-        ]
-    );
-
+    // Indexer registration
     IndexerRegistry::register(
         'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.page.title',
         PageIndexer::class,
@@ -72,8 +56,16 @@ call_user_func(static function (): void {
     IndexerRegistry::register(
         'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.tt_content.title',
         ContentIndexer::class,
-        'form-content-element',
+        'content-inside-text-img-right',
     );
+
+    if (ExtensionManagementUtility::isLoaded('news')) {
+        IndexerRegistry::register(
+            'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.news.title',
+            NewsIndexer::class,
+            'content-news'
+        );
+    }
 
     // Add task
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][ExecuteSchedulableCommandTask::class] = [

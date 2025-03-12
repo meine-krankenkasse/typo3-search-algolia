@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function is_array;
@@ -96,11 +97,15 @@ class IndexerRegistry
      *
      * @param string $type
      *
-     * @return AbstractIndexer|null
+     * @return IndexerInterface|null
      */
-    public static function getIndexerByType(string $type): ?AbstractIndexer
+    public static function getIndexerByType(string $type): ?IndexerInterface
     {
         foreach (self::getIndexers() as $indexer) {
+            if (!($indexer instanceof IndexerInterface)) {
+                continue;
+            }
+
             if ($indexer->getType() === $type) {
                 return $indexer;
             }
