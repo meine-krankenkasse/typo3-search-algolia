@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
+use Override;
+
 /**
  * Class NewsIndexer.
  *
@@ -20,14 +22,17 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
  */
 class NewsIndexer extends AbstractIndexer
 {
-    public const string TYPE  = 'news';
+    public const string TYPE = 'news';
+
     public const string TABLE = 'tx_news_domain_model_news';
 
+    #[Override]
     public function getType(): string
     {
         return self::TYPE;
     }
 
+    #[Override]
     public function getTable(): string
     {
         return self::TABLE;

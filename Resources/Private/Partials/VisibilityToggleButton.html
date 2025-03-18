@@ -8,7 +8,7 @@
     <f:variable name="hiddenTitle"  value="{f:translate(key:'LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:enable')}" />
     <f:variable name="hiddenIcon"  value="actions-edit-unhide" />
 
-    <f:if condition="{indexer.hidden}">
+    <f:if condition="{indexingService.hidden}">
         <f:then>
             <f:variable name="titleLabel" value="{hiddenTitle}"/>
             <f:variable name="iconIdentifier" value="{hiddenIcon}"/>
@@ -23,10 +23,10 @@
             type="button"
             title="{titleLabel}"
             data-datahandler-action="visibility"
-            data-datahandler-table="tx_typo3searchalgolia_domain_model_indexer"
-            data-datahandler-uid="{indexer.uid}"
+            data-datahandler-table="tx_typo3searchalgolia_domain_model_indexingservice"
+            data-datahandler-uid="{indexingService.uid}"
             data-datahandler-field="hidden"
-            data-datahandler-status="{f:if(condition: indexer.hidden, then: 'hidden', else: 'visible')}"
+            data-datahandler-status="{f:if(condition: indexingService.hidden, then: 'hidden', else: 'visible')}"
             data-datahandler-visible-label="{visibleTitle}"
             data-datahandler-visible-value="0"
             data-datahandler-visible-icon="actions-edit-hide"

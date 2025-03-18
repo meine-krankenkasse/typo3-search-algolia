@@ -36,12 +36,12 @@ return [
                 'type' => 'passthrough',
             ],
         ],
-        'changed' => [
+        'service_uid' => [
             'config' => [
                 'type' => 'passthrough',
             ],
         ],
-        'indexed' => [
+        'changed' => [
             'config' => [
                 'type' => 'passthrough',
             ],

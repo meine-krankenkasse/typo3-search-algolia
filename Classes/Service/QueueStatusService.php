@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use TYPO3\CMS\Core\Registry;
 
 /**
@@ -25,7 +26,7 @@ class QueueStatusService
     /**
      * @var Registry
      */
-    private Registry $registry;
+    private readonly Registry $registry;
 
     /**
      * Constructor.
@@ -47,7 +48,7 @@ class QueueStatusService
     public function setLastExecutionTime(int $lastExecutionTime): void
     {
         $this->registry->set(
-            'tx_typo3searchalgolia',
+            Constants::EXTENSION_NAME,
             'last-exec-time',
             $lastExecutionTime
         );
@@ -60,6 +61,6 @@ class QueueStatusService
      */
     public function getLastExecutionTime(): int
     {
-        return $this->registry->get('tx_typo3searchalgolia', 'last-exec-time') ?? 0;
+        return $this->registry->get(Constants::EXTENSION_NAME, 'last-exec-time') ?? 0;
     }
 }

@@ -25,23 +25,23 @@ class Document
     /**
      * @var IndexerInterface
      */
-    private IndexerInterface $indexer;
+    private readonly IndexerInterface $indexer;
 
     /**
-     * @var array<mixed>
+     * @var array<string, mixed>
      */
-    private array $record;
+    private readonly array $record;
 
     /**
-     * @var array<int, mixed>
+     * @var array<string, mixed>
      */
     private array $fields = [];
 
     /**
      * Constructor.
      *
-     * @param IndexerInterface $indexer
-     * @param mixed[]          $record
+     * @param IndexerInterface     $indexer
+     * @param array<string, mixed> $record
      */
     public function __construct(IndexerInterface $indexer, array $record)
     {
@@ -58,7 +58,7 @@ class Document
     }
 
     /**
-     * @return array
+     * @return array<string, mixed>
      */
     public function getRecord(): array
     {
@@ -66,7 +66,7 @@ class Document
     }
 
     /**
-     * @return array<int, mixed>
+     * @return array<string, mixed>
      */
     public function getFields(): array
     {

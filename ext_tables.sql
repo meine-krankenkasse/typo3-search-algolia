@@ -25,9 +25,9 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_searchengine
 );
 
 #
-# Table structure for table 'tx_typo3searchalgolia_domain_model_indexer'
+# Table structure for table 'tx_typo3searchalgolia_domain_model_indexingservice'
 #
-CREATE TABLE tx_typo3searchalgolia_domain_model_indexer
+CREATE TABLE tx_typo3searchalgolia_domain_model_indexingservice
 (
     uid              int(11) unsigned                 NOT NULL auto_increment,
     pid              int(11) unsigned     DEFAULT '0' NOT NULL,
@@ -45,6 +45,8 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_indexer
     description      text,
     type             varchar(32)          DEFAULT ''  NOT NULL,
     search_engine    int(10) unsigned     DEFAULT '0',
+    pages_single     text,
+    pages_recursive  text,
 
     PRIMARY KEY (uid),
     KEY parent (pid)
@@ -60,6 +62,7 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_queueitem
     table_name   varchar(255)         DEFAULT ''  NOT NULL,
     record_uid   int(11)              DEFAULT '0' NOT NULL,
     indexer_type varchar(32)          DEFAULT ''  NOT NULL,
+    service_uid  int(11)              DEFAULT '0' NOT NULL,
     changed      int(11) unsigned     DEFAULT '0' NOT NULL,
     priority     smallint(5) unsigned DEFAULT '0' NOT NULL,
 
@@ -68,5 +71,6 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_queueitem
     KEY record_uid (record_uid),
     KEY table_name (table_name),
     KEY indexer_type (indexer_type),
+    KEY service_uid (service_uid),
     KEY changed (changed)
 );

@@ -25,24 +25,24 @@ class QueueDemand
      *
      * @var string[]
      */
-    private array $indexers = [];
+    private array $indexingServices = [];
 
     /**
      * @return string[]
      */
-    public function getIndexers(): array
+    public function getIndexingServices(): array
     {
-        return $this->indexers;
+        return $this->indexingServices;
     }
 
     /**
-     * @param string[] $indexers
+     * @param string[] $indexingServices
      *
      * @return QueueDemand
      */
-    public function setIndexers(array $indexers): QueueDemand
+    public function setIndexingServices(array $indexingServices): QueueDemand
     {
-        $this->indexers = $indexers;
+        $this->indexingServices = $indexingServices;
 
         return $this;
     }

@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Exception\InvalidQueryException;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
@@ -19,15 +19,15 @@ use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 use TYPO3\CMS\Extbase\Persistence\Repository;
 
 /**
- * The domain model indexer repository.
+ * The domain model indexing service repository.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  *
- * @extends Repository<Indexer>
+ * @extends Repository<IndexingService>
  */
-class IndexerRepository extends Repository
+class IndexingServiceRepository extends Repository
 {
     /**
      * Initializes the repository.
@@ -49,7 +49,7 @@ class IndexerRepository extends Repository
      *
      * @param int[] $indexerUIDs
      *
-     * @return QueryResultInterface<Indexer>
+     * @return QueryResultInterface<IndexingService>
      *
      * @throws InvalidQueryException
      */
@@ -77,7 +77,7 @@ class IndexerRepository extends Repository
      *
      * @param string $type
      *
-     * @return QueryResultInterface<Indexer>
+     * @return QueryResultInterface<IndexingService>
      */
     public function findByType(string $type): QueryResultInterface
     {

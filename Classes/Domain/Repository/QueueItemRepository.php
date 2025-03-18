@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository;
 
 use Doctrine\DBAL\Exception;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -32,6 +33,11 @@ use function count;
 class QueueItemRepository extends Repository
 {
     private const string TABLE_NAME = 'tx_typo3searchalgolia_domain_model_queueitem';
+
+    /**
+     * @var ConnectionPool
+     */
+    private readonly ConnectionPool $connectionPool;
 
     /**
      * Constructor.
@@ -117,13 +123,13 @@ class QueueItemRepository extends Repository
 
     /**
      * Deletes previously added items from the queue. Removes only the items of
-     * the given indexer type.
+     * the given indexing service.
      *
-     * @param string $indexerType
+     * @param IndexingService $indexingService
      *
      * @return void
      */
-    public function deleteByType(string $indexerType): void
+    public function deleteByIndexingService(IndexingService $indexingService): void
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable(self::TABLE_NAME);
@@ -132,8 +138,8 @@ class QueueItemRepository extends Repository
             ->delete(self::TABLE_NAME)
             ->where(
                 $queryBuilder->expr()->in(
-                    'indexer_type',
-                    $queryBuilder->createNamedParameter($indexerType)
+                    'service_uid',
+                    $queryBuilder->createNamedParameter($indexingService->getUid())
                 )
             )
             ->executeStatement();

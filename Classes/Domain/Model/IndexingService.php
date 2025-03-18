@@ -15,13 +15,13 @@ use DateTime;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
- * The indexer domain model.
+ * The indexing service domain model.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class Indexer extends AbstractEntity
+class IndexingService extends AbstractEntity
 {
     /**
      * @var DateTime
@@ -64,6 +64,16 @@ class Indexer extends AbstractEntity
     protected SearchEngine $searchEngine;
 
     /**
+     * @var string
+     */
+    protected string $pagesSingle = '';
+
+    /**
+     * @var string
+     */
+    protected string $pagesRecursive = '';
+
+    /**
      * @return DateTime
      */
     public function getCrdate(): DateTime
@@ -74,9 +84,9 @@ class Indexer extends AbstractEntity
     /**
      * @param DateTime $crdate
      *
-     * @return Indexer
+     * @return IndexingService
      */
-    public function setCrdate(DateTime $crdate): Indexer
+    public function setCrdate(DateTime $crdate): IndexingService
     {
         $this->crdate = $crdate;
 
@@ -94,9 +104,9 @@ class Indexer extends AbstractEntity
     /**
      * @param DateTime $tstamp
      *
-     * @return Indexer
+     * @return IndexingService
      */
-    public function setTstamp(DateTime $tstamp): Indexer
+    public function setTstamp(DateTime $tstamp): IndexingService
     {
         $this->tstamp = $tstamp;
 
@@ -114,9 +124,9 @@ class Indexer extends AbstractEntity
     /**
      * @param bool $hidden
      *
-     * @return Indexer
+     * @return IndexingService
      */
-    public function setHidden(bool $hidden): Indexer
+    public function setHidden(bool $hidden): IndexingService
     {
         $this->hidden = $hidden;
 
@@ -134,9 +144,9 @@ class Indexer extends AbstractEntity
     /**
      * @param bool $deleted
      *
-     * @return Indexer
+     * @return IndexingService
      */
-    public function setDeleted(bool $deleted): Indexer
+    public function setDeleted(bool $deleted): IndexingService
     {
         $this->deleted = $deleted;
 
@@ -154,9 +164,9 @@ class Indexer extends AbstractEntity
     /**
      * @param string $title
      *
-     * @return Indexer
+     * @return IndexingService
      */
-    public function setTitle(string $title): Indexer
+    public function setTitle(string $title): IndexingService
     {
         $this->title = $title;
 
@@ -174,9 +184,9 @@ class Indexer extends AbstractEntity
     /**
      * @param string $description
      *
-     * @return Indexer
+     * @return IndexingService
      */
-    public function setDescription(string $description): Indexer
+    public function setDescription(string $description): IndexingService
     {
         $this->description = $description;
 
@@ -194,9 +204,9 @@ class Indexer extends AbstractEntity
     /**
      * @param string $type
      *
-     * @return Indexer
+     * @return IndexingService
      */
-    public function setType(string $type): Indexer
+    public function setType(string $type): IndexingService
     {
         $this->type = $type;
 
@@ -214,11 +224,51 @@ class Indexer extends AbstractEntity
     /**
      * @param SearchEngine $searchEngine
      *
-     * @return Indexer
+     * @return IndexingService
      */
-    public function setSearchEngine(SearchEngine $searchEngine): Indexer
+    public function setSearchEngine(SearchEngine $searchEngine): IndexingService
     {
         $this->searchEngine = $searchEngine;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPagesSingle(): string
+    {
+        return $this->pagesSingle;
+    }
+
+    /**
+     * @param string $pagesSingle
+     *
+     * @return IndexingService
+     */
+    public function setPagesSingle(string $pagesSingle): IndexingService
+    {
+        $this->pagesSingle = $pagesSingle;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPagesRecursive(): string
+    {
+        return $this->pagesRecursive;
+    }
+
+    /**
+     * @param string $pagesRecursive
+     *
+     * @return IndexingService
+     */
+    public function setPagesRecursive(string $pagesRecursive): IndexingService
+    {
+        $this->pagesRecursive = $pagesRecursive;
 
         return $this;
     }

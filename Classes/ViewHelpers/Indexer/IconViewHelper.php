@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\ViewHelpers\Indexer;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
+use Override;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -49,6 +50,7 @@ class IconViewHelper extends AbstractViewHelper
      *
      * @return void
      */
+    #[Override]
     public function initializeArguments(): void
     {
         parent::initializeArguments();
@@ -65,9 +67,6 @@ class IconViewHelper extends AbstractViewHelper
      */
     public function render(): string
     {
-        $type    = $this->arguments['type'] ?? '';
-        $indexer = IndexerRegistry::getIndexerByType($type);
-
-        return $indexer?->getIcon() ?? '';
+        return IndexerRegistry::getIndexerIcon($this->arguments['type'] ?? '');
     }
 }

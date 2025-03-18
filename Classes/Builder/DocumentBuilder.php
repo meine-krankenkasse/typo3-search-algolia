@@ -32,7 +32,12 @@ class DocumentBuilder
     /**
      * @var ConfigurationManager
      */
-    private ConfigurationManager $configurationManager;
+    private readonly ConfigurationManager $configurationManager;
+
+    /**
+     * @var EventDispatcherInterface
+     */
+    private readonly EventDispatcherInterface $eventDispatcher;
 
     /**
      * @var IndexerInterface|null
@@ -40,51 +45,50 @@ class DocumentBuilder
     private ?IndexerInterface $indexer = null;
 
     /**
-     * @var array<mixed>
-     */
-    private array $record = [];
-
-    /**
      * @var Document
      */
     private Document $document;
 
     /**
-     * @var EventDispatcherInterface
+     * @var array<string, mixed>
      */
-    private EventDispatcherInterface $eventDispatcher;
+    private array $record = [];
 
     /**
+     * Constructor.
+     *
      * @param ConfigurationManager     $configurationManager
      * @param EventDispatcherInterface $eventDispatcher
      */
     public function __construct(
         ConfigurationManager $configurationManager,
-        EventDispatcherInterface $eventDispatcher
+        EventDispatcherInterface $eventDispatcher,
     ) {
         $this->configurationManager = $configurationManager;
-        $this->eventDispatcher = $eventDispatcher;
+        $this->eventDispatcher      = $eventDispatcher;
     }
 
     /**
-     * @param null|IndexerInterface $indexer
+     * @param IndexerInterface|null $indexer
      *
      * @return DocumentBuilder
      */
     public function setIndexer(?IndexerInterface $indexer): DocumentBuilder
     {
         $this->indexer = $indexer;
+
         return $this;
     }
 
     /**
-     * @param array $record
+     * @param array<string, mixed> $record
      *
      * @return DocumentBuilder
      */
     public function setRecord(array $record): DocumentBuilder
     {
         $this->record = $record;
+
         return $this;
     }
 
@@ -105,6 +109,10 @@ class DocumentBuilder
      */
     public function assemble(): DocumentBuilder
     {
+        if (!($this->indexer instanceof IndexerInterface)) {
+            return $this;
+        }
+
         $this->document = GeneralUtility::makeInstance(
             Document::class,
             $this->indexer,
@@ -125,10 +133,11 @@ class DocumentBuilder
             isset($GLOBALS['TCA'][$tableName]['ctrl']['crdate'])
             && ($GLOBALS['TCA'][$tableName]['ctrl']['crdate'] !== '')
         ) {
-            $this->document->setField(
-                'created',
-                $this->record[$GLOBALS['TCA'][$tableName]['ctrl']['crdate']]
-            );
+            $this->document
+                ->setField(
+                    'created',
+                    $this->record[$GLOBALS['TCA'][$tableName]['ctrl']['crdate']]
+                );
         }
 
         // Add changed at timestamp
@@ -136,10 +145,11 @@ class DocumentBuilder
             isset($GLOBALS['TCA'][$tableName]['ctrl']['tstamp'])
             && ($GLOBALS['TCA'][$tableName]['ctrl']['tstamp'] !== '')
         ) {
-            $this->document->setField(
-                'changed',
-                $this->record[$GLOBALS['TCA'][$tableName]['ctrl']['tstamp']]
-            );
+            $this->document
+                ->setField(
+                    'changed',
+                    $this->record[$GLOBALS['TCA'][$tableName]['ctrl']['tstamp']]
+                );
         }
 
         // Fill the document with configured fields for the indexer type
@@ -165,6 +175,10 @@ class DocumentBuilder
      */
     private function addConfiguredFieldsToDocument(): void
     {
+        if (!($this->indexer instanceof IndexerInterface)) {
+            return;
+        }
+
         $indexerType             = $this->indexer->getType();
         $typoscriptConfiguration = $this->getTypoScriptConfiguration();
 
@@ -177,25 +191,26 @@ class DocumentBuilder
             $fieldValue = $recordValue;
 
             // Ignore empty field values
-            if (($fieldValue === null)
-                || ($fieldValue === '')
-                || (($fieldValue === []))
-            ) {
+            if ($fieldValue === null) {
                 continue;
             }
 
-            $this->document
-                ->setField(
-                    $fieldName,
-                    $fieldValue
-                );
+            if ($fieldValue === '') {
+                continue;
+            }
+
+            if ($fieldValue === []) {
+                continue;
+            }
+
+            $this->document->setField($fieldName, $fieldValue);
         }
     }
 
     /**
      * Returns the TypoScript configuration of the extension.
      *
-     * @return array
+     * @return array<string, array<string, array<string, string>>>
      */
     private function getTypoScriptConfiguration(): array
     {

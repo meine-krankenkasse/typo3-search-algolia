@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Backend;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineRegistry;
 
 /**
  * Provides methods to dynamically populate table and field selection lists.
@@ -30,11 +30,10 @@ class ItemsProcFunc
      */
     public function getSearchEngines(array &$config): void
     {
-        /** @var SearchEngineInterface $service */
-        foreach ($GLOBALS['T3_SERVICES']['mkk_search_engine'] as $service) {
+        foreach (SearchEngineRegistry::getRegisteredSearchEngines() as $service) {
             $config['items'][] = [
-                $service['title'],
-                $service['subtype'],
+                'label' => $service['title'],
+                'value' => $service['subtype'],
             ];
         }
     }
@@ -46,11 +45,11 @@ class ItemsProcFunc
      */
     public function getIndexerTypes(array &$config): void
     {
-        foreach (IndexerRegistry::getIndexers() as $indexer) {
+        foreach (IndexerRegistry::getRegisteredIndexers() as $indexer) {
             $config['items'][] = [
-                $indexer->getTitle(),
-                $indexer->getType(),
-                $indexer->getIcon(),
+                'label' => $indexer['title'],
+                'value' => $indexer['type'],
+                'icon'  => $indexer['icon'],
             ];
         }
     }

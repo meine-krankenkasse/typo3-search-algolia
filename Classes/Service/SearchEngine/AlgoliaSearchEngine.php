@@ -21,8 +21,12 @@ use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
+use Override;
+use RuntimeException;
 use Throwable;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+
+use function is_array;
 
 /**
  * Class AlgoliaSearchEngine.
@@ -41,12 +45,12 @@ class AlgoliaSearchEngine implements SearchEngineInterface
     /**
      * @var string
      */
-    private string $appId;
+    private readonly string $appId;
 
     /**
      * @var string
      */
-    private string $apiKey;
+    private readonly string $apiKey;
 
     /**
      * @var string|null
@@ -86,16 +90,19 @@ class AlgoliaSearchEngine implements SearchEngineInterface
         return true;
     }
 
+    #[Override]
     public function indexOpen(string $indexName): void
     {
         $this->indexName = $indexName;
     }
 
+    #[Override]
     public function indexClose(): void
     {
         $this->indexName = null;
     }
 
+    #[Override]
     public function indexExists(string $indexName): bool
     {
         try {
@@ -106,20 +113,27 @@ class AlgoliaSearchEngine implements SearchEngineInterface
         }
     }
 
+    #[Override]
     public function indexDelete(string $indexName): bool
     {
         $responseData = $this->client
             ->deleteIndex($indexName);
 
-        return (new DeletedAtResponse($responseData))
+        if (is_array($responseData)) {
+            $responseData = new DeletedAtResponse($responseData);
+        }
+
+        return $responseData
             ->valid();
     }
 
+    #[Override]
     public function indexCommit(): bool
     {
         return true;
     }
 
+    #[Override]
     public function indexMove(string $indexName, string $destination): bool
     {
         $responseData = $this->client
@@ -130,7 +144,11 @@ class AlgoliaSearchEngine implements SearchEngineInterface
                     ->setDestination($destination)
             );
 
-        return (new UpdatedAtResponse($responseData))
+        if (is_array($responseData)) {
+            $responseData = new UpdatedAtResponse($responseData);
+        }
+
+        return $responseData
             ->valid();
     }
 
@@ -146,8 +164,13 @@ class AlgoliaSearchEngine implements SearchEngineInterface
         return $document->getIndexer()->getTable() . ':' . $document->getRecord()['uid'];
     }
 
+    #[Override]
     public function documentAdd(Document $document): bool
     {
+        if ($this->indexName === null) {
+            throw new RuntimeException('Index name not set. Use "indexOpen" method.');
+        }
+
         // Add the unique ID
         $document->setField(
             'objectID',
@@ -160,24 +183,38 @@ class AlgoliaSearchEngine implements SearchEngineInterface
                 $document->getFields()
             );
 
-        return (new SaveObjectResponse($responseData))
+        if (is_array($responseData)) {
+            $responseData = new SaveObjectResponse($responseData);
+        }
+
+        return $responseData
             ->valid();
     }
 
+    #[Override]
     public function documentUpdate(Document $document): bool
     {
         return $this->documentAdd($document);
     }
 
+    #[Override]
     public function documentDelete(string $objectId): bool
     {
+        if ($this->indexName === null) {
+            throw new RuntimeException('Index name not set. Use "indexOpen" method.');
+        }
+
         $responseData = $this->client
             ->deleteObject(
                 $this->indexName,
                 $objectId
             );
 
-        return (new DeletedAtResponse($responseData))
+        if (is_array($responseData)) {
+            $responseData = new DeletedAtResponse($responseData);
+        }
+
+        return $responseData
             ->valid();
     }
 }

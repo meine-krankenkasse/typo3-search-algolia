@@ -21,7 +21,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-final class AfterDocumentAssembledEvent
+final readonly class AfterDocumentAssembledEvent
 {
     /**
      * @var Document
@@ -34,16 +34,16 @@ final class AfterDocumentAssembledEvent
     private IndexerInterface $indexer;
 
     /**
-     * @var array
+     * @var array<string, mixed>
      */
     private array $record;
 
     /**
      * Constructor.
      *
-     * @param Document         $document
-     * @param IndexerInterface $indexer
-     * @param array            $record
+     * @param Document             $document
+     * @param IndexerInterface     $indexer
+     * @param array<string, mixed> $record
      */
     public function __construct(
         Document $document,
@@ -55,16 +55,25 @@ final class AfterDocumentAssembledEvent
         $this->record   = $record;
     }
 
+    /**
+     * @return Document
+     */
     public function getDocument(): Document
     {
         return $this->document;
     }
 
+    /**
+     * @return IndexerInterface
+     */
     public function getIndexer(): IndexerInterface
     {
         return $this->indexer;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getRecord(): array
     {
         return $this->record;

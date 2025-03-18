@@ -48,21 +48,24 @@ call_user_func(static function (): void {
 
     // Indexer registration
     IndexerRegistry::register(
-        'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.page.title',
         PageIndexer::class,
+        PageIndexer::TYPE,
+        'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.page.title',
         'apps-pagetree-page-default'
     );
 
     IndexerRegistry::register(
-        'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.tt_content.title',
         ContentIndexer::class,
+        ContentIndexer::TYPE,
+        'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.tt_content.title',
         'content-inside-text-img-right',
     );
 
     if (ExtensionManagementUtility::isLoaded('news')) {
         IndexerRegistry::register(
-            'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.news.title',
             NewsIndexer::class,
+            NewsIndexer::TYPE,
+            'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.news.title',
             'content-news'
         );
     }

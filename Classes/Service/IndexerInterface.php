@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
+use TYPO3\CMS\Core\SingletonInterface;
 
 /**
  * The interface that every indexer must implement.
@@ -23,7 +23,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
  *
  * @api
  */
-interface IndexerInterface
+interface IndexerInterface extends SingletonInterface
 {
     /**
      * Returns the type of the indexer.
@@ -40,33 +40,21 @@ interface IndexerInterface
     public function getTable(): string;
 
     /**
-     * Enqueues the indexer related items. Returns the number of enqueued items.
+     * Enqueues the indexing service related items. Returns the number of enqueued items.
+     *
+     * @param IndexingService $indexingService
      *
      * @return int
      */
-    public function enqueue(): int;
-
-    /**
-     * Returns indexer related query builder constraints.
-     *
-     * @return string[]
-     */
-    public function getIndexerConstraints(): array;
-
-    /**
-     * Dequeues the indexer related items.
-     *
-     * @return void
-     */
-    public function dequeue(): void;
+    public function enqueue(IndexingService $indexingService): int;
 
     /**
      * Index a record.
      *
-     * @param Indexer $indexer
-     * @param array   $record
+     * @param IndexingService      $indexingService
+     * @param array<string, mixed> $record
      *
      * @return bool
      */
-    public function indexRecord(Indexer $indexer, array $record): bool;
+    public function indexRecord(IndexingService $indexingService, array $record): bool;
 }

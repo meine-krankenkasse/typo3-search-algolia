@@ -17,3 +17,8 @@ parameters:
     excludePaths:
         - %currentWorkingDirectory%/.build/*
         - %currentWorkingDirectory%/ext_emconf.php
+
+    # Prevent false positives
+    typo3:
+        requestGetAttributeMapping:
+            route: TYPO3\CMS\Backend\Routing\Route|null

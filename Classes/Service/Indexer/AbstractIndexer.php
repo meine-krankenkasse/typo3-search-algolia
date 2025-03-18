@@ -13,10 +13,12 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
 use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
+use Override;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DefaultRestrictionContainer;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
@@ -49,24 +51,19 @@ abstract class AbstractIndexer implements IndexerInterface
     protected PageRepository $pageRepository;
 
     /**
+     * @var SearchEngineFactory
+     */
+    protected SearchEngineFactory $searchEngineFactory;
+
+    /**
      * @var QueueItemRepository
      */
     protected QueueItemRepository $queueItemRepository;
 
     /**
-     * @var string
-     */
-    private string $title = '';
-
-    /**
-     * @var string
-     */
-    private string $icon = '';
-
-    /**
      * @var DocumentBuilder
      */
-    private DocumentBuilder $documentBuilder;
+    private readonly DocumentBuilder $documentBuilder;
 
     /**
      * Constructor.
@@ -74,6 +71,7 @@ abstract class AbstractIndexer implements IndexerInterface
      * @param ConnectionPool      $connectionPool
      * @param SiteFinder          $siteFinder
      * @param PageRepository      $pageRepository
+     * @param SearchEngineFactory $searchEngineFactory
      * @param QueueItemRepository $queueItemRepository
      * @param DocumentBuilder     $documentBuilder
      */
@@ -81,77 +79,39 @@ abstract class AbstractIndexer implements IndexerInterface
         ConnectionPool $connectionPool,
         SiteFinder $siteFinder,
         PageRepository $pageRepository,
+        SearchEngineFactory $searchEngineFactory,
         QueueItemRepository $queueItemRepository,
         DocumentBuilder $documentBuilder,
     ) {
         $this->connectionPool      = $connectionPool;
         $this->siteFinder          = $siteFinder;
         $this->pageRepository      = $pageRepository;
+        $this->searchEngineFactory = $searchEngineFactory;
         $this->queueItemRepository = $queueItemRepository;
         $this->documentBuilder     = $documentBuilder;
     }
 
-    /**
-     * @return string
-     */
-    public function getTitle(): string
-    {
-        return $this->title;
-    }
-
-    /**
-     * @param string $title
-     *
-     * @return AbstractIndexer
-     */
-    public function setTitle(string $title): AbstractIndexer
-    {
-        $this->title = $title;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getIcon(): string
-    {
-        return $this->icon;
-    }
-
-    /**
-     * @param string $icon
-     *
-     * @return AbstractIndexer
-     */
-    public function setIcon(string $icon): AbstractIndexer
-    {
-        $this->icon = $icon;
-
-        return $this;
-    }
-
-    public function enqueue(): int
+    #[Override]
+    public function enqueue(IndexingService $indexingService): int
     {
         $this->queueItemRepository
-            ->deleteByType($this->getType());
+            ->deleteByIndexingService($indexingService);
 
         return $this->queueItemRepository
             ->bulkInsert(
-                $this->queryItems()
+                $this->queryItems($indexingService)
             );
     }
 
-    public function dequeue(): void
+    #[Override]
+    public function indexRecord(IndexingService $indexingService, array $record): bool
     {
-        // TODO
-    }
-
-    public function indexRecord(Indexer $indexer, array $record): bool
-    {
-        $searchEngineService = $this->getSearchEngineService(
-            $indexer->getSearchEngine()->getEngine()
-        );
+        $searchEngineService = $this->searchEngineFactory
+            ->createBySubtype(
+                $indexingService
+                    ->getSearchEngine()
+                    ->getEngine()
+            );
 
         if (!($searchEngineService instanceof SearchEngineInterface)) {
             return false;
@@ -165,7 +125,7 @@ abstract class AbstractIndexer implements IndexerInterface
             ->getDocument();
 
         $searchEngineService->indexOpen(
-            $indexer->getSearchEngine()->getIndexName()
+            $indexingService->getSearchEngine()->getIndexName()
         );
 
         $result = $searchEngineService->documentUpdate($document);
@@ -177,37 +137,15 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     /**
-     * @param string $subtype
-     *
-     * @return SearchEngineInterface|null
-     */
-    private function getSearchEngineService(string $subtype): ?SearchEngineInterface
-    {
-        foreach ($GLOBALS['T3_SERVICES']['mkk_search_engine'] as $service) {
-            if ($service['serviceType'] !== 'mkk_search_engine') {
-                continue;
-            }
-
-            if ($service['subtype'] !== $subtype) {
-                continue;
-            }
-
-            return GeneralUtility::makeInstance(
-                $service['className']
-            );
-        }
-
-        return null;
-    }
-
-    /**
      * Returns records from the current indexer table matching certain constraints.
+     *
+     * @param IndexingService $indexingService
      *
      * @return array<int, array<string, int|string>>
      *
      * @throws Exception
      */
-    private function queryItems(): array
+    private function queryItems(IndexingService $indexingService): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
@@ -222,19 +160,19 @@ abstract class AbstractIndexer implements IndexerInterface
         if ($this->getType() === PageIndexer::TYPE) {
             $constraints[] = $queryBuilder->expr()->in(
                 'uid',
-                $this->getPages(),
+                $this->getPages($indexingService),
             );
         } else {
             $constraints[] = $queryBuilder->expr()->in(
                 'pid',
-                $this->getPages(),
+                $this->getPages($indexingService),
             );
         }
 
         // Add indexer related constraints
         $constraints = array_merge(
             $constraints,
-            $this->getIndexerConstraints()
+            $this->getQueryItemsConstraints()
         );
 
         return $queryBuilder
@@ -242,8 +180,9 @@ abstract class AbstractIndexer implements IndexerInterface
                 'uid AS record_uid',
             )
             ->addSelectLiteral(
-                '\'' . $this->getTable() . '\' as table_name',
-                '\'' . $this->getType() . '\' AS indexer_type',
+                "'" . $this->getTable() . "' as table_name",
+                "'" . $this->getType() . "' AS indexer_type",
+                "'" . $indexingService->getUid() . "' AS service_uid",
                 $this->getChangedFieldStatement() . ' AS changed',
                 '0 AS priority'
             )
@@ -253,7 +192,12 @@ abstract class AbstractIndexer implements IndexerInterface
             ->fetchAllAssociative();
     }
 
-    public function getIndexerConstraints(): array
+    /**
+     * Returns indexer related query builder constraints.
+     *
+     * @return string[]
+     */
+    protected function getQueryItemsConstraints(): array
     {
         return [];
     }
@@ -261,9 +205,11 @@ abstract class AbstractIndexer implements IndexerInterface
     /**
      * Returns all page UIDs of all sites.
      *
+     * @param IndexingService $indexingService
+     *
      * @return int[]
      */
-    private function getPages(): array
+    protected function getPages(IndexingService $indexingService): array
     {
         $sites   = $this->siteFinder->getAllSites(false);
         $pageIds = [[]];
@@ -288,7 +234,10 @@ abstract class AbstractIndexer implements IndexerInterface
      */
     private function getChangedFieldStatement(): string
     {
-        if (!empty($GLOBALS['TCA'][$this->getTable()]['ctrl']['enablecolumns']['starttime'])) {
+        if (
+            isset($GLOBALS['TCA'][$this->getTable()]['ctrl']['enablecolumns']['starttime'])
+            && ($GLOBALS['TCA'][$this->getTable()]['ctrl']['enablecolumns']['starttime'] !== '')
+        ) {
             return 'GREATEST(' . $GLOBALS['TCA'][$this->getTable()]['ctrl']['enablecolumns']['starttime']
                 . ', ' . $GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] . ')';
         }

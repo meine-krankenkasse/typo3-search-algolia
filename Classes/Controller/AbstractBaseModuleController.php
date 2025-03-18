@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
+use Override;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
@@ -18,6 +19,8 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+
+use function is_array;
 
 /**
  * AbstractBaseModuleController.
@@ -31,12 +34,12 @@ abstract class AbstractBaseModuleController extends ActionController
     /**
      * @var ModuleTemplateFactory
      */
-    private ModuleTemplateFactory $moduleTemplateFactory;
+    private readonly ModuleTemplateFactory $moduleTemplateFactory;
 
     /**
-     * @var ModuleTemplate|null
+     * @var ModuleTemplate
      */
-    protected ?ModuleTemplate $moduleTemplate = null;
+    protected ModuleTemplate $moduleTemplate;
 
     /**
      * The selected page ID.
@@ -57,8 +60,9 @@ abstract class AbstractBaseModuleController extends ActionController
     }
 
     /**
-     * Initializes the controller before invoking an action method.
+     * Initializes the controller before invoking any action method.
      */
+    #[Override]
     protected function initializeAction(): void
     {
         $this->pageUid        = $this->getPageId();
@@ -72,7 +76,13 @@ abstract class AbstractBaseModuleController extends ActionController
      */
     private function getPageId(): int
     {
-        return (int) ($this->request->getParsedBody()['id'] ?? $this->request->getQueryParams()['id'] ?? -1);
+        $parsedBody = $this->request->getParsedBody();
+
+        if (is_array($parsedBody) && isset($parsedBody['id'])) {
+            return (int) $parsedBody['id'];
+        }
+
+        return (int) ($this->request->getQueryParams()['id'] ?? 0);
     }
 
     /**

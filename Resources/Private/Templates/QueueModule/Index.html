@@ -71,37 +71,37 @@
                                         <f:translate key="index_queue.table.column.id" />
                                     </th>
                                     <th class="col-task">
-                                        <f:translate key="index_queue.table.column.indexer" />
+                                        <f:translate key="index_queue.table.column.indexingService" />
                                     </th>
                                     <th class="col-control"></th>
                                 </tr>
                             </thead>
                             <tbody data-multi-record-selection-row-selection="true">
-                                <f:for each="{indexers}" as="indexer">
+                                <f:for each="{indexingServices}" as="indexingService">
                                     <tr data-multi-record-selection-element="true">
                                         <td class="col-checkbox">
                                             <span class="form-check form-check-type-toggle">
                                                 <f:form.checkbox class="form-check-input t3js-multi-record-selection-check"
-                                                                 property="indexers"
+                                                                 property="indexingServices"
                                                                  multiple="true"
-                                                                 value="{indexer.uid}"
+                                                                 value="{indexingService.uid}"
                                                 />
                                             </span>
                                         </td>
-                                        <td class="align-top">{indexer.uid}</td>
+                                        <td class="align-top">{indexingService.uid}</td>
                                         <td class="align-top col-task">
                                             <div class="name">
-                                                <core:icon identifier="{mkk:indexer.icon(type: indexer.type)}" />
+                                                <core:icon identifier="{mkk:indexer.icon(type: indexingService.type)}" />
                                                 <backend:link.editRecord
-                                                        table="tx_typo3searchalgolia_domain_model_indexer"
-                                                        uid="{indexer.uid}"
+                                                        table="tx_typo3searchalgolia_domain_model_indexingservice"
+                                                        uid="{indexingService.uid}"
                                                 >
-                                                    <strong>{indexer.title}</strong>
+                                                    <strong>{indexingService.title}</strong>
                                                 </backend:link.editRecord>
                                             </div>
-                                            <f:if condition="{indexer.description} != ''">
+                                            <f:if condition="{indexingService.description} != ''">
                                                 <div class="text-body-secondary" style="margin-top: 0.5em;">
-                                                    <f:format.nl2br>{indexer.description}</f:format.nl2br>
+                                                    <f:format.nl2br>{indexingService.description}</f:format.nl2br>
                                                 </div>
                                             </f:if>
                                         </td>
@@ -109,14 +109,14 @@
                                             <div class="btn-group" role="group">
                                                 <backend:link.editRecord
                                                         class="btn btn-default"
-                                                        table="tx_typo3searchalgolia_domain_model_indexer"
-                                                        uid="{indexer.uid}"
+                                                        table="tx_typo3searchalgolia_domain_model_indexingservice"
+                                                        uid="{indexingService.uid}"
                                                         title="{f:translate(key: 'LLL:EXT:core/Resources/Private/Language/locallang_mod_web_list.xlf:edit')}"
                                                 >
                                                     <core:icon identifier="actions-open" />
                                                 </backend:link.editRecord>
 
-                                                <f:render partial="VisibilityToggleButton" arguments="{indexer: indexer}" />
+                                                <f:render partial="VisibilityToggleButton" arguments="{indexingService: indexingService}" />
                                             </div>
                                         </td>
                                     </tr>
@@ -125,8 +125,8 @@
                             <tfoot>
                                 <tr>
                                     <td colspan="4">
-                                        {f:translate(key: 'index_queue.indexers.available')}
-                                        <span class="t3js-table-total-items">{indexers -> f:count()}</span>
+                                        {f:translate(key: 'index_queue.indexingServices.available')}
+                                        <span class="t3js-table-total-items">{indexingServices -> f:count()}</span>
                                     </td>
                                 </tr>
                             </tfoot>

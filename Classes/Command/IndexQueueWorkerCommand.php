@@ -11,12 +11,14 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Command;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexerRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
+use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
+use Override;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\Console\Command\Command;
@@ -27,6 +29,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Registry;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
@@ -68,9 +71,9 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     private QueueItemRepository $queueItemRepository;
 
     /**
-     * @var IndexerRepository
+     * @var IndexingServiceRepository
      */
-    private IndexerRepository $indexerRepository;
+    private IndexingServiceRepository $indexingServiceRepository;
 
     /**
      * @var QueueStatusService
@@ -84,7 +87,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      * @param Registry                    $registry
      * @param ConnectionPool              $connectionPool
      * @param QueueItemRepository         $queueItemRepository
-     * @param IndexerRepository           $indexerRepository
+     * @param IndexingServiceRepository   $indexingServiceRepository
      * @param QueueStatusService          $queueStatusService
      */
     public function __construct(
@@ -92,17 +95,17 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         Registry $registry,
         ConnectionPool $connectionPool,
         QueueItemRepository $queueItemRepository,
-        IndexerRepository $indexerRepository,
+        IndexingServiceRepository $indexingServiceRepository,
         QueueStatusService $queueStatusService,
     ) {
         parent::__construct();
 
-        $this->persistenceManager  = $persistenceManager;
-        $this->registry            = $registry;
-        $this->connectionPool      = $connectionPool;
-        $this->queueItemRepository = $queueItemRepository;
-        $this->indexerRepository   = $indexerRepository;
-        $this->queueStatusService  = $queueStatusService;
+        $this->persistenceManager        = $persistenceManager;
+        $this->registry                  = $registry;
+        $this->connectionPool            = $connectionPool;
+        $this->queueItemRepository       = $queueItemRepository;
+        $this->indexingServiceRepository = $indexingServiceRepository;
+        $this->queueStatusService        = $queueStatusService;
     }
 
     /**
@@ -110,6 +113,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      *
      * @return void
      */
+    #[Override]
     protected function configure(): void
     {
         parent::configure();
@@ -134,6 +138,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      *
      * @return int
      */
+    #[Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->io = new SymfonyStyle($input, $output);
@@ -161,6 +166,9 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         $progressBar = $this->io->createProgressBar($queueItems->count());
         $progressBar->start();
 
+        /** @var IndexerFactory $indexerFactory */
+        $indexerFactory = GeneralUtility::makeInstance(IndexerFactory::class);
+
         /** @var QueueItem $item */
         foreach ($queueItems as $item) {
             // Get underlying record
@@ -170,17 +178,18 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 continue;
             }
 
-            // Multiple indexers may exist for each type
-            $indexerModels = $this->indexerRepository
+            // Multiple indexing services may exist for each type
+            $indexingServices = $this->indexingServiceRepository
                 ->findByType($item->getIndexerType());
 
-            /** @var Indexer $indexerModel */
-            foreach ($indexerModels as $indexerModel) {
-                // Find matching indexer
-                $indexerInstance = IndexerRegistry::getIndexerByType($indexerModel->getType());
+            // Find matching indexer
+            $indexerInstance = $indexerFactory->createByType($item->getIndexerType());
 
+            /** @var IndexingService $indexingService */
+            foreach ($indexingServices as $indexingService) {
+                // Perform indexing using each separate indexing service
                 $indexerInstance?->indexRecord(
-                    $indexerModel,
+                    $indexingService,
                     $record
                 );
             }
@@ -193,8 +202,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
 
             // Track progress in the registry
             $this->registry->set(
-                'tx_typo3searchalgolia',
-                'indexQueueWorkerProgress',
+                Constants::EXTENSION_NAME,
+                'index-queue-worker-progress',
                 $progressBar->getProgressPercent()
             );
         }
@@ -227,7 +236,9 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 ->where(
                     $queryBuilder->expr()->in(
                         'uid',
-                        $item->getRecordUid()
+                        [
+                            $item->getRecordUid(),
+                        ]
                     )
                 )
                 ->executeQuery()
@@ -259,12 +270,13 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     /**
      * @return float
      */
+    #[Override]
     public function getProgress(): float
     {
         /** @var int|null $progress */
         $progress = $this->registry->get(
-            'tx_typo3searchalgolia',
-            'indexQueueWorkerProgress',
+            Constants::EXTENSION_NAME,
+            'index-queue-worker-progress',
         );
 
         return $progress !== null ? $progress * 100.0 : 0;

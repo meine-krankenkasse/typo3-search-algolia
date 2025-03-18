@@ -3,6 +3,26 @@
     <file target-language="de" datatype="plaintext" original="messages">
         <header/>
         <body>
+            <!-- TCA -->
+            <trans-unit id="tca.tabs.general">
+                <target>Allgemein</target>
+            </trans-unit>
+            <trans-unit id="tca.tabs.special">
+                <target>Speziell</target>
+            </trans-unit>
+            <trans-unit id="tca.tabs.access">
+                <target>Zugriff</target>
+            </trans-unit>
+            <trans-unit id="tca.palettes.standard">
+                <target>Standard</target>
+            </trans-unit>
+            <trans-unit id="tca.palettes.special">
+                <target>Speziell</target>
+            </trans-unit>
+            <trans-unit id="tca.palettes.visibility">
+                <target>Sichtbarkeit</target>
+            </trans-unit>
+
             <!-- Scheduler -->
             <trans-unit id="executeSchedulableCommandTask.name">
                 <target>Ausführen von Konsolenbefehlen mit Fortschrittsbalken</target>
@@ -22,32 +42,32 @@
                 <target>Nachrichten</target>
             </trans-unit>
 
-            <!-- tx_typo3searchalgolia_domain_model_indexer -->
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer">
-                <target>Indexierer</target>
+            <!-- tx_typo3searchalgolia_domain_model_indexingservice -->
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice">
+                <target>Indexdienst</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.title">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.title">
                 <target>Titel</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.title.description">
-                <target>Der Titel des Indexers.</target>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.title.description">
+                <target>Der Titel des Indexdienstes.</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.description">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.description">
                 <target>Beschreibung</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.description.description">
-                <target>Eine optionale Beschreibung für was dieser Indexer verwendet wird.</target>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.description.description">
+                <target>Eine optionale Beschreibung für was dieser Indexdienst verwendet wird.</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.search_engine">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine">
                 <target>Suchmaschine</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.search_engine.description">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine.description">
                 <target>Wählen Sie die Suchmaschine aus, die zur Indizierung verwendet werden soll.</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.type">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type">
                 <target>Typ</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.type.description">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.description">
                 <target>Wählen Sie den zu verwendenden Indexertyp aus.</target>
             </trans-unit>
 
@@ -109,16 +129,16 @@
                 <target>Anzahl</target>
             </trans-unit>
             <trans-unit id="index_queue.table.overview">
-                <target>Verfügbare Indexer</target>
+                <target>Verfügbare Indexdienste</target>
             </trans-unit>
             <trans-unit id="index_queue.table.column.id">
                 <target>ID</target>
             </trans-unit>
-            <trans-unit id="index_queue.table.column.indexer">
-                <target>Indexer</target>
+            <trans-unit id="index_queue.table.column.indexingService">
+                <target>Indexdienst</target>
             </trans-unit>
-            <trans-unit id="index_queue.indexers.available">
-                <target>Verfügbare Indexer:</target>
+            <trans-unit id="index_queue.indexingServices.available">
+                <target>Indexdienste:</target>
             </trans-unit>
             <trans-unit id="index_queue.button.submit">
                 <target>Ausgewählten Inhalt zur Indizierung in die Warteschlange stellen</target>
@@ -127,7 +147,7 @@
                 <target>Information</target>
             </trans-unit>
             <trans-unit id="index_queue.information.body">
-                <target>Es werden jeweils nur die aktiven Indexer ausgeführt. Das Initialisieren der Warteschlange ist eine Möglichkeit, eine komplette Neuindizierung zu erreichen oder den Index erstmalig zu befüllen. Die Scheduler-Aufgabe „Index Queue Worker“ indiziert dann die in der Warteschlange aufgelisteten Elemente.</target>
+                <target>Es werden jeweils nur die aktiven Indexdienste ausgeführt. Das Initialisieren der Warteschlange ist eine Möglichkeit, eine komplette Neuindizierung zu erreichen oder den Index erstmalig zu befüllen. Die Scheduler-Aufgabe „Index Queue Worker“ indiziert dann die in der Warteschlange aufgelisteten Elemente.</target>
             </trans-unit>
             <trans-unit id="index_queue.flash_message.title">
                 <target>Einreihen in die Warteschlange</target>

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\ViewHelpers\Queue;
 
+use Override;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -48,6 +49,7 @@ class TotalCountViewHelper extends AbstractViewHelper
      *
      * @return void
      */
+    #[Override]
     public function initializeArguments(): void
     {
         parent::initializeArguments();

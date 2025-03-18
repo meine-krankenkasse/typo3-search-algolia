@@ -11,7 +11,10 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
+use Override;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class PageIndexer.
@@ -22,20 +25,39 @@ use TYPO3\CMS\Core\Domain\Repository\PageRepository;
  */
 class PageIndexer extends AbstractIndexer
 {
-    public const string TYPE  = 'page';
+    public const string TYPE = 'page';
+
     public const string TABLE = 'pages';
 
+    #[Override]
     public function getType(): string
     {
         return self::TYPE;
     }
 
+    #[Override]
     public function getTable(): string
     {
         return self::TABLE;
     }
 
-    public function getIndexerConstraints(): array
+    #[Override]
+    protected function getPages(IndexingService $indexingService): array
+    {
+        // Get configured page UIDs
+        $pagesSingle    = GeneralUtility::intExplode(',', $indexingService->getPagesSingle(), true);
+        $pagesRecursive = GeneralUtility::intExplode(',', $indexingService->getPagesRecursive(), true);
+
+        // Recursively determine all associated pages and subpages
+        $pageIds   = [[]];
+        $pageIds[] = $pagesSingle;
+        $pageIds[] = $this->pageRepository->getPageIdsRecursive($pagesRecursive, 9999);
+
+        return array_merge(...$pageIds);
+    }
+
+    #[Override]
+    protected function getQueryItemsConstraints(): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable(self::TABLE);

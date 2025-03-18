@@ -13,18 +13,16 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Dto\QueueDemand;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Indexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexerRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
+use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
-
-use function count;
 
 /**
  * QueueModuleController.
@@ -36,39 +34,47 @@ use function count;
 class QueueModuleController extends AbstractBaseModuleController
 {
     /**
-     * @var IndexerRepository
+     * @var IndexerFactory
      */
-    private IndexerRepository $indexerRepository;
+    private readonly IndexerFactory $indexerFactory;
+
+    /**
+     * @var IndexingServiceRepository
+     */
+    private readonly IndexingServiceRepository $indexingServiceRepository;
 
     /**
      * @var QueueItemRepository
      */
-    private QueueItemRepository $queueItemRepository;
+    private readonly QueueItemRepository $queueItemRepository;
 
     /**
      * @var QueueStatusService
      */
-    private QueueStatusService $queueStatusService;
+    private readonly QueueStatusService $queueStatusService;
 
     /**
      * Constructor.
      *
-     * @param ModuleTemplateFactory $moduleTemplateFactory
-     * @param IndexerRepository     $indexerRepository
-     * @param QueueItemRepository   $queueItemRepository
-     * @param QueueStatusService    $queueStatusService
+     * @param ModuleTemplateFactory     $moduleTemplateFactory
+     * @param IndexerFactory            $indexerFactory
+     * @param IndexingServiceRepository $indexingServiceRepository
+     * @param QueueItemRepository       $queueItemRepository
+     * @param QueueStatusService        $queueStatusService
      */
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
-        IndexerRepository $indexerRepository,
+        IndexerFactory $indexerFactory,
+        IndexingServiceRepository $indexingServiceRepository,
         QueueItemRepository $queueItemRepository,
         QueueStatusService $queueStatusService,
     ) {
         parent::__construct($moduleTemplateFactory);
 
-        $this->indexerRepository   = $indexerRepository;
-        $this->queueItemRepository = $queueItemRepository;
-        $this->queueStatusService  = $queueStatusService;
+        $this->indexerFactory            = $indexerFactory;
+        $this->indexingServiceRepository = $indexingServiceRepository;
+        $this->queueItemRepository       = $queueItemRepository;
+        $this->queueStatusService        = $queueStatusService;
     }
 
     /**
@@ -81,28 +87,28 @@ class QueueModuleController extends AbstractBaseModuleController
     public function indexAction(?QueueDemand $queueDemand = null): ResponseInterface
     {
         if (!($queueDemand instanceof QueueDemand)) {
-            /** @var QueueDemand $searchDemand */
             $queueDemand = GeneralUtility::makeInstance(QueueDemand::class);
         }
 
-        // TODO Use PropertyMapper to map selected indexers directly into the matching Indexer-Model
-        $indexerUIDs = array_map(
+        // TODO Use PropertyMapper to map selected indexing services directly into the matching IndexingService-Model
+        $indexingServicesUIDs = array_map(
             '\intval',
-            $queueDemand->getIndexers()
+            $queueDemand->getIndexingServices()
         );
 
-        if (count($indexerUIDs) > 0) {
-            $indexerModels = $this->indexerRepository
-                ->findAllByUIDs($indexerUIDs);
+        if ($indexingServicesUIDs !== []) {
+            $indexingServices = $this->indexingServiceRepository
+                ->findAllByUIDs($indexingServicesUIDs);
 
             $itemCount = 0;
 
-            /** @var Indexer $indexerModel */
-            foreach ($indexerModels as $indexerModel) {
-                $indexerInstance = IndexerRegistry::getIndexerByType($indexerModel->getType());
+            /** @var IndexingService $indexingService */
+            foreach ($indexingServices as $indexingService) {
+                $indexerInstance = $this->indexerFactory
+                    ->createByIndexingService($indexingService);
 
                 if ($indexerInstance instanceof IndexerInterface) {
-                    $itemCount += $indexerInstance->enqueue();
+                    $itemCount += $indexerInstance->enqueue($indexingService);
                 }
             }
 
@@ -113,17 +119,17 @@ class QueueModuleController extends AbstractBaseModuleController
                     [
                         $itemCount,
                     ]
-                ),
+                ) ?? '',
                 LocalizationUtility::translate(
                     'index_queue.flash_message.title',
                     Constants::EXTENSION_NAME
-                )
+                ) ?? ''
             );
         }
 
         $this->moduleTemplate->assign(
-            'indexers',
-            $this->indexerRepository->findAll()
+            'indexingServices',
+            $this->indexingServiceRepository->findAll()
         );
 
         $this->moduleTemplate->assign(

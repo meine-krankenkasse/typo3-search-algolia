@@ -173,8 +173,8 @@ return [
                 'renderType' => 'selectSingle',
                 'items'      => [
                     [
-                        '',
-                        '',
+                        'label' => '',
+                        'value' => '',
                     ],
                 ],
                 'itemsProcFunc' => ItemsProcFunc::class . '->getSearchEngines',

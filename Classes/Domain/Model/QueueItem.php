@@ -39,6 +39,11 @@ class QueueItem extends AbstractEntity
     protected string $indexerType = '';
 
     /**
+     * @var int
+     */
+    protected int $serviceUid = 0;
+
+    /**
      * @var DateTime
      */
     protected DateTime $changed;
@@ -104,6 +109,26 @@ class QueueItem extends AbstractEntity
     public function setIndexerType(string $indexerType): QueueItem
     {
         $this->indexerType = $indexerType;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getServiceUid(): int
+    {
+        return $this->serviceUid;
+    }
+
+    /**
+     * @param int $serviceUid
+     *
+     * @return QueueItem
+     */
+    public function setServiceUid(int $serviceUid): QueueItem
+    {
+        $this->serviceUid = $serviceUid;
 
         return $this;
     }

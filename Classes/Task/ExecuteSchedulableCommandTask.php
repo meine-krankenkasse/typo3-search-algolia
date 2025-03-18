@@ -13,6 +13,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Task;
 
 use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Command\ProgressProviderCommandInterface;
+use Override;
 use Symfony\Component\Console\Command\Command;
 use TYPO3\CMS\Core\Console\CommandRegistry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -32,6 +33,7 @@ class ExecuteSchedulableCommandTask extends \TYPO3\CMS\Scheduler\Task\ExecuteSch
      *
      * @return float
      */
+    #[Override]
     public function getProgress(): float
     {
         $scheduledCommand = $this->getScheduledCommand();

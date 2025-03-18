@@ -35,17 +35,17 @@ class UpdateAssembledPageDocumentEventListener
     /**
      * @var SiteFinder
      */
-    private SiteFinder $siteFinder;
+    private readonly SiteFinder $siteFinder;
 
     /**
      * @var ServerRequestFactory
      */
-    private ServerRequestFactory $serverRequestFactory;
+    private readonly ServerRequestFactory $serverRequestFactory;
 
     /**
      * @var LinkFactory
      */
-    private LinkFactory $linkFactory;
+    private readonly LinkFactory $linkFactory;
 
     /**
      * Constructor.

@@ -3,6 +3,26 @@
     <file source-language="en" datatype="plaintext" original="messages">
         <header/>
         <body>
+            <!-- TCA -->
+            <trans-unit id="tca.tabs.general">
+                <source>General</source>
+            </trans-unit>
+            <trans-unit id="tca.tabs.special">
+                <source>Special</source>
+            </trans-unit>
+            <trans-unit id="tca.tabs.access">
+                <source>Access</source>
+            </trans-unit>
+            <trans-unit id="tca.palettes.standard">
+                <source>Standard</source>
+            </trans-unit>
+            <trans-unit id="tca.palettes.special">
+                <source>Special</source>
+            </trans-unit>
+            <trans-unit id="tca.palettes.visibility">
+                <source>Visibility</source>
+            </trans-unit>
+
             <!-- Scheduler -->
             <trans-unit id="executeSchedulableCommandTask.name">
                 <source>Execute console commands with progress bar</source>
@@ -22,32 +42,32 @@
                 <source>News</source>
             </trans-unit>
 
-            <!-- tx_typo3searchalgolia_domain_model_indexer -->
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer">
+            <!-- tx_typo3searchalgolia_domain_model_indexingservice -->
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice">
                 <source>Indexer</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.title">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.title">
                 <source>Title</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.title.description">
-                <source>The title of the indexer.</source>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.title.description">
+                <source>The title of the indexing service.</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.description">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.description">
                 <source>Description</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.description.description">
-                <source>An optional description of what this indexer is used for.</source>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.description.description">
+                <source>An optional description of what this indexing service is used for.</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.type">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type">
                 <source>Type</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.type.description">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.description">
                 <source>Select the type of indexer to be used.</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.search_engine">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine">
                 <source>Search Engine</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexer.search_engine.description">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine.description">
                 <source>Select the search engine to be used for indexing.</source>
             </trans-unit>
 
@@ -109,16 +129,16 @@
                 <source>Count</source>
             </trans-unit>
             <trans-unit id="index_queue.table.overview">
-                <source>Available Indexer</source>
+                <source>Available indexing services</source>
             </trans-unit>
             <trans-unit id="index_queue.table.column.id">
                 <source>ID</source>
             </trans-unit>
-            <trans-unit id="index_queue.table.column.indexer">
-                <source>Indexer</source>
+            <trans-unit id="index_queue.table.column.indexingServices">
+                <source>Indexing service</source>
             </trans-unit>
-            <trans-unit id="index_queue.indexers.available">
-                <source>Available indexers:</source>
+            <trans-unit id="index_queue.indexingServicess.available">
+                <source>Services:</source>
             </trans-unit>
             <trans-unit id="index_queue.button.submit">
                 <source>Queue selected content for indexing</source>
@@ -127,7 +147,7 @@
                 <source>Information</source>
             </trans-unit>
             <trans-unit id="index_queue.information.body">
-                <source>Only the active indexers are executed at a time. Initializing the queue is one way to achieve a complete reindex or to populate the index for the first time. The Index Queue Worker scheduler task then indexes the items listed in the queue.</source>
+                <source>Only the active indexing services are executed at a time. Initializing the queue is one way to achieve a complete reindex or to populate the index for the first time. The Index Queue Worker scheduler task then indexes the items listed in the queue.</source>
             </trans-unit>
             <trans-unit id="index_queue.flash_message.title">
                 <source>Enqueuing</source>
