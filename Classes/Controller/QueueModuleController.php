@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
+use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Dto\QueueDemand;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
@@ -21,6 +22,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
@@ -108,7 +110,18 @@ class QueueModuleController extends AbstractBaseModuleController
                     ->createByIndexingService($indexingService);
 
                 if ($indexerInstance instanceof IndexerInterface) {
-                    $itemCount += $indexerInstance->enqueue($indexingService);
+                    try {
+                        $itemCount += $indexerInstance->enqueue($indexingService);
+                    } catch (Exception $exception) {
+                        $this->addFlashMessage(
+                            $exception->getMessage(),
+                            LocalizationUtility::translate(
+                                'index_queue.flash_message.error.title',
+                                Constants::EXTENSION_NAME
+                            ) ?? '',
+                            ContextualFeedbackSeverity::ERROR
+                        );
+                    }
                 }
             }
 

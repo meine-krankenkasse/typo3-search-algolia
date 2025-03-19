@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
+use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use TYPO3\CMS\Core\SingletonInterface;
 
@@ -45,6 +46,8 @@ interface IndexerInterface extends SingletonInterface
      * @param IndexingService $indexingService
      *
      * @return int
+     *
+     * @throws Exception
      */
     public function enqueue(IndexingService $indexingService): int;
 

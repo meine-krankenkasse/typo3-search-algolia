@@ -20,6 +20,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Override;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\DefaultRestrictionContainer;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
@@ -66,6 +67,13 @@ abstract class AbstractIndexer implements IndexerInterface
     private readonly DocumentBuilder $documentBuilder;
 
     /**
+     * The currently used indexing service instance.
+     *
+     * @var IndexingService|null
+     */
+    protected ?IndexingService $indexingService = null;
+
+    /**
      * Constructor.
      *
      * @param ConnectionPool      $connectionPool
@@ -94,12 +102,14 @@ abstract class AbstractIndexer implements IndexerInterface
     #[Override]
     public function enqueue(IndexingService $indexingService): int
     {
+        $this->indexingService = $indexingService;
+
         $this->queueItemRepository
             ->deleteByIndexingService($indexingService);
 
         return $this->queueItemRepository
             ->bulkInsert(
-                $this->queryItems($indexingService)
+                $this->queryItems()
             );
     }
 
@@ -139,13 +149,11 @@ abstract class AbstractIndexer implements IndexerInterface
     /**
      * Returns records from the current indexer table matching certain constraints.
      *
-     * @param IndexingService $indexingService
-     *
      * @return array<int, array<string, int|string>>
      *
      * @throws Exception
      */
-    private function queryItems(IndexingService $indexingService): array
+    private function queryItems(): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
@@ -157,35 +165,30 @@ abstract class AbstractIndexer implements IndexerInterface
 
         $constraints = [];
 
-        if ($this->getType() === PageIndexer::TYPE) {
-            $constraints[] = $queryBuilder->expr()->in(
-                'uid',
-                $this->getPages($indexingService),
-            );
-        } else {
-            $constraints[] = $queryBuilder->expr()->in(
-                'pid',
-                $this->getPages($indexingService),
-            );
-        }
-
-        // Add indexer related constraints
+        // Add additional indexer related constraints
         $constraints = array_merge(
             $constraints,
-            $this->getQueryItemsConstraints()
+            $this->getPagesQueryConstraint($queryBuilder),
+            $this->getAdditionalQueryConstraints($queryBuilder)
         );
 
+        $changedFieldStatement = $this->getChangedFieldStatement();
+
+        if ($changedFieldStatement === null) {
+            $changedFieldStatement = 0;
+        }
+
+        $selectLiterals = [
+            "'" . $this->getTable() . "' as table_name",
+            "'" . $this->getType() . "' AS indexer_type",
+            "'" . $this->indexingService?->getUid() . "' AS service_uid",
+            $changedFieldStatement . ' AS changed',
+            '0 AS priority',
+        ];
+
         return $queryBuilder
-            ->select(
-                'uid AS record_uid',
-            )
-            ->addSelectLiteral(
-                "'" . $this->getTable() . "' as table_name",
-                "'" . $this->getType() . "' AS indexer_type",
-                "'" . $indexingService->getUid() . "' AS service_uid",
-                $this->getChangedFieldStatement() . ' AS changed',
-                '0 AS priority'
-            )
+            ->select('uid AS record_uid')
+            ->addSelectLiteral(...$selectLiterals)
             ->from($this->getTable())
             ->where(...$constraints)
             ->executeQuery()
@@ -193,46 +196,75 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     /**
-     * Returns indexer related query builder constraints.
+     * Returns the constraints used to query pages.
+     *
+     * @param QueryBuilder $queryBuilder
      *
      * @return string[]
      */
-    protected function getQueryItemsConstraints(): array
+    protected function getPagesQueryConstraint(QueryBuilder $queryBuilder): array
+    {
+        $pageUIDs    = $this->getPages();
+        $constraints = [];
+
+        if ($pageUIDs !== []) {
+            $constraints[] = $queryBuilder->expr()->in(
+                ($this->getType() === PageIndexer::TYPE) ? 'uid' : 'pid',
+                $pageUIDs,
+            );
+        }
+
+        return $constraints;
+    }
+
+    /**
+     * Returns indexer related query builder constraints.
+     *
+     * @param QueryBuilder $queryBuilder
+     *
+     * @return string[]
+     */
+    protected function getAdditionalQueryConstraints(QueryBuilder $queryBuilder): array
     {
         return [];
     }
 
     /**
-     * Returns all page UIDs of all sites.
-     *
-     * @param IndexingService $indexingService
+     * Returns all the selected page UIDs.
      *
      * @return int[]
      */
-    protected function getPages(IndexingService $indexingService): array
+    private function getPages(): array
     {
-        $sites   = $this->siteFinder->getAllSites(false);
-        $pageIds = [[]];
+        // Get configured page UIDs
+        $pagesSingle = GeneralUtility::intExplode(
+            ',',
+            $this->indexingService?->getPagesSingle() ?? '',
+            true
+        );
 
-        // TODO Limit to single sites (configurable)?
-        foreach ($sites as $site) {
-            $pageIds[] = $this->pageRepository->getPageIdsRecursive(
-                [
-                    $site->getRootPageId(),
-                ],
-                9999
-            );
-        }
+        $pagesRecursive = GeneralUtility::intExplode(
+            ',',
+            $this->indexingService?->getPagesRecursive() ?? '',
+            true
+        );
 
-        return array_merge(...$pageIds);
+        // Recursively determine all associated pages and subpages
+        $pageIds   = [[]];
+        $pageIds[] = $pagesSingle;
+        $pageIds[] = $this->pageRepository->getPageIdsRecursive($pagesRecursive, 99);
+
+        return array_filter(
+            array_merge(...$pageIds)
+        );
     }
 
     /**
      * Returns the SQL select statement to determine the latest change timestamp.
      *
-     * @return string
+     * @return string|null
      */
-    private function getChangedFieldStatement(): string
+    private function getChangedFieldStatement(): ?string
     {
         if (
             isset($GLOBALS['TCA'][$this->getTable()]['ctrl']['enablecolumns']['starttime'])

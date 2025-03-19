@@ -10,7 +10,10 @@
 declare(strict_types=1);
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Backend\ItemsProcFunc;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
+use TYPO3\CMS\Core\Hooks\TcaItemsProcessorFunctions;
 
 return [
     'ctrl' => [
@@ -54,7 +57,7 @@ return [
         ],
         'special' => [
             'label'    => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tca.palettes.special',
-            'showitem' => 'pages_single, --linebreak--, pages_recursive, --linebreak--, aColumn',
+            'showitem' => 'pages_doktype, --linebreak--, pages_single, --linebreak--, pages_recursive',
         ],
         'visibility' => [
             'label'    => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tca.palettes.visibility',
@@ -206,11 +209,25 @@ return [
                 'maxitems'      => 1,
             ],
         ],
+        'pages_doktype' => [
+            'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype',
+            'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype.description',
+            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE,
+            'config'      => [
+                'type'          => 'select',
+                'renderType'    => 'selectCheckBox',
+                'itemsProcFunc' => TcaItemsProcessorFunctions::class . '->populateAvailablePageTypes',
+                'size'          => 5,
+                'autoSizeMax'   => 10,
+                'minitems'      => 0,
+                'maxitems'      => 99,
+            ],
+        ],
         'pages_single' => [
             'exclude'     => false,
             'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_single',
             'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_single.description',
-            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE,
+            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE . ',' . ContentIndexer::TYPE . ',' . NewsIndexer::TYPE,
             'config'      => [
                 'type'     => 'group',
                 'allowed'  => 'pages',
@@ -223,18 +240,13 @@ return [
             'exclude'     => false,
             'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive',
             'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive.description',
-            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE,
+            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE . ',' . ContentIndexer::TYPE . ',' . NewsIndexer::TYPE,
             'config'      => [
                 'type'     => 'group',
                 'allowed'  => 'pages',
                 'size'     => 5,
                 'minitems' => 0,
                 'maxitems' => 99,
-            ],
-        ],
-        'aColumn' => [
-            'config' => [
-                'type' => 'folder',
             ],
         ],
     ],

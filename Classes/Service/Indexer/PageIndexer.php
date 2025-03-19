@@ -11,9 +11,8 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use Override;
-use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -42,35 +41,30 @@ class PageIndexer extends AbstractIndexer
     }
 
     #[Override]
-    protected function getPages(IndexingService $indexingService): array
+    protected function getAdditionalQueryConstraints(QueryBuilder $queryBuilder): array
     {
-        // Get configured page UIDs
-        $pagesSingle    = GeneralUtility::intExplode(',', $indexingService->getPagesSingle(), true);
-        $pagesRecursive = GeneralUtility::intExplode(',', $indexingService->getPagesRecursive(), true);
-
-        // Recursively determine all associated pages and subpages
-        $pageIds   = [[]];
-        $pageIds[] = $pagesSingle;
-        $pageIds[] = $this->pageRepository->getPageIdsRecursive($pagesRecursive, 9999);
-
-        return array_merge(...$pageIds);
-    }
-
-    #[Override]
-    protected function getQueryItemsConstraints(): array
-    {
-        $queryBuilder = $this->connectionPool
-            ->getQueryBuilderForTable(self::TABLE);
-
-        return [
-            $queryBuilder->expr()->eq(
-                'doktype',
-                PageRepository::DOKTYPE_DEFAULT
-            ),
+        $constraints = [
+            // Include only pages which are not explicitly excluded from search
             $queryBuilder->expr()->eq(
                 'no_search',
                 0
             ),
         ];
+
+        $pageTypes = GeneralUtility::intExplode(
+            ',',
+            $this->indexingService?->getPagesDoktype() ?? '',
+            true
+        );
+
+        if ($pageTypes !== []) {
+            // Filter by page type
+            $constraints[] = $queryBuilder->expr()->in(
+                'doktype',
+                $pageTypes
+            );
+        }
+
+        return $constraints;
     }
 }

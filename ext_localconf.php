@@ -58,7 +58,7 @@ call_user_func(static function (): void {
         ContentIndexer::class,
         ContentIndexer::TYPE,
         'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.tt_content.title',
-        'content-inside-text-img-right',
+        'apps-pagetree-page-content-from-page',
     );
 
     if (ExtensionManagementUtility::isLoaded('news')) {

@@ -66,6 +66,11 @@ class IndexingService extends AbstractEntity
     /**
      * @var string
      */
+    protected string $pagesDoktype = '';
+
+    /**
+     * @var string
+     */
     protected string $pagesSingle = '';
 
     /**
@@ -229,6 +234,26 @@ class IndexingService extends AbstractEntity
     public function setSearchEngine(SearchEngine $searchEngine): IndexingService
     {
         $this->searchEngine = $searchEngine;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPagesDoktype(): string
+    {
+        return $this->pagesDoktype;
+    }
+
+    /**
+     * @param string $pagesDoktype
+     *
+     * @return IndexingService
+     */
+    public function setPagesDoktype(string $pagesDoktype): IndexingService
+    {
+        $this->pagesDoktype = $pagesDoktype;
 
         return $this;
     }

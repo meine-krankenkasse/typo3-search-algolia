@@ -183,11 +183,11 @@ class DocumentBuilder
         $typoscriptConfiguration = $this->getTypoScriptConfiguration();
 
         foreach ($this->record as $recordFieldName => $recordValue) {
-            if (!isset($typoscriptConfiguration['indexer'][$indexerType][$recordFieldName])) {
+            if (!isset($typoscriptConfiguration['indexer'][$indexerType]['fields'][$recordFieldName])) {
                 continue;
             }
 
-            $fieldName  = $typoscriptConfiguration['indexer'][$indexerType][$recordFieldName];
+            $fieldName  = $typoscriptConfiguration['indexer'][$indexerType]['fields'][$recordFieldName];
             $fieldValue = $recordValue;
 
             // Ignore empty field values

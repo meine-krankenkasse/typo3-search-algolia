@@ -70,6 +70,24 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.description">
                 <target>Wählen Sie den zu verwendenden Indexertyp aus.</target>
             </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype">
+                <target>Seitentyp</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype.description">
+                <target>Wählen Sie die Seitentypen aus, nach denen die unten zur Indexierung ausgewählten Seiten gefiltert werden sollen.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_single">
+                <target>Einzelseiten</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_single.description">
+                <target>Wählen Sie hier einzelne Seiten aus, die indexiert werden sollen. Die Indexierung erfolgt nur für Seiten, deren Option "In Suche einbeziehen" in den Seiteneigenschaften aktiviert ist.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive">
+                <target>Seiten (rekursiv)</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive.description">
+                <target>Wählen Sie hier die Seiten aus, die rekursiv einschließlich aller Unterseiten, indexiert werden sollen. Die Indexierung erfolgt nur für Seiten, deren Option "In Suche einbeziehen" in den Seiteneigenschaften aktiviert ist.</target>
+            </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_searchengine -->
             <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine">
@@ -157,8 +175,8 @@
             </trans-unit>
 
             <!-- Errors -->
-            <trans-unit id="error.missingTranslation">
-                <target>Fehlende Übersetzung für:</target>
+            <trans-unit id="index_queue.flash_message.error.title">
+                <target>Fehler</target>
             </trans-unit>
         </body>
     </file>

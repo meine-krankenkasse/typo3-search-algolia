@@ -70,6 +70,24 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine.description">
                 <source>Select the search engine to be used for indexing.</source>
             </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype">
+                <source>Page type</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype.description">
+                <source>Select the page types by which the pages selected below to be indexed should be filtered.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_single">
+                <source>Single pages</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_single.description">
+                <source>Select individual pages to be indexed here. Indexing will only occur for pages whose "Include in Search" option is enabled in the page properties.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive">
+                <source>Pages (recursively)</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive.description">
+                <source>Select the pages you want to recursively index, including all their subpages. Indexing will only occur for pages whose "Include in Search" option is enabled in the page properties.</source>
+            </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_searchengine -->
             <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine">
@@ -157,8 +175,8 @@
             </trans-unit>
 
             <!-- Errors -->
-            <trans-unit id="error.missingTranslation">
-                <source>Missing translation for:</source>
+            <trans-unit id="index_queue.flash_message.error.title">
+                <source>Error</source>
             </trans-unit>
         </body>
     </file>
