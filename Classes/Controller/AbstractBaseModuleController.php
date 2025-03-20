@@ -20,6 +20,7 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -44,6 +45,11 @@ abstract class AbstractBaseModuleController extends ActionController
     private readonly ModuleTemplateFactory $moduleTemplateFactory;
 
     /**
+     * @var IconFactory
+     */
+    protected IconFactory $iconFactory;
+
+    /**
      * @var ModuleTemplate
      */
     protected ModuleTemplate $moduleTemplate;
@@ -59,11 +65,14 @@ abstract class AbstractBaseModuleController extends ActionController
      * Constructor.
      *
      * @param ModuleTemplateFactory $moduleTemplateFactory
+     * @param IconFactory           $iconFactory
      */
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
+        IconFactory $iconFactory,
     ) {
         $this->moduleTemplateFactory = $moduleTemplateFactory;
+        $this->iconFactory           = $iconFactory;
     }
 
     /**
@@ -81,6 +90,7 @@ abstract class AbstractBaseModuleController extends ActionController
      *
      * @return ResponseInterface
      */
+    #[Override]
     protected function errorAction(): ResponseInterface
     {
         return $this->moduleTemplate->renderResponse();
@@ -193,7 +203,7 @@ abstract class AbstractBaseModuleController extends ActionController
     /**
      * @return BackendUserAuthentication
      */
-    private function getBackendUserAuthentication(): BackendUserAuthentication
+    protected function getBackendUserAuthentication(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }

@@ -122,6 +122,9 @@
             <trans-unit id="index_queue">
                 <source>Queue</source>
             </trans-unit>
+            <trans-unit id="index_queue.docheader.button.new">
+                <source>New Indexing Service</source>
+            </trans-unit>
             <trans-unit id="index_queue.description">
                 <source>The queue manages content indexing. Content enters the queue through the initialization below or when new content is created based on the configuration. The items in the queue are indexed first by the most recent changes, followed by the rest of the items.</source>
             </trans-unit>

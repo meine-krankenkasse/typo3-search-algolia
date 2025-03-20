@@ -20,7 +20,10 @@ use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
 use Psr\Http\Message\ResponseInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Core\Imaging\Icon;
+use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -57,6 +60,7 @@ class QueueModuleController extends AbstractBaseModuleController
      * Constructor.
      *
      * @param ModuleTemplateFactory     $moduleTemplateFactory
+     * @param IconFactory               $iconFactory
      * @param IndexerFactory            $indexerFactory
      * @param IndexingServiceRepository $indexingServiceRepository
      * @param QueueItemRepository       $queueItemRepository
@@ -64,17 +68,75 @@ class QueueModuleController extends AbstractBaseModuleController
      */
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
+        IconFactory $iconFactory,
         IndexerFactory $indexerFactory,
         IndexingServiceRepository $indexingServiceRepository,
         QueueItemRepository $queueItemRepository,
         QueueStatusService $queueStatusService,
     ) {
-        parent::__construct($moduleTemplateFactory);
+        parent::__construct(
+            $moduleTemplateFactory,
+            $iconFactory
+        );
 
         $this->indexerFactory            = $indexerFactory;
         $this->indexingServiceRepository = $indexingServiceRepository;
         $this->queueItemRepository       = $queueItemRepository;
         $this->queueStatusService        = $queueStatusService;
+    }
+
+    /**
+     * @return UriBuilder
+     */
+    private function getBackendUriBuilder(): UriBuilder
+    {
+        return GeneralUtility::makeInstance(UriBuilder::class);
+    }
+
+    /**
+     * Adds the new record button to the document header.
+     *
+     * @return void
+     */
+    private function addDocHeaderNewButton(): void
+    {
+        $buttonBar = $this->moduleTemplate
+            ->getDocHeaderComponent()
+            ->getButtonBar();
+
+        $newButton = $buttonBar->makeLinkButton()
+            ->setTitle($this->translate('index_queue.docheader.button.new'))
+            ->setShowLabelText(true)
+            ->setIcon(
+                $this->iconFactory->getIcon(
+                    'actions-plus',
+                    Icon::SIZE_SMALL
+                )
+            )
+            ->setHref($this->getCreateNewRecordUrl());
+
+        $buttonBar->addButton($newButton);
+    }
+
+    /**
+     * Returns the URL to create a new indexing service record.
+     *
+     * @return string
+     */
+    private function getCreateNewRecordUrl(): string
+    {
+        return (string) $this->getBackendUriBuilder()
+            ->buildUriFromRoute(
+                'record_edit',
+                [
+                    'edit' => [
+                        'tx_typo3searchalgolia_domain_model_indexingservice' => [
+                            $this->pageUid => 'new',
+                        ],
+                    ],
+                    'returnUrl' => $this->request->getAttribute('normalizedParams')?->getRequestUri(),
+                ]
+            );
     }
 
     /**
@@ -89,6 +151,8 @@ class QueueModuleController extends AbstractBaseModuleController
         if (!$this->checkDatabaseAvailability()) {
             return $this->forwardFlashMessage('error.databaseAvailability');
         }
+
+        $this->addDocHeaderNewButton();
 
         if (!($queueDemand instanceof QueueDemand)) {
             $queueDemand = GeneralUtility::makeInstance(QueueDemand::class);

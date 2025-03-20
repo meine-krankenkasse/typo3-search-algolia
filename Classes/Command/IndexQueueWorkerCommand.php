@@ -178,16 +178,14 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 continue;
             }
 
-            // Multiple indexing services may exist for each type
-            $indexingServices = $this->indexingServiceRepository
-                ->findByType($item->getIndexerType());
-
             // Find matching indexer
             $indexerInstance = $indexerFactory->createByType($item->getIndexerType());
 
-            /** @var IndexingService $indexingService */
-            foreach ($indexingServices as $indexingService) {
-                // Perform indexing using each separate indexing service
+            $indexingService = $this->indexingServiceRepository
+                ->findByUid($item->getServiceUid());
+
+            // Perform indexing using each separate indexing service
+            if ($indexingService instanceof IndexingService) {
                 $indexerInstance?->indexRecord(
                     $indexingService,
                     $record

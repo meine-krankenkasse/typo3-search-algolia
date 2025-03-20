@@ -122,6 +122,9 @@
             <trans-unit id="index_queue">
                 <target>Warteschlange</target>
             </trans-unit>
+            <trans-unit id="index_queue.docheader.button.new">
+                <target>Neuer Indexdienst</target>
+            </trans-unit>
             <trans-unit id="index_queue.description">
                 <target>Die Warteschlange verwaltet die Inhaltsindizierung. Inhalte gelangen durch die unten stehende Initialisierung oder wenn basierend auf der Konfiguration neue Inhalte erstellt werden, in die Warteschlange. Die Elemente in der Warteschlange werden zuerst nach den neuesten Änderungen indexiert, gefolgt von den restlichen Elementen.</target>
             </trans-unit>
