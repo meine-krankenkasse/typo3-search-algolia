@@ -29,6 +29,10 @@ class AdministrationModuleController extends AbstractBaseModuleController
      */
     public function indexAction(): ResponseInterface
     {
+        if (!$this->checkDatabaseAvailability()) {
+            return $this->forwardFlashMessage('error.databaseAvailability');
+        }
+
         return $this->moduleTemplate->renderResponse();
     }
 }

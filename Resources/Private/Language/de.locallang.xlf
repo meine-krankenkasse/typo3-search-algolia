@@ -175,6 +175,12 @@
             </trans-unit>
 
             <!-- Errors -->
+            <trans-unit id="error.title">
+                <source>Fehler</source>
+            </trans-unit>
+            <trans-unit id="error.databaseAvailability">
+                <target>Bitte stellen Sie sicher, dass die Datenbankstruktur aktuell ist.</target>
+            </trans-unit>
             <trans-unit id="index_queue.flash_message.error.title">
                 <target>Fehler</target>
             </trans-unit>

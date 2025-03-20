@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
 use Exception;
-use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Dto\QueueDemand;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
@@ -24,7 +23,6 @@ use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * QueueModuleController.
@@ -88,6 +86,10 @@ class QueueModuleController extends AbstractBaseModuleController
      */
     public function indexAction(?QueueDemand $queueDemand = null): ResponseInterface
     {
+        if (!$this->checkDatabaseAvailability()) {
+            return $this->forwardFlashMessage('error.databaseAvailability');
+        }
+
         if (!($queueDemand instanceof QueueDemand)) {
             $queueDemand = GeneralUtility::makeInstance(QueueDemand::class);
         }
@@ -115,10 +117,7 @@ class QueueModuleController extends AbstractBaseModuleController
                     } catch (Exception $exception) {
                         $this->addFlashMessage(
                             $exception->getMessage(),
-                            LocalizationUtility::translate(
-                                'index_queue.flash_message.error.title',
-                                Constants::EXTENSION_NAME
-                            ) ?? '',
+                            $this->translate('index_queue.flash_message.error.title'),
                             ContextualFeedbackSeverity::ERROR
                         );
                     }
@@ -126,17 +125,13 @@ class QueueModuleController extends AbstractBaseModuleController
             }
 
             $this->addFlashMessage(
-                LocalizationUtility::translate(
+                $this->translate(
                     'index_queue.flash_message.body',
-                    Constants::EXTENSION_NAME,
                     [
                         $itemCount,
                     ]
-                ) ?? '',
-                LocalizationUtility::translate(
-                    'index_queue.flash_message.title',
-                    Constants::EXTENSION_NAME
-                ) ?? ''
+                ),
+                $this->translate('index_queue.flash_message.title')
             );
         }
 

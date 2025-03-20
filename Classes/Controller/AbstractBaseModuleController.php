@@ -11,14 +11,21 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use Override;
+use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Http\ForwardResponse;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 use function is_array;
 
@@ -67,6 +74,54 @@ abstract class AbstractBaseModuleController extends ActionController
     {
         $this->pageUid        = $this->getPageId();
         $this->moduleTemplate = $this->getModuleTemplate();
+    }
+
+    /**
+     * The error entry point.
+     *
+     * @return ResponseInterface
+     */
+    protected function errorAction(): ResponseInterface
+    {
+        return $this->moduleTemplate->renderResponse();
+    }
+
+    /**
+     * Adds a flash message to the message queue and forward to the error action to abort further processing.
+     *
+     * @param string                     $key
+     * @param ContextualFeedbackSeverity $severity
+     *
+     * @return ResponseInterface
+     */
+    protected function forwardFlashMessage(
+        string $key,
+        ContextualFeedbackSeverity $severity = ContextualFeedbackSeverity::ERROR,
+    ): ResponseInterface {
+        $this->moduleTemplate->addFlashMessage(
+            $this->translate($key),
+            $this->translate('error.title'),
+            $severity
+        );
+
+        return new ForwardResponse('error');
+    }
+
+    /**
+     * Returns TRUE if the required database tables are available.
+     *
+     * @return bool
+     */
+    protected function checkDatabaseAvailability(): bool
+    {
+        return GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_typo3searchalgolia_domain_model_indexingservice')
+            ->createSchemaManager()
+            ->tablesExist([
+                'tx_typo3searchalgolia_domain_model_indexingservice',
+                'tx_typo3searchalgolia_domain_model_queueitem',
+                'tx_typo3searchalgolia_domain_model_searchengine',
+            ]);
     }
 
     /**
@@ -141,5 +196,22 @@ abstract class AbstractBaseModuleController extends ActionController
     private function getBackendUserAuthentication(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * Returns the translated language label for the given identifier.
+     *
+     * @param string                       $key
+     * @param array<int|float|string>|null $arguments
+     *
+     * @return string
+     */
+    protected function translate(string $key, ?array $arguments = null): string
+    {
+        return LocalizationUtility::translate(
+            $key,
+            Constants::EXTENSION_NAME,
+            $arguments
+        ) ?? '';
     }
 }

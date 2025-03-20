@@ -175,6 +175,12 @@
             </trans-unit>
 
             <!-- Errors -->
+            <trans-unit id="error.title">
+                <source>Error</source>
+            </trans-unit>
+            <trans-unit id="error.databaseAvailability">
+                <source>Please ensure that the database structure is up to date.</source>
+            </trans-unit>
             <trans-unit id="index_queue.flash_message.error.title">
                 <source>Error</source>
             </trans-unit>
