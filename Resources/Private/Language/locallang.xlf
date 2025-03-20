@@ -42,6 +42,9 @@
             <trans-unit id="indexer.tt_content.title">
                 <source>Content elements</source>
             </trans-unit>
+            <trans-unit id="indexer.sys_file_metadata.title">
+                <source>Files</source>
+            </trans-unit>
             <trans-unit id="indexer.tx_news_domain_model_news.title">
                 <source>News</source>
             </trans-unit>
@@ -74,6 +77,9 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.tt_content">
                 <source>The content item indexer indexes all content items on individually selectable pages or entire page trees. Content items are stored in the index as individual records and have a URL that points directly to the respective content item.</source>
             </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.sys_file_metadata">
+                <source>The file indexer indexes files that are provided via one or more file collections.</source>
+            </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine">
                 <source>Search Engine</source>
             </trans-unit>
@@ -103,6 +109,12 @@
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive.description">
                 <source>Select the pages you want to recursively index, including all their subpages. Indexing will only occur for pages whose "Include in Search" option is enabled in the page properties.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.file_collections">
+                <source>File collections</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.file_collections.description">
+                <source>Select the file collections that should be used for indexing.</source>
             </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_searchengine -->

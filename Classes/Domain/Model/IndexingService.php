@@ -84,6 +84,11 @@ class IndexingService extends AbstractEntity
     protected string $pagesRecursive = '';
 
     /**
+     * @var string
+     */
+    protected string $fileCollections = '';
+
+    /**
      * @return DateTime
      */
     public function getCrdate(): DateTime
@@ -319,6 +324,26 @@ class IndexingService extends AbstractEntity
     public function setPagesRecursive(string $pagesRecursive): IndexingService
     {
         $this->pagesRecursive = $pagesRecursive;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFileCollections(): string
+    {
+        return $this->fileCollections;
+    }
+
+    /**
+     * @param string $fileCollections
+     *
+     * @return IndexingService
+     */
+    public function setFileCollections(string $fileCollections): IndexingService
+    {
+        $this->fileCollections = $fileCollections;
 
         return $this;
     }

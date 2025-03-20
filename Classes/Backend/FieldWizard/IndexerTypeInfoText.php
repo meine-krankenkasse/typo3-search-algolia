@@ -35,7 +35,7 @@ class IndexerTypeInfoText extends AbstractNode
         $typeLabel = htmlspecialchars(
             $languageService->sL(
                 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.type.' .
-                $this->data['parameterArray']['itemFormElValue'][0]
+                ($this->data['parameterArray']['itemFormElValue'][0] ?? '')
             )
         );
 

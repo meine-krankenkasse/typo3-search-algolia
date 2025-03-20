@@ -14,6 +14,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Hook\DataHandlerHook;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine\AlgoliaSearchEngine;
@@ -61,6 +62,13 @@ call_user_func(static function (): void {
         ContentIndexer::TABLE,
         'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.tt_content.title',
         'apps-pagetree-page-content-from-page',
+    );
+
+    IndexerRegistry::register(
+        FileIndexer::class,
+        FileIndexer::TABLE,
+        'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.sys_file_metadata.title',
+        'mimetypes-pdf',
     );
 
     if (ExtensionManagementUtility::isLoaded('news')) {

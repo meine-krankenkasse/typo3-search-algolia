@@ -49,6 +49,7 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_indexingservice
     pages_doktype            text,
     pages_single             text,
     pages_recursive          text,
+    file_collections         text,
 
     PRIMARY KEY (uid),
     KEY parent (pid)
@@ -59,13 +60,13 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_indexingservice
 #
 CREATE TABLE tx_typo3searchalgolia_domain_model_queueitem
 (
-    uid          int(11) unsigned                 NOT NULL auto_increment,
-    pid          int(11) unsigned     DEFAULT '0' NOT NULL,
-    table_name   varchar(255)         DEFAULT ''  NOT NULL,
-    record_uid   int(11)              DEFAULT '0' NOT NULL,
-    service_uid  int(11)              DEFAULT '0' NOT NULL,
-    changed      int(11) unsigned     DEFAULT '0' NOT NULL,
-    priority     smallint(5) unsigned DEFAULT '0' NOT NULL,
+    uid         int(11) unsigned                 NOT NULL auto_increment,
+    pid         int(11) unsigned     DEFAULT '0' NOT NULL,
+    table_name  varchar(255)         DEFAULT ''  NOT NULL,
+    record_uid  int(11)              DEFAULT '0' NOT NULL,
+    service_uid int(11)              DEFAULT '0' NOT NULL,
+    changed     int(11) unsigned     DEFAULT '0' NOT NULL,
+    priority    smallint(5) unsigned DEFAULT '0' NOT NULL,
 
     PRIMARY KEY (uid),
     KEY parent (pid),

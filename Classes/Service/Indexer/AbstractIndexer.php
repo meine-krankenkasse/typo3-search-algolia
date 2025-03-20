@@ -203,34 +203,11 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     /**
-     * Returns records from the current indexer table matching certain constraints.
-     *
-     * @return array<int, array<string, int|string>>
-     *
-     * @throws Exception
-     */
-    private function initQueueItemRecords(): array
-    {
-        $queryBuilder = $this->connectionPool
-            ->getQueryBuilderForTable($this->getTable());
-
-        $constraints = array_merge(
-            [],
-            $this->getPagesQueryConstraint($queryBuilder),
-            $this->getAdditionalQueryConstraints($queryBuilder)
-        );
-
-        return $this
-            ->fetchRecords($queryBuilder, $constraints)
-            ->fetchAllAssociative();
-    }
-
-    /**
      * Returns a single record from the current indexer table matching certain constraints.
      *
      * @param int $recordUid
      *
-     * @return array<string, mixed>|false
+     * @return array<string, int|string>|false
      *
      * @throws Exception
      */
@@ -256,6 +233,29 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     /**
+     * Returns records from the current indexer table matching certain constraints.
+     *
+     * @return array<array-key, array<string, int|string>>
+     *
+     * @throws Exception
+     */
+    protected function initQueueItemRecords(): array
+    {
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable($this->getTable());
+
+        $constraints = array_merge(
+            [],
+            $this->getPagesQueryConstraint($queryBuilder),
+            $this->getAdditionalQueryConstraints($queryBuilder)
+        );
+
+        return $this
+            ->fetchRecords($queryBuilder, $constraints)
+            ->fetchAllAssociative();
+    }
+
+    /**
      * Fetches the records.
      *
      * @param QueryBuilder $queryBuilder
@@ -278,7 +278,7 @@ abstract class AbstractIndexer implements IndexerInterface
             $changedFieldStatement = 0;
         }
 
-        $serviceUid = $this->indexingService instanceof IndexingService ? $this->indexingService->getUid() : 0;
+        $serviceUid = $this->indexingService?->getUid() ?? 0;
 
         $selectLiterals = [
             "'" . $this->getTable() . "' as table_name",
@@ -364,7 +364,7 @@ abstract class AbstractIndexer implements IndexerInterface
      *
      * @return string|null
      */
-    private function getChangedFieldStatement(): ?string
+    protected function getChangedFieldStatement(): ?string
     {
         if (
             isset($GLOBALS['TCA'][$this->getTable()]['ctrl']['enablecolumns']['starttime'])

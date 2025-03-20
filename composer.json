@@ -23,7 +23,8 @@
         "typo3/cms-extbase": "^12.4",
         "typo3/cms-fluid": "^12.4",
         "typo3/cms-scheduler": "^12.4",
-        "algolia/algoliasearch-client-php": "^4.0"
+        "algolia/algoliasearch-client-php": "^4.0",
+        "tecnickcom/tc-lib-pdf-parser": "^3.0"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.65",

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Backend\TcaItemsProcessorFunctions;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 
@@ -56,7 +57,7 @@ return [
         ],
         'special' => [
             'label'    => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tca.palettes.special',
-            'showitem' => 'include_content_elements, --linebreak--, pages_doktype, --linebreak--, pages_single, --linebreak--, pages_recursive',
+            'showitem' => 'include_content_elements, --linebreak--, pages_doktype, --linebreak--, pages_single, --linebreak--, pages_recursive, --linebreak--, file_collections',
         ],
         'visibility' => [
             'label'    => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tca.palettes.visibility',
@@ -258,6 +259,28 @@ return [
                 'autoSizeMax' => 10,
                 'minitems'    => 0,
                 'maxitems'    => 100,
+            ],
+        ],
+        'file_collections' => [
+            'exclude'     => true,
+            'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.file_collections',
+            'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.file_collections.description',
+            'displayCond' => 'FIELD:type:IN:' . FileIndexer::TABLE,
+            'config'      => [
+                'type'                                   => 'group',
+                'localizeReferencesAtParentLocalization' => true,
+                'allowed'                                => 'sys_file_collection',
+                'foreign_table'                          => 'sys_file_collection',
+                'size'                                   => 5,
+                'fieldControl'                           => [
+                    'addRecord' => [
+                        'disabled' => false,
+                        'options'  => [
+                            'title'    => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:file_mountpoints_add_title',
+                            'setValue' => 'prepend',
+                        ],
+                    ],
+                ],
             ],
         ],
     ],

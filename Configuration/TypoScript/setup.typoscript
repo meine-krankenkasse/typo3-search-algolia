@@ -12,7 +12,7 @@ module {
                     subtitle = subTitle
                     nav_title = navTitle
                     description = description
-                    abstract = abstract
+                    abstract = teaser
                     author = author
                     keywords = keywords
                 }
@@ -37,6 +37,19 @@ module {
                     author_email = authorEmail
                     keywords = keywords
                 }
+            }
+
+            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer::TABLE
+            sys_file_metadata {
+                fields {
+                    title = title
+                    description = description
+                    alternative = alternative
+                    creator = author
+                }
+
+                # Comma-separated list of allowed file extensions
+                extensions = pdf
             }
         }
     }

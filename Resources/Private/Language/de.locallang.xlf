@@ -42,6 +42,9 @@
             <trans-unit id="indexer.tt_content.title">
                 <target>Inhaltselemente</target>
             </trans-unit>
+            <trans-unit id="indexer.sys_file_metadata.title">
+                <target>Dateien</target>
+            </trans-unit>
             <trans-unit id="indexer.tx_news_domain_model_news.title">
                 <target>Nachrichten</target>
             </trans-unit>
@@ -81,10 +84,13 @@
                 <target>Wählen Sie den zu verwendenden Indexertyp aus.</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.pages">
-                <target>Der Seitenindexer indexiert einzeln auswählbare Seiten oder ganze Seitenbäume und lässt sich auch auf bestimmte Seitentypen beschränken. Er bietet zudem die Möglichkeit, die auf einer Seite enthaltenen Inhaltselemente als durchsuchbare Inhalte in den Index aufzunehmen. Falls die verwendete Suchmaschine eine Datensatzgrößenbeschränkung hat, kann die Indexierung einer Seite allerdings fehlschlagen.</target>
+                <target>Der Seitenindexer indiziert einzeln auswählbare Seiten oder ganze Seitenbäume und lässt sich auch auf bestimmte Seitentypen beschränken. Er bietet zudem die Möglichkeit, die auf einer Seite enthaltenen Inhaltselemente als durchsuchbare Inhalte in den Index aufzunehmen. Falls die verwendete Suchmaschine eine Datensatzgrößenbeschränkung hat, kann die Indexierung einer Seite allerdings fehlschlagen.</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.tt_content">
                 <target>Der Inhaltselement-Indexer indiziert alle Inhaltselemente auf einzeln auswählbaren Seiten oder ganzen Seitenbäumen. Inhaltselemente werden im Index als einzelne Datensätze gespeichert und verfügen über eine URL, die direkt auf das jeweilige Inhaltselement verweist.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.sys_file_metadata">
+                <target>Der Dateiindexer indiziert Dateien, die über eine oder mehrere Dateisammlungen bereitgestellt werden.</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype">
                 <target>Seitentyp</target>
@@ -103,6 +109,12 @@
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive.description">
                 <target>Wählen Sie hier die Seiten aus, die rekursiv einschließlich aller Unterseiten, indexiert werden sollen. Die Indexierung erfolgt nur für Seiten, deren Option "In Suche einbeziehen" in den Seiteneigenschaften aktiviert ist.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.file_collections">
+                <target>Dateisammlungen</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.file_collections.description">
+                <target>Wählen Sie die Dateisammlungen aus, die für die Indizierung verwendet werden sollen.</target>
             </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_searchengine -->

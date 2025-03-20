@@ -131,13 +131,14 @@ class QueueItemRepository extends Repository
 
         // Avoid errors caused by too many records by dividing them into blocks.
         $recordsChunks = array_chunk($records, 1000);
+        $columns       = array_keys(reset($records));
 
         foreach ($recordsChunks as $recordsChunk) {
             $connection
                 ->bulkInsert(
                     self::TABLE_NAME,
                     $recordsChunk,
-                    array_keys($records[0])
+                    $columns
                 );
         }
 

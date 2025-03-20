@@ -26,6 +26,8 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
+use function is_array;
+
 /**
  * Class UpdateAssembledPageDocumentEventListener.
  *
@@ -172,6 +174,10 @@ readonly class UpdateAssembledPageDocumentEventListener
         $typoscriptConfiguration = $this->getTypoScriptConfiguration();
         $contentElementFields    = $typoscriptConfiguration['indexer'][ContentIndexer::TABLE]['fields'];
 
+        if (!is_array($contentElementFields)) {
+            return null;
+        }
+
         $rows = $this->contentRepository
             ->findAllByPid(
                 $pageId,
@@ -194,7 +200,7 @@ readonly class UpdateAssembledPageDocumentEventListener
     /**
      * Returns the TypoScript configuration of the extension.
      *
-     * @return array<string, array<string, array<string, array<string, string>>>>
+     * @return array<string, array<string, array<string, string|array<string, string>>>>
      */
     private function getTypoScriptConfiguration(): array
     {

@@ -232,7 +232,7 @@ class DocumentBuilder
     /**
      * Returns the TypoScript configuration of the extension.
      *
-     * @return array<string, array<string, array<string, array<string, string>>>>
+     * @return array<string, array<string, array<string, string|array<string, string>>>>
      */
     private function getTypoScriptConfiguration(): array
     {
