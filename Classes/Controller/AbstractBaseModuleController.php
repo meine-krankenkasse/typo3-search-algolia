@@ -104,7 +104,7 @@ abstract class AbstractBaseModuleController extends ActionController
      *
      * @return ResponseInterface
      */
-    protected function forwardFlashMessage(
+    protected function forwardErrorFlashMessage(
         string $key,
         ContextualFeedbackSeverity $severity = ContextualFeedbackSeverity::ERROR,
     ): ResponseInterface {

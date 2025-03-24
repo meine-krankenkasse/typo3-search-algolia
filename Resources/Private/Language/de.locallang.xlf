@@ -118,7 +118,7 @@
                 <target>Der Name des Indexes, der für die Speicherung der indizierten Daten innerhalb der Suchmaschine verwendet wird.</target>
             </trans-unit>
 
-            <!-- Backend -->
+            <!-- QueueModule -->
             <trans-unit id="index_queue">
                 <target>Warteschlange</target>
             </trans-unit>
@@ -140,7 +140,7 @@
             <trans-unit id="index_queue.statistics.last_execution.never">
                 <target>noch nie</target>
             </trans-unit>
-            <trans-unit id="index_queue.statistics.last_execution.date_format">
+            <trans-unit id="index_queue.statistics.last_execution.dateFormat">
                 <target>d.m.Y H:i:s</target>
             </trans-unit>
             <trans-unit id="index_queue.statistics.column.type">
@@ -177,15 +177,49 @@
                 <target>%s Elemente erfolgreich zur Warteschlange hinzugefügt.</target>
             </trans-unit>
 
+            <!-- AdministrationModule -->
+            <trans-unit id="administration">
+                <target>Administration</target>
+            </trans-unit>
+            <trans-unit id="administration.description">
+                <target>Dieses Modul zeigt eine Übersicht über die von der jeweiligen Suchmaschine verwendeten Indizes und bietet die Möglichkeit, alle Einträge direkt zu löschen.</target>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.algolia.headline">
+                <target>Algolia</target>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.indexName">
+                <target>Indexname</target>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.entries">
+                <target>Einträge</target>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.lastUpdate">
+                <target>Letzte Aktualisierung</target>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.lastUpdate.dateFormat">
+                <target>d.m.Y H:i:s</target>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.task.clear">
+                <target>Index leeren</target>
+            </trans-unit>
+
             <!-- Errors -->
             <trans-unit id="error.title">
-                <source>Fehler</source>
+                <target>Fehler</target>
             </trans-unit>
             <trans-unit id="error.databaseAvailability">
                 <target>Bitte stellen Sie sicher, dass die Datenbankstruktur aktuell ist.</target>
             </trans-unit>
-            <trans-unit id="index_queue.flash_message.error.title">
+
+            <!-- Flash messages -->
+            <trans-unit id="flash_message.error.title">
                 <target>Fehler</target>
+            </trans-unit>
+            <trans-unit id="flash_message.success.title">
+                <target>Erfolg</target>
+            </trans-unit>
+            <trans-unit id="flash_message.success.message.clearIndex">
+                <target>Der Index "%s" wurde erfolgreich geleert.</target>
             </trans-unit>
         </body>
     </file>

@@ -118,15 +118,15 @@
                 <source>The name of the index used to store indexed data within the search engine.</source>
             </trans-unit>
 
-            <!-- Backend -->
+            <!-- QueueModule -->
             <trans-unit id="index_queue">
                 <source>Queue</source>
             </trans-unit>
-            <trans-unit id="index_queue.docheader.button.new">
-                <source>New Indexing Service</source>
-            </trans-unit>
             <trans-unit id="index_queue.description">
                 <source>The queue manages content indexing. Content enters the queue through the initialization below or when new content is created based on the configuration. The items in the queue are indexed first by the most recent changes, followed by the rest of the items.</source>
+            </trans-unit>
+            <trans-unit id="index_queue.docheader.button.new">
+                <source>New Indexing Service</source>
             </trans-unit>
             <trans-unit id="index_queue.statistics">
                 <source>Queue Statistic</source>
@@ -140,7 +140,7 @@
             <trans-unit id="index_queue.statistics.last_execution.never">
                 <source>never</source>
             </trans-unit>
-            <trans-unit id="index_queue.statistics.last_execution.date_format">
+            <trans-unit id="index_queue.statistics.last_execution.dateFormat">
                 <source>Y-m-d H:i:s</source>
             </trans-unit>
             <trans-unit id="index_queue.statistics.column.type">
@@ -177,6 +177,32 @@
                 <source>%s items successfully added to queue.</source>
             </trans-unit>
 
+            <!-- AdministrationModule -->
+            <trans-unit id="administration">
+                <source>Administration</source>
+            </trans-unit>
+            <trans-unit id="administration.description">
+                <source>This module shows an overview of the indexes used by the respective search engine and offers the possibility to delete all entries directly.</source>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.algolia.headline">
+                <source>Algolia</source>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.indexName">
+                <source>Index name</source>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.entries">
+                <source>Entries</source>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.lastUpdate">
+                <source>Last Update</source>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.lastUpdate.dateFormat">
+                <source>Y-m-d H:i:s</source>
+            </trans-unit>
+            <trans-unit id="administration.searchEngine.table.column.task.clear">
+                <source>Empty Index</source>
+            </trans-unit>
+
             <!-- Errors -->
             <trans-unit id="error.title">
                 <source>Error</source>
@@ -184,8 +210,16 @@
             <trans-unit id="error.databaseAvailability">
                 <source>Please ensure that the database structure is up to date.</source>
             </trans-unit>
-            <trans-unit id="index_queue.flash_message.error.title">
+
+            <!-- Flash messages -->
+            <trans-unit id="flash_message.error.title">
                 <source>Error</source>
+            </trans-unit>
+            <trans-unit id="flash_message.success.title">
+                <source>Success</source>
+            </trans-unit>
+            <trans-unit id="flash_message.success.message.clearIndex">
+                <source>The index "%s" was successfully emptied.</source>
             </trans-unit>
         </body>
     </file>

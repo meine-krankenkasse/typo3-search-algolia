@@ -13,12 +13,14 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine;
 
 use Algolia\AlgoliaSearch\Api\SearchClient;
 use Algolia\AlgoliaSearch\Model\Search\DeletedAtResponse;
+use Algolia\AlgoliaSearch\Model\Search\ListIndicesResponse;
 use Algolia\AlgoliaSearch\Model\Search\OperationIndexParams;
 use Algolia\AlgoliaSearch\Model\Search\OperationType;
 use Algolia\AlgoliaSearch\Model\Search\SaveObjectResponse;
 use Algolia\AlgoliaSearch\Model\Search\UpdatedAtResponse;
 use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\Exception\RateLimitException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Override;
@@ -150,6 +152,48 @@ class AlgoliaSearchEngine implements SearchEngineInterface
 
         return $responseData
             ->valid();
+    }
+
+    #[Override]
+    public function indexList(): array
+    {
+        $responseData = $this->client
+            ->listIndices();
+
+        if ($responseData instanceof ListIndicesResponse) {
+            return $responseData->getItems();
+        }
+
+        return $responseData;
+    }
+
+    /**
+     * @param string $indexName
+     *
+     * @return bool
+     *
+     * @throws RateLimitException
+     */
+    #[Override]
+    public function indexClear(string $indexName): bool
+    {
+        try {
+            $responseData = $this->client
+                ->clearObjects($indexName);
+
+            if (is_array($responseData)) {
+                $responseData = new UpdatedAtResponse($responseData);
+            }
+
+            return $responseData->valid();
+        } catch (Exception $exception) {
+            // Rate limit
+            if ($exception->getCode() === 429) {
+                throw new RateLimitException($exception->getMessage(), $exception->getCode());
+            }
+        }
+
+        return false;
     }
 
     /**

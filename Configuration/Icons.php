@@ -16,7 +16,7 @@ return [
         'provider' => SvgIconProvider::class,
         'source'   => 'EXT:typo3_search_algolia/Resources/Public/Icons/Module.svg',
     ],
-    'extension-mkk-typo3-search-algolia' => [
+    'extension-mkk-typo3-search' => [
         'provider' => SvgIconProvider::class,
         'source'   => 'EXT:typo3_search_algolia/Resources/Public/Icons/Extension.svg',
     ],

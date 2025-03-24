@@ -149,7 +149,7 @@ class QueueModuleController extends AbstractBaseModuleController
     public function indexAction(?QueueDemand $queueDemand = null): ResponseInterface
     {
         if (!$this->checkDatabaseAvailability()) {
-            return $this->forwardFlashMessage('error.databaseAvailability');
+            return $this->forwardErrorFlashMessage('error.databaseAvailability');
         }
 
         $this->addDocHeaderNewButton();
@@ -181,7 +181,7 @@ class QueueModuleController extends AbstractBaseModuleController
                     } catch (Exception $exception) {
                         $this->addFlashMessage(
                             $exception->getMessage(),
-                            $this->translate('index_queue.flash_message.error.title'),
+                            $this->translate('flash_message.error.title'),
                             ContextualFeedbackSeverity::ERROR
                         );
                     }

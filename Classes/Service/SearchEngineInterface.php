@@ -73,6 +73,22 @@ interface SearchEngineInterface extends SingletonInterface
     public function indexMove(string $indexName, string $destination): bool;
 
     /**
+     * Returns a list of all indices in the current search engine application.
+     *
+     * @return array<int|string, mixed>
+     */
+    public function indexList(): array;
+
+    /**
+     * Removes all records from the index.
+     *
+     * @param string $indexName The name of the index on which to perform the operation
+     *
+     * @return bool
+     */
+    public function indexClear(string $indexName): bool;
+
+    /**
      * Adds or replaces a record.
      *
      * @param Document $document The document to index

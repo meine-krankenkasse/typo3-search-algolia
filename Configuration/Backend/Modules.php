@@ -26,9 +26,9 @@ return [
     'mkk_typo3_search' => [
         'parent'                                   => 'mkk_module',
         'position'                                 => [],
-        'access'                                   => 'user',
-        'iconIdentifier'                           => 'extension-mkk-typo3-search-algolia',
-        'path'                                     => '/module/meine-krankenkasse/typo3-search-algolia',
+        'access'                                   => 'admin',
+        'iconIdentifier'                           => 'extension-mkk-typo3-search',
+        'path'                                     => '/module/meine-krankenkasse/typo3-search',
         'labels'                                   => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang_mod_search.xlf',
         'extensionName'                            => 'Typo3SearchAlgolia',
         'inheritNavigationComponentFromMainModule' => false,
@@ -37,9 +37,9 @@ return [
     // MKK search sub modules
     'mkk_typo3_search_administration' => [
         'parent'         => 'mkk_typo3_search',
-        'access'         => 'user',
-        'path'           => '/module/meine-krankenkasse/typo3-search-algolia/administration',
-        'iconIdentifier' => 'extension-mkk-typo3-search-algolia',
+        'access'         => 'admin',
+        'path'           => '/module/meine-krankenkasse/typo3-search/administration',
+        'iconIdentifier' => 'extension-mkk-typo3-search',
         'labels'         => [
             'title' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang_mod_search.xlf:mod_administration',
         ],
@@ -47,14 +47,15 @@ return [
         'controllerActions' => [
             AdministrationModuleController::class => [
                 'index',
+                'clearIndex',
             ],
         ],
     ],
     'mkk_typo3_search_queue' => [
         'parent'         => 'mkk_typo3_search',
-        'access'         => 'user',
-        'path'           => '/module/meine-krankenkasse/typo3-search-algolia/queue',
-        'iconIdentifier' => 'extension-mkk-typo3-search-algolia',
+        'access'         => 'admin',
+        'path'           => '/module/meine-krankenkasse/typo3-search/queue',
+        'iconIdentifier' => 'extension-mkk-typo3-search',
         'labels'         => [
             'title' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang_mod_search.xlf:mod_queue',
         ],
