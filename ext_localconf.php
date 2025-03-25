@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\Hook\DataHandlerHook;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
@@ -70,13 +71,17 @@ call_user_func(static function (): void {
         );
     }
 
-    // Add task
+    // Add the task to index records from queue into search engine
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][ExecuteSchedulableCommandTask::class] = [
         'extension'        => 'typo3_search_algolia',
         'title'            => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:executeSchedulableCommandTask.name',
         'description'      => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:executeSchedulableCommandTask.description',
         'additionalFields' => ExecuteSchedulableCommandAdditionalFieldProvider::class,
     ];
+
+    // register "after save" hook
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][] = DataHandlerHook::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][]  = DataHandlerHook::class;
 
     // Add our custom style sheet
     $GLOBALS['TYPO3_CONF_VARS']['BE']['stylesheets'][Constants::EXTENSION_NAME]

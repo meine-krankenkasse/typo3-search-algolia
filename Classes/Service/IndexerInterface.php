@@ -41,6 +41,28 @@ interface IndexerInterface extends SingletonInterface
     public function getTable(): string;
 
     /**
+     * Indexes a single record using the configured search engine and indexing service configuration.
+     *
+     * @param IndexingService      $indexingService
+     * @param array<string, mixed> $record
+     *
+     * @return bool
+     */
+    public function indexRecord(IndexingService $indexingService, array $record): bool;
+
+    /**
+     * Enqueues a single indexing service related item. Returns the number of enqueued items (0 or 1).
+     *
+     * @param IndexingService $indexingService
+     * @param int             $recordUid
+     *
+     * @return int
+     *
+     * @throws Exception
+     */
+    public function enqueueOne(IndexingService $indexingService, int $recordUid): int;
+
+    /**
      * Enqueues the indexing service related items. Returns the number of enqueued items.
      *
      * @param IndexingService $indexingService
@@ -49,15 +71,5 @@ interface IndexerInterface extends SingletonInterface
      *
      * @throws Exception
      */
-    public function enqueue(IndexingService $indexingService): int;
-
-    /**
-     * Index a record.
-     *
-     * @param IndexingService      $indexingService
-     * @param array<string, mixed> $record
-     *
-     * @return bool
-     */
-    public function indexRecord(IndexingService $indexingService, array $record): bool;
+    public function enqueueAll(IndexingService $indexingService): int;
 }

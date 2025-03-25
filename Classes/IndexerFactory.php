@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -73,17 +72,5 @@ class IndexerFactory implements SingletonInterface
         }
 
         return null;
-    }
-
-    /**
-     * Creates and returns a new instance of an indexer for the given indexing service instance.
-     *
-     * @param IndexingService $indexingService
-     *
-     * @return IndexerInterface|null
-     */
-    public function createByIndexingService(IndexingService $indexingService): ?IndexerInterface
-    {
-        return $this->createByType($indexingService->getType());
     }
 }

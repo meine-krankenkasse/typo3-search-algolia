@@ -232,11 +232,9 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 ->select('*')
                 ->from($item->getTableName())
                 ->where(
-                    $queryBuilder->expr()->in(
+                    $queryBuilder->expr()->eq(
                         'uid',
-                        [
-                            $item->getRecordUid(),
-                        ]
+                        $item->getRecordUid()
                     )
                 )
                 ->executeQuery()

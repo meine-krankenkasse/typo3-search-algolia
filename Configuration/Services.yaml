@@ -11,10 +11,14 @@ services:
     # Commands
     MeineKrankenkasse\Typo3SearchAlgolia\Command\IndexQueueWorkerCommand:
         tags:
-            - name: 'console.command'
-              command: 'mkk:queue:index:worker'
-              description: 'A worker indexing the items in the index queue.'
-              schedulable: true
+            -   name: 'console.command'
+                command: 'mkk:queue:index:worker'
+                description: 'A worker indexing the items in the index queue.'
+                schedulable: true
+
+    # DataHandlerHook
+    MeineKrankenkasse\Typo3SearchAlgolia\Hook\DataHandlerHook:
+        public: true
 
     # Indexers
     MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer:
@@ -29,5 +33,10 @@ services:
     # Event listeners
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledPageDocumentEventListener:
         tags:
-            - name: event.listener
-              event: MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent
+            -   name: event.listener
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent
+
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\RecordUpdateEventListener:
+        tags:
+            -   name: event.listener
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent

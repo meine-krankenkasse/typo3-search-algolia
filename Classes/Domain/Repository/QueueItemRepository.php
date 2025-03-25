@@ -14,6 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository;
 use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
@@ -122,6 +123,21 @@ class QueueItemRepository extends Repository
     }
 
     /**
+     * Adds multiple records to the queue table. Returns the number of affected rows.
+     *
+     * @param array<string, int|string> $record
+     *
+     * @return int
+     */
+    public function insert(array $record): int
+    {
+        $connection = $this->connectionPool
+            ->getConnectionForTable(self::TABLE_NAME);
+
+        return $connection->insert(self::TABLE_NAME, $record);
+    }
+
+    /**
      * Deletes previously added items from the queue. Removes only the items of
      * the given indexing service.
      *
@@ -137,9 +153,48 @@ class QueueItemRepository extends Repository
         $queryBuilder
             ->delete(self::TABLE_NAME)
             ->where(
-                $queryBuilder->expr()->in(
+                $queryBuilder->expr()->eq(
                     'service_uid',
-                    $queryBuilder->createNamedParameter($indexingService->getUid())
+                    $queryBuilder->createNamedParameter(
+                        $indexingService->getUid(),
+                        Connection::PARAM_INT
+                    )
+                )
+            )
+            ->executeStatement();
+    }
+
+    /**
+     * Deletes a single record from the queue.
+     *
+     * @param string $tableName
+     * @param int    $recordUid
+     * @param int    $serviceUid
+     *
+     * @return void
+     */
+    public function deleteByTableAndRecord(
+        string $tableName,
+        int $recordUid,
+        int $serviceUid,
+    ): void {
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable(self::TABLE_NAME);
+
+        $queryBuilder
+            ->delete(self::TABLE_NAME)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'table_name',
+                    $queryBuilder->createNamedParameter($tableName)
+                ),
+                $queryBuilder->expr()->eq(
+                    'record_uid',
+                    $queryBuilder->createNamedParameter($recordUid, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'service_uid',
+                    $queryBuilder->createNamedParameter($serviceUid, Connection::PARAM_INT)
                 )
             )
             ->executeStatement();

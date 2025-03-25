@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Result;
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
@@ -100,20 +101,6 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     #[Override]
-    public function enqueue(IndexingService $indexingService): int
-    {
-        $this->indexingService = $indexingService;
-
-        $this->queueItemRepository
-            ->deleteByIndexingService($indexingService);
-
-        return $this->queueItemRepository
-            ->bulkInsert(
-                $this->queryItems()
-            );
-    }
-
-    #[Override]
     public function indexRecord(IndexingService $indexingService, array $record): bool
     {
         $searchEngineService = $this->searchEngineFactory
@@ -146,6 +133,42 @@ abstract class AbstractIndexer implements IndexerInterface
         return $result;
     }
 
+    #[Override]
+    public function enqueueOne(IndexingService $indexingService, int $recordUid): int
+    {
+        $this->indexingService = $indexingService;
+
+        $queueItemRecord = $this->initQueueItemRecord($recordUid);
+
+        if ($queueItemRecord === false) {
+            return 0;
+        }
+
+        $this->queueItemRepository
+            ->deleteByTableAndRecord(
+                $queueItemRecord['table_name'],
+                $queueItemRecord['record_uid'],
+                (int) $queueItemRecord['service_uid'],
+            );
+
+        return $this->queueItemRepository
+            ->insert($queueItemRecord);
+    }
+
+    #[Override]
+    public function enqueueAll(IndexingService $indexingService): int
+    {
+        $this->indexingService = $indexingService;
+
+        $this->queueItemRepository
+            ->deleteByIndexingService($indexingService);
+
+        return $this->queueItemRepository
+            ->bulkInsert(
+                $this->initQueueItemRecords()
+            );
+    }
+
     /**
      * Returns records from the current indexer table matching certain constraints.
      *
@@ -153,24 +176,68 @@ abstract class AbstractIndexer implements IndexerInterface
      *
      * @throws Exception
      */
-    private function queryItems(): array
+    private function initQueueItemRecords(): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
 
+        $constraints = array_merge(
+            [],
+            $this->getPagesQueryConstraint($queryBuilder),
+            $this->getAdditionalQueryConstraints($queryBuilder)
+        );
+
+        return $this
+            ->fetchRecords($queryBuilder, $constraints)
+            ->fetchAllAssociative();
+    }
+
+    /**
+     * Returns a single record from the current indexer table matching certain constraints.
+     *
+     * @param int $recordUid
+     *
+     * @return array<string, mixed>|false
+     *
+     * @throws Exception
+     */
+    private function initQueueItemRecord(int $recordUid): array|bool
+    {
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable($this->getTable());
+
+        $constraints = array_merge(
+            [],
+            $this->getPagesQueryConstraint($queryBuilder),
+            $this->getAdditionalQueryConstraints($queryBuilder),
+        );
+
+        $constraints[] = $queryBuilder->expr()->eq(
+            'uid',
+            $recordUid,
+        );
+
+        return $this
+            ->fetchRecords($queryBuilder, $constraints)
+            ->fetchAssociative();
+    }
+
+    /**
+     * Fetches the records.
+     *
+     * @param QueryBuilder $queryBuilder
+     * @param string[]     $constraints
+     *
+     * @return Result
+     */
+    private function fetchRecords(
+        QueryBuilder $queryBuilder,
+        array $constraints,
+    ): Result {
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DefaultRestrictionContainer::class))
             ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
-
-        $constraints = [];
-
-        // Add additional indexer related constraints
-        $constraints = array_merge(
-            $constraints,
-            $this->getPagesQueryConstraint($queryBuilder),
-            $this->getAdditionalQueryConstraints($queryBuilder)
-        );
 
         $changedFieldStatement = $this->getChangedFieldStatement();
 
@@ -178,10 +245,12 @@ abstract class AbstractIndexer implements IndexerInterface
             $changedFieldStatement = 0;
         }
 
+        $serviceUid = $this->indexingService instanceof IndexingService ? $this->indexingService->getUid() : 0;
+
         $selectLiterals = [
             "'" . $this->getTable() . "' as table_name",
             "'" . $this->getType() . "' AS indexer_type",
-            "'" . $this->indexingService?->getUid() . "' AS service_uid",
+            "'" . $serviceUid . "' AS service_uid",
             $changedFieldStatement . ' AS changed',
             '0 AS priority',
         ];
@@ -191,8 +260,7 @@ abstract class AbstractIndexer implements IndexerInterface
             ->addSelectLiteral(...$selectLiterals)
             ->from($this->getTable())
             ->where(...$constraints)
-            ->executeQuery()
-            ->fetchAllAssociative();
+            ->executeQuery();
     }
 
     /**

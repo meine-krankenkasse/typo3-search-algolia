@@ -69,9 +69,10 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_queueitem
 
     PRIMARY KEY (uid),
     KEY parent (pid),
-    KEY record_uid (record_uid),
     KEY table_name (table_name),
+    KEY record_uid (record_uid),
     KEY indexer_type (indexer_type),
     KEY service_uid (service_uid),
-    KEY changed (changed)
+    KEY changed (changed),
+    UNIQUE unqiue (table_name, record_uid, service_uid)
 );

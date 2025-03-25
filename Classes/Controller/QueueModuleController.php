@@ -173,18 +173,20 @@ class QueueModuleController extends AbstractBaseModuleController
             /** @var IndexingService $indexingService */
             foreach ($indexingServices as $indexingService) {
                 $indexerInstance = $this->indexerFactory
-                    ->createByIndexingService($indexingService);
+                    ->createByType($indexingService->getType());
 
-                if ($indexerInstance instanceof IndexerInterface) {
-                    try {
-                        $itemCount += $indexerInstance->enqueue($indexingService);
-                    } catch (Exception $exception) {
-                        $this->addFlashMessage(
-                            $exception->getMessage(),
-                            $this->translate('flash_message.error.title'),
-                            ContextualFeedbackSeverity::ERROR
-                        );
-                    }
+                if (!($indexerInstance instanceof IndexerInterface)) {
+                    continue;
+                }
+
+                try {
+                    $itemCount += $indexerInstance->enqueueAll($indexingService);
+                } catch (Exception $exception) {
+                    $this->addFlashMessage(
+                        $exception->getMessage(),
+                        $this->translate('flash_message.error.title'),
+                        ContextualFeedbackSeverity::ERROR
+                    );
                 }
             }
 
