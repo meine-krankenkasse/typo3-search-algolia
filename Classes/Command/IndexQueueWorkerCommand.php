@@ -209,6 +209,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         $this->queueStatusService
             ->setLastExecutionTime(time());
 
+        // @extensionScannerIgnoreLine
         $progressBar->finish();
         $this->io->newLine(2);
 

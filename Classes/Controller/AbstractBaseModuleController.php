@@ -81,7 +81,9 @@ abstract class AbstractBaseModuleController extends ActionController
     #[Override]
     protected function initializeAction(): void
     {
-        $this->pageUid        = $this->getPageId();
+        $this->pageUid = $this->getPageId();
+
+        // @extensionScannerIgnoreLine
         $this->moduleTemplate = $this->getModuleTemplate();
     }
 

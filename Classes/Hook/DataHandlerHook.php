@@ -94,7 +94,7 @@ readonly class DataHandlerHook
         string $command,
         string $table,
         int $recordUid,
-        $commandValue,
+        array|string $commandValue,
         DataHandler $dataHandler,
     ): void {
         DebuggerUtility::var_dump(__METHOD__);

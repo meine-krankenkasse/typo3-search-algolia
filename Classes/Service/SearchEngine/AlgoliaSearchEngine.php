@@ -76,6 +76,7 @@ class AlgoliaSearchEngine implements SearchEngineInterface
         $this->appId  = $configuration['appId'] ?? '';
         $this->apiKey = $configuration['apiKey'] ?? '';
 
+        // @extensionScannerIgnoreLine
         $this->init();
     }
 

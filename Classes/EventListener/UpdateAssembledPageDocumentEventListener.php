@@ -15,6 +15,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Http\ServerRequestFactory;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -30,22 +31,22 @@ use TYPO3\CMS\Frontend\Typolink\UnableToLinkException;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class UpdateAssembledPageDocumentEventListener
+readonly class UpdateAssembledPageDocumentEventListener
 {
     /**
      * @var SiteFinder
      */
-    private readonly SiteFinder $siteFinder;
+    private SiteFinder $siteFinder;
 
     /**
      * @var ServerRequestFactory
      */
-    private readonly ServerRequestFactory $serverRequestFactory;
+    private ServerRequestFactory $serverRequestFactory;
 
     /**
      * @var LinkFactory
      */
-    private readonly LinkFactory $linkFactory;
+    private LinkFactory $linkFactory;
 
     /**
      * Constructor.
@@ -93,6 +94,8 @@ class UpdateAssembledPageDocumentEventListener
      * @param int $pageId
      *
      * @return Site
+     *
+     * @throws SiteNotFoundException
      */
     private function getSite(int $pageId): Site
     {

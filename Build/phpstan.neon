@@ -18,6 +18,8 @@ parameters:
         - %currentWorkingDirectory%/.build/*
         - %currentWorkingDirectory%/ext_emconf.php
 
+    treatPhpDocTypesAsCertain: false
+
     # Prevent false positives
     typo3:
         requestGetAttributeMapping:

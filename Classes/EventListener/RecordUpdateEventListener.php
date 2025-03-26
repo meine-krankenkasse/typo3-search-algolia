@@ -27,17 +27,17 @@ use TYPO3\CMS\Core\Utility\RootlineUtility;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class RecordUpdateEventListener
+readonly class RecordUpdateEventListener
 {
     /**
      * @var IndexerFactory
      */
-    private readonly IndexerFactory $indexerFactory;
+    private IndexerFactory $indexerFactory;
 
     /**
      * @var IndexingServiceRepository
      */
-    private readonly IndexingServiceRepository $indexingServiceRepository;
+    private IndexingServiceRepository $indexingServiceRepository;
 
     /**
      * Constructor.

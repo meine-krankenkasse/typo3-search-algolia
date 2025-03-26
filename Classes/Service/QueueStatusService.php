@@ -21,12 +21,12 @@ use TYPO3\CMS\Core\Registry;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class QueueStatusService
+readonly class QueueStatusService
 {
     /**
      * @var Registry
      */
-    private readonly Registry $registry;
+    private Registry $registry;
 
     /**
      * Constructor.
