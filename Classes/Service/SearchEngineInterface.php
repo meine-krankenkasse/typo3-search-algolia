@@ -107,11 +107,11 @@ interface SearchEngineInterface extends SingletonInterface
     public function documentUpdate(Document $document): bool;
 
     /**
-     * Deletes a record by it unique ID.
+     * Deletes a record by its unique ID.
      *
-     * @param string $objectId
+     * @param string $documentId
      *
      * @return bool
      */
-    public function documentDelete(string $objectId): bool;
+    public function documentDelete(string $documentId): bool;
 }

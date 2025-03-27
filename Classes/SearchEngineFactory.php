@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\SearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -36,7 +37,7 @@ class SearchEngineFactory implements SingletonInterface
      *
      * @return SearchEngineInterface
      */
-    private function create(string $className): SearchEngineInterface
+    private function makeInstance(string $className): SearchEngineInterface
     {
         /** @var SearchEngineInterface $instance */
         $instance = GeneralUtility::makeInstance($className);
@@ -51,7 +52,7 @@ class SearchEngineFactory implements SingletonInterface
      *
      * @return SearchEngineInterface|null
      */
-    public function createBySubtype(string $subtype): ?SearchEngineInterface
+    public function makeInstanceByServiceSubtype(string $subtype): ?SearchEngineInterface
     {
         if (isset($this->instances[$subtype])) {
             return $this->instances[$subtype];
@@ -62,14 +63,26 @@ class SearchEngineFactory implements SingletonInterface
                 continue;
             }
 
-            $indexerInstance = $this
-                ->create($service['className']);
+            $searchEngineInstance = $this
+                ->makeInstance($service['className']);
 
-            $this->instances[$subtype] = $indexerInstance;
+            $this->instances[$subtype] = $searchEngineInstance;
 
             return $this->instances[$subtype];
         }
 
         return null;
+    }
+
+    /**
+     * Creates a search engine instance from the given search engine domain model.
+     *
+     * @param SearchEngine $searchEngine A search engine domain model instance
+     *
+     * @return SearchEngineInterface|null
+     */
+    public function makeInstanceBySearchEngineModel(SearchEngine $searchEngine): ?SearchEngineInterface
+    {
+        return $this->makeInstanceByServiceSubtype($searchEngine->getEngine());
     }
 }

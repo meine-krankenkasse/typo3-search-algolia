@@ -40,3 +40,13 @@ services:
         tags:
             -   name: event.listener
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent
+
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\RecordDeleteEventListener:
+        tags:
+            -   name: event.listener
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent
+
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\CreateDefaultDocumentIdEventListener:
+        tags:
+            -   name: event.listener
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent

@@ -173,7 +173,7 @@ class QueueModuleController extends AbstractBaseModuleController
             /** @var IndexingService $indexingService */
             foreach ($indexingServices as $indexingService) {
                 $indexerInstance = $this->indexerFactory
-                    ->createByType($indexingService->getType());
+                    ->makeInstanceByType($indexingService->getType());
 
                 if (!($indexerInstance instanceof IndexerInterface)) {
                     continue;

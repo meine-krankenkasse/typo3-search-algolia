@@ -34,7 +34,7 @@ final readonly class DataHandlerRecordDeleteEvent
      * Constructor.
      *
      * @param string $table     The table currently processing data for
-     * @param int    $recordUid The record uid currently processing data for, [integer] or [string] (like 'NEW...')
+     * @param int    $recordUid The record uid currently processing data for
      */
     public function __construct(string $table, int $recordUid)
     {

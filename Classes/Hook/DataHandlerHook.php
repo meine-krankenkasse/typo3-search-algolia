@@ -11,11 +11,11 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Hook;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\MathUtility;
-use TYPO3\CMS\Extbase\Utility\DebuggerUtility;
 
 use function is_int;
 
@@ -84,9 +84,11 @@ readonly class DataHandlerHook
     }
 
     /**
-     * @param string              $command      The TCE command
-     * @param string              $table        The record's table
-     * @param int                 $recordUid    The record's uid
+     * Hooks into DataHandler and monitors record deletion commands.
+     *
+     * @param string              $command      The DataHandler command
+     * @param string              $table        The table currently processing data for
+     * @param int                 $recordUid    The record uid currently processing data for
      * @param string|array<mixed> $commandValue The commands value, typically an array with more detailed command information
      * @param DataHandler         $dataHandler  The DataHandler parent object
      */
@@ -97,20 +99,11 @@ readonly class DataHandlerHook
         array|string $commandValue,
         DataHandler $dataHandler,
     ): void {
-        DebuggerUtility::var_dump(__METHOD__);
-        DebuggerUtility::var_dump($command);
-
-        // DELETE
         if ($command === 'delete') {
-            //            $this->eventDispatcher
-            //                ->dispatch(
-            //                    new DataHandlerRecordDeleteEvent($table, $recordUid)
-            //                );
+            $this->eventDispatcher
+                ->dispatch(
+                    new DataHandlerRecordDeleteEvent($table, $recordUid)
+                );
         }
-
-        DebuggerUtility::var_dump($table);
-        DebuggerUtility::var_dump($recordUid);
-        DebuggerUtility::var_dump($commandValue);
-        exit;
     }
 }

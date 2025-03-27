@@ -21,7 +21,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\RootlineUtility;
 
 /**
- * The record update event.
+ * The record update event listener.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -82,13 +82,13 @@ readonly class RecordUpdateEventListener
         /** @var IndexingService $indexingService */
         foreach ($indexingServices as $indexingService) {
             $indexerInstance = $this->indexerFactory
-                ->createByType($indexingService->getType());
+                ->makeInstanceByType($indexingService->getType());
 
             if (!($indexerInstance instanceof IndexerInterface)) {
                 continue;
             }
 
-            // Indexer not responsible for this kind of table
+            // Indexer is not responsible for this kind of table
             if ($indexerInstance->getTable() !== $event->getTable()) {
                 continue;
             }

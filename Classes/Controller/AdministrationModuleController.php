@@ -121,7 +121,7 @@ class AdministrationModuleController extends AbstractBaseModuleController
         }
 
         $searchEngineService = $this->searchEngineFactory
-            ->createBySubtype($subtype);
+            ->makeInstanceByServiceSubtype($subtype);
 
         if (!($searchEngineService instanceof SearchEngineInterface)) {
             return $this->forwardToIndexAction();
@@ -175,7 +175,7 @@ class AdministrationModuleController extends AbstractBaseModuleController
 
         foreach ($searchEnginesGrouped as $searchEngineSubtype => $searchEngines) {
             $searchEngineService = $this->searchEngineFactory
-                ->createBySubtype($searchEngineSubtype);
+                ->makeInstanceByServiceSubtype($searchEngineSubtype);
 
             $indicesList = ($searchEngineService instanceof SearchEngineInterface)
                 ? $searchEngineService->indexList()

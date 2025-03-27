@@ -104,11 +104,7 @@ abstract class AbstractIndexer implements IndexerInterface
     public function indexRecord(IndexingService $indexingService, array $record): bool
     {
         $searchEngineService = $this->searchEngineFactory
-            ->createBySubtype(
-                $indexingService
-                    ->getSearchEngine()
-                    ->getEngine()
-            );
+            ->makeInstanceBySearchEngineModel($indexingService->getSearchEngine());
 
         if (!($searchEngineService instanceof SearchEngineInterface)) {
             return false;

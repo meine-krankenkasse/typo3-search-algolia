@@ -36,7 +36,7 @@ class IndexerFactory implements SingletonInterface
      *
      * @return IndexerInterface
      */
-    private function create(string $className): IndexerInterface
+    private function makeInstance(string $className): IndexerInterface
     {
         /** @var IndexerInterface $instance */
         $instance = GeneralUtility::makeInstance($className);
@@ -52,7 +52,7 @@ class IndexerFactory implements SingletonInterface
      *
      * @return IndexerInterface|null
      */
-    public function createByType(string $type): ?IndexerInterface
+    public function makeInstanceByType(string $type): ?IndexerInterface
     {
         if (isset($this->instances[$type])) {
             return $this->instances[$type];
@@ -64,7 +64,7 @@ class IndexerFactory implements SingletonInterface
             }
 
             $indexerInstance = $this
-                ->create($indexerConfiguration['className']);
+                ->makeInstance($indexerConfiguration['className']);
 
             $this->instances[$type] = $indexerInstance;
 

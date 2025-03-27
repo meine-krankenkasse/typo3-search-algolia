@@ -144,6 +144,8 @@ class QueueItemRepository extends Repository
      * @param IndexingService $indexingService
      *
      * @return void
+     *
+     * @throws Exception
      */
     public function deleteByIndexingService(IndexingService $indexingService): void
     {
@@ -160,8 +162,16 @@ class QueueItemRepository extends Repository
                         Connection::PARAM_INT
                     )
                 )
-            )
-            ->executeStatement();
+            );
+
+        try {
+            $queryBuilder->getConnection()->beginTransaction();
+            $queryBuilder->executeStatement();
+            $queryBuilder->getConnection()->commit();
+        } catch (Exception $e) {
+            $queryBuilder->getConnection()->rollBack();
+            throw $e;
+        }
     }
 
     /**
@@ -172,11 +182,13 @@ class QueueItemRepository extends Repository
      * @param int    $serviceUid
      *
      * @return void
+     *
+     * @throws Exception
      */
     public function deleteByTableAndRecord(
         string $tableName,
         int $recordUid,
-        int $serviceUid,
+        int $serviceUid = 0,
     ): void {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable(self::TABLE_NAME);
@@ -190,13 +202,32 @@ class QueueItemRepository extends Repository
                 ),
                 $queryBuilder->expr()->eq(
                     'record_uid',
-                    $queryBuilder->createNamedParameter($recordUid, Connection::PARAM_INT)
-                ),
+                    $queryBuilder->createNamedParameter(
+                        $recordUid,
+                        Connection::PARAM_INT
+                    )
+                )
+            );
+
+        if ($serviceUid !== 0) {
+            $queryBuilder->andWhere(
                 $queryBuilder->expr()->eq(
                     'service_uid',
-                    $queryBuilder->createNamedParameter($serviceUid, Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter(
+                        $serviceUid,
+                        Connection::PARAM_INT
+                    )
                 )
-            )
-            ->executeStatement();
+            );
+        }
+
+        try {
+            $queryBuilder->getConnection()->beginTransaction();
+            $queryBuilder->executeStatement();
+            $queryBuilder->getConnection()->commit();
+        } catch (Exception $e) {
+            $queryBuilder->getConnection()->rollBack();
+            throw $e;
+        }
     }
 }

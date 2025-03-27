@@ -20,10 +20,12 @@ use Algolia\AlgoliaSearch\Model\Search\SaveObjectResponse;
 use Algolia\AlgoliaSearch\Model\Search\UpdatedAtResponse;
 use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Exception\RateLimitException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Override;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
 use Throwable;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
@@ -39,6 +41,11 @@ use function is_array;
  */
 class AlgoliaSearchEngine implements SearchEngineInterface
 {
+    /**
+     * @var EventDispatcherInterface
+     */
+    private readonly EventDispatcherInterface $eventDispatcher;
+
     /**
      * @var SearchClient
      */
@@ -62,11 +69,15 @@ class AlgoliaSearchEngine implements SearchEngineInterface
     /**
      * Constructor.
      *
-     * @param ExtensionConfiguration $extensionConfiguration
+     * @param EventDispatcherInterface $eventDispatcher
+     * @param ExtensionConfiguration   $extensionConfiguration
      */
     public function __construct(
+        EventDispatcherInterface $eventDispatcher,
         ExtensionConfiguration $extensionConfiguration,
     ) {
+        $this->eventDispatcher = $eventDispatcher;
+
         try {
             $configuration = $extensionConfiguration->get(Constants::EXTENSION_NAME);
         } catch (Exception) {
@@ -204,9 +215,19 @@ class AlgoliaSearchEngine implements SearchEngineInterface
      *
      * @return string
      */
-    private function getDocumentId(Document $document): string
+    private function getUniqueDocumentId(Document $document): string
     {
-        return $document->getIndexer()->getTable() . ':' . $document->getRecord()['uid'];
+        /** @var CreateUniqueDocumentIdEvent $documentIdEvent */
+        $documentIdEvent = $this->eventDispatcher
+            ->dispatch(
+                new CreateUniqueDocumentIdEvent(
+                    $this,
+                    $document->getIndexer()->getTable(),
+                    $document->getRecord()['uid']
+                )
+            );
+
+        return $documentIdEvent->getDocumentId();
     }
 
     #[Override]
@@ -219,7 +240,7 @@ class AlgoliaSearchEngine implements SearchEngineInterface
         // Add the unique ID
         $document->setField(
             'objectID',
-            $this->getDocumentId($document)
+            $this->getUniqueDocumentId($document)
         );
 
         $responseData = $this->client
@@ -243,7 +264,7 @@ class AlgoliaSearchEngine implements SearchEngineInterface
     }
 
     #[Override]
-    public function documentDelete(string $objectId): bool
+    public function documentDelete(string $documentId): bool
     {
         if ($this->indexName === null) {
             throw new RuntimeException('Index name not set. Use "indexOpen" method.');
@@ -252,7 +273,7 @@ class AlgoliaSearchEngine implements SearchEngineInterface
         $responseData = $this->client
             ->deleteObject(
                 $this->indexName,
-                $objectId
+                $documentId
             );
 
         if (is_array($responseData)) {
