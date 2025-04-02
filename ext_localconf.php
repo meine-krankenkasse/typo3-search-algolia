@@ -9,6 +9,7 @@
 
 declare(strict_types=1);
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Backend\FieldWizard\IndexerTypeInfoText;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Hook\DataHandlerHook;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
@@ -82,6 +83,13 @@ call_user_func(static function (): void {
     // register "after save" hook
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][] = DataHandlerHook::class;
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][]  = DataHandlerHook::class;
+
+    // Custom render types
+    $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1743533083] = [
+        'nodeName' => 'IndexerTypeInfoText',
+        'priority' => 50,
+        'class'    => IndexerTypeInfoText::class,
+    ];
 
     // Add our custom style sheet
     $GLOBALS['TYPO3_CONF_VARS']['BE']['stylesheets'][Constants::EXTENSION_NAME]

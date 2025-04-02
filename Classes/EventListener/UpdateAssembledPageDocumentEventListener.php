@@ -11,18 +11,20 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 
+use Doctrine\DBAL\Exception;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
-use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
-use TYPO3\CMS\Core\Http\ServerRequestFactory;
+use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Site\Entity\SiteInterface;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
-use TYPO3\CMS\Frontend\Typolink\LinkFactory;
-use TYPO3\CMS\Frontend\Typolink\UnableToLinkException;
+use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 /**
  * Class UpdateAssembledPageDocumentEventListener.
@@ -31,38 +33,38 @@ use TYPO3\CMS\Frontend\Typolink\UnableToLinkException;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class UpdateAssembledPageDocumentEventListener
+class UpdateAssembledPageDocumentEventListener
 {
+    /**
+     * @var ConfigurationManagerInterface
+     */
+    private readonly ConfigurationManagerInterface $configurationManager;
+
     /**
      * @var SiteFinder
      */
-    private SiteFinder $siteFinder;
+    private readonly SiteFinder $siteFinder;
 
     /**
-     * @var ServerRequestFactory
+     * @var ContentRepository
      */
-    private ServerRequestFactory $serverRequestFactory;
-
-    /**
-     * @var LinkFactory
-     */
-    private LinkFactory $linkFactory;
+    private readonly ContentRepository $contentRepository;
 
     /**
      * Constructor.
      *
-     * @param SiteFinder           $siteFinder
-     * @param ServerRequestFactory $serverRequestFactory
-     * @param LinkFactory          $linkFactory
+     * @param ConfigurationManagerInterface $configurationManager
+     * @param SiteFinder                    $siteFinder
+     * @param ContentRepository             $contentRepository
      */
     public function __construct(
+        ConfigurationManagerInterface $configurationManager,
         SiteFinder $siteFinder,
-        ServerRequestFactory $serverRequestFactory,
-        LinkFactory $linkFactory,
+        ContentRepository $contentRepository,
     ) {
+        $this->configurationManager = $configurationManager;
         $this->siteFinder           = $siteFinder;
-        $this->serverRequestFactory = $serverRequestFactory;
-        $this->linkFactory          = $linkFactory;
+        $this->contentRepository    = $contentRepository;
     }
 
     /**
@@ -79,13 +81,33 @@ readonly class UpdateAssembledPageDocumentEventListener
         $document = $event->getDocument();
         $record   = $event->getRecord();
         $pageId   = $record['uid'];
+        $site     = $this->getSite($pageId);
 
         // Set page related fields
         $document
-            ->setField('site', $this->getSiteDomain($pageId))
-            ->setField('url', $this->getPageUrl($pageId))
-            ->setField('created', $record['crdate'])
-            ->setField('changed', $record['SYS_LASTCHANGED']);
+            ->setField('site', $this->getSiteDomain($site));
+
+        if ($record['SYS_LASTCHANGED'] !== 0) {
+            $document->setField('changed', $record['SYS_LASTCHANGED']);
+        }
+
+        if ($site instanceof Site) {
+            $document->setField(
+                'url',
+                $this->getPageUrl(
+                    $site,
+                    $pageId
+                )
+            );
+        }
+
+        if ($event->getIndexingService()->isIncludeContentElements()) {
+            $document
+                ->setField(
+                    'content',
+                    $this->getPageContent($pageId)
+                );
+        }
     }
 
     /**
@@ -93,81 +115,89 @@ readonly class UpdateAssembledPageDocumentEventListener
      *
      * @param int $pageId
      *
-     * @return Site
-     *
-     * @throws SiteNotFoundException
+     * @return SiteInterface
      */
-    private function getSite(int $pageId): Site
+    private function getSite(int $pageId): SiteInterface
     {
-        return $this->siteFinder->getSiteByPageId($pageId);
+        try {
+            return $this->siteFinder->getSiteByPageId($pageId);
+        } catch (SiteNotFoundException) {
+            return new NullSite();
+        }
     }
 
     /**
      * Returns the domain of the site identified by the given page ID.
      *
-     * @param int $pageId
+     * @param SiteInterface $site
      *
      * @return string
      */
-    private function getSiteDomain(int $pageId): string
+    private function getSiteDomain(SiteInterface $site): string
     {
-        return $this->getSite($pageId)->getBase()->getHost();
-    }
-
-    /**
-     * Returns a new ContentObjectRenderer instance.
-     *
-     * @return ContentObjectRenderer
-     */
-    private function getContentObjectRenderer(): ContentObjectRenderer
-    {
-        return GeneralUtility::makeInstance(ContentObjectRenderer::class);
-    }
-
-    /**
-     * Creates and returns a new ServerRequest instance.
-     *
-     * @param int $pageId
-     *
-     * @return ServerRequestInterface
-     */
-    private function createServerRequest(int $pageId): ServerRequestInterface
-    {
-        return $this->serverRequestFactory
-            ->createServerRequest(
-                'GET',
-                $this->getSite($pageId)->getBase()
-            )
-            ->withAttribute(
-                'applicationType',
-                SystemEnvironmentBuilder::REQUESTTYPE_FE
-            );
+        return $site->getBase()->getHost();
     }
 
     /**
      * Returns the page URL.
      *
+     * @param Site $site
+     * @param int  $pageId
+     *
+     * @return string
+     */
+    private function getPageUrl(Site $site, int $pageId): string
+    {
+        return (string) $site
+            ->getRouter()
+            ->generateUri($pageId);
+    }
+
+    /**
+     * Returns the page content.
+     *
      * @param int $pageId
      *
      * @return string
      *
-     * @throws UnableToLinkException
+     * @throws Exception
      */
-    private function getPageUrl(int $pageId): string
+    private function getPageContent(int $pageId): string
     {
-        $contentObject = $this->getContentObjectRenderer();
-        $contentObject->setRequest($this->createServerRequest($pageId));
-        $contentObject->start([]);
+        // Get configured fields
+        $typoscriptConfiguration = $this->getTypoScriptConfiguration();
+        $contentElementFields    = $typoscriptConfiguration['indexer'][ContentIndexer::TYPE]['fields'];
 
-        return $this->linkFactory
-            ->create(
-                '',
-                [
-                    'parameter'                 => $pageId,
-                    'linkAccessRestrictedPages' => '1',
-                ],
-                $contentObject
-            )
-            ->getUrl();
+        $rows = $this->contentRepository
+            ->findAllByPid(
+                $pageId,
+                array_keys($contentElementFields)
+            );
+
+        $content = '';
+
+        foreach ($rows as $row) {
+            foreach ($row as $fieldContent) {
+                $content .= $fieldContent . "\n";
+            }
+        }
+
+        return ContentExtractor::cleanHtml($content);
+    }
+
+    /**
+     * Returns the TypoScript configuration of the extension.
+     *
+     * @return array<string, array<string, array<string, array<string, string>>>>
+     */
+    private function getTypoScriptConfiguration(): array
+    {
+        $typoscriptConfiguration = $this->configurationManager
+            ->getConfiguration(
+                ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT,
+                Constants::EXTENSION_NAME
+            );
+
+        return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'];
     }
 }

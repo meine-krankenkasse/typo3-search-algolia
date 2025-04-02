@@ -64,11 +64,23 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine.description">
                 <target>Wählen Sie die Suchmaschine aus, die zur Indizierung verwendet werden soll.</target>
             </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements">
+                <target>Inhaltselemente einbeziehen</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements.description">
+                <target>Aktivieren Sie diese Option, um zusätzlich zu den Seiteneigenschaften auch die Inhaltselemente der Seite zu indexieren. Alternativ können Sie den Inhaltselement-Indexer verwenden, insbesondere wenn die Suchmaschine eine Datensatzgrößenbeschränkung hat.</target>
+            </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type">
                 <target>Typ</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.description">
                 <target>Wählen Sie den zu verwendenden Indexertyp aus.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.page">
+                <target>Der Seitenindexer indexiert einzeln auswählbare Seiten oder ganze Seitenbäume und lässt sich auch auf bestimmte Seitentypen beschränken. Er bietet zudem die Möglichkeit, die auf einer Seite enthaltenen Inhaltselemente als durchsuchbare Inhalte in den Index aufzunehmen. Falls die verwendete Suchmaschine eine Datensatzgrößenbeschränkung hat, kann die Indexierung einer Seite allerdings fehlschlagen.</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.tt_content">
+                <target>Der Inhaltselement-Indexer indiziert alle Inhaltselemente auf einzeln auswählbaren Seiten oder ganzen Seitenbäumen. Inhaltselemente werden im Index als einzelne Datensätze gespeichert und verfügen über eine URL, die direkt auf das jeweilige Inhaltselement verweist.</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype">
                 <target>Seitentyp</target>

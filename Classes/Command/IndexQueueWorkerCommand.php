@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Command;
 
+use Algolia\AlgoliaSearch\Exceptions\BadRequestException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
@@ -184,17 +185,26 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             $indexingService = $this->indexingServiceRepository
                 ->findByUid($item->getServiceUid());
 
-            // Perform indexing using each separate indexing service
-            if ($indexingService instanceof IndexingService) {
-                $indexerInstance?->indexRecord(
-                    $indexingService,
-                    $record
-                );
-            }
+            try {
+                // Perform indexing using each separate indexing service
+                if ($indexingService instanceof IndexingService) {
+                    $indexerInstance?->indexRecord(
+                        $indexingService,
+                        $record
+                    );
+                }
 
-            // Remove index item from queue
-            $this->queueItemRepository->remove($item);
-            $this->persistenceManager->persistAll();
+                // Remove index item from queue
+                $this->queueItemRepository->remove($item);
+                $this->persistenceManager->persistAll();
+            } catch (BadRequestException $exception) {
+                // TODO Track indexing errors and display failed records in backend
+
+                // Ignore errors of type "Record is too big"
+                if (!str_contains($exception->getMessage(), 'Record is too big')) {
+                    throw $exception;
+                }
+            }
 
             $progressBar->advance();
 

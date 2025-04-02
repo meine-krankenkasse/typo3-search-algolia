@@ -12,12 +12,13 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Builder;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Configuration\ConfigurationManager;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 /**
@@ -30,9 +31,9 @@ use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 class DocumentBuilder
 {
     /**
-     * @var ConfigurationManager
+     * @var ConfigurationManagerInterface
      */
-    private readonly ConfigurationManager $configurationManager;
+    private readonly ConfigurationManagerInterface $configurationManager;
 
     /**
      * @var EventDispatcherInterface
@@ -50,6 +51,11 @@ class DocumentBuilder
     private Document $document;
 
     /**
+     * @var IndexingService
+     */
+    private IndexingService $indexingService;
+
+    /**
      * @var array<string, mixed>
      */
     private array $record = [];
@@ -57,11 +63,11 @@ class DocumentBuilder
     /**
      * Constructor.
      *
-     * @param ConfigurationManager     $configurationManager
-     * @param EventDispatcherInterface $eventDispatcher
+     * @param ConfigurationManagerInterface $configurationManager
+     * @param EventDispatcherInterface      $eventDispatcher
      */
     public function __construct(
-        ConfigurationManager $configurationManager,
+        ConfigurationManagerInterface $configurationManager,
         EventDispatcherInterface $eventDispatcher,
     ) {
         $this->configurationManager = $configurationManager;
@@ -88,6 +94,18 @@ class DocumentBuilder
     public function setRecord(array $record): DocumentBuilder
     {
         $this->record = $record;
+
+        return $this;
+    }
+
+    /**
+     * @param IndexingService $indexingService
+     *
+     * @return DocumentBuilder
+     */
+    public function setIndexingService(IndexingService $indexingService): DocumentBuilder
+    {
+        $this->indexingService = $indexingService;
 
         return $this;
     }
@@ -160,6 +178,7 @@ class DocumentBuilder
                 new AfterDocumentAssembledEvent(
                     $this->document,
                     $this->indexer,
+                    $this->indexingService,
                     $this->record
                 )
             );
@@ -203,7 +222,10 @@ class DocumentBuilder
                 continue;
             }
 
-            $this->document->setField($fieldName, $fieldValue);
+            $this->document->setField(
+                $fieldName,
+                ContentExtractor::cleanHtml($fieldValue)
+            );
         }
     }
 

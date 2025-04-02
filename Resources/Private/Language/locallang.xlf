@@ -64,11 +64,23 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.description">
                 <source>Select the type of indexer to be used.</source>
             </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.page">
+                <source>The page indexer indexes individually selectable pages or entire page trees and can also be restricted to specific page types. It also offers the option of adding the content elements contained on a page to the index as searchable content. However, if the search engine used has a record size limit, indexing a page may fail.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.tt_content">
+                <source>The content item indexer indexes all content items on individually selectable pages or entire page trees. Content items are stored in the index as individual records and have a URL that points directly to the respective content item.</source>
+            </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine">
                 <source>Search Engine</source>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.search_engine.description">
                 <source>Select the search engine to be used for indexing.</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements">
+                <source>Include content elements</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements.description">
+                <source>Enable this option to index the page's content elements in addition to the page properties. Alternatively, you can use the content element indexer, especially if the search engine has a record size limit.</source>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype">
                 <source>Page type</source>

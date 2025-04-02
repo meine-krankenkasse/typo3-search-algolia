@@ -114,6 +114,7 @@ abstract class AbstractIndexer implements IndexerInterface
         $document = $this->documentBuilder
             ->setIndexer($this)
             ->setRecord($record)
+            ->setIndexingService($indexingService)
             ->assemble()
             ->getDocument();
 

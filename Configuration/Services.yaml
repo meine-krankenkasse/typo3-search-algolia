@@ -31,6 +31,11 @@ services:
         public: true
 
     # Event listeners
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledContentElementDocumentEventListener:
+        tags:
+            -   name: event.listener
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent
+
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledPageDocumentEventListener:
         tags:
             -   name: event.listener

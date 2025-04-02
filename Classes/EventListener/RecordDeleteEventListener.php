@@ -21,7 +21,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * The record delete event listener.
+ * The record delete event listener. This event listener is called when an existing record is deleted.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -76,43 +76,60 @@ readonly class RecordDeleteEventListener
      */
     public function __invoke(DataHandlerRecordDeleteEvent $event): void
     {
+        if ($event->getTable() === 'tt_content') {
+            // ???
+        }
+
         if ($event->getTable() === 'pages') {
-            // Remove the record from the queue item table
-            $this->queueItemRepository
-                ->deleteByTableAndRecord(
-                    $event->getTable(),
-                    $event->getRecordUid()
+            // TODO Remove all indexed content elements from index
+        }
+
+        $this->deleteRecord($event->getTable(), $event->getRecordUid());
+    }
+
+    /**
+     * @param string $tableName
+     * @param int    $recordUid
+     *
+     * @return void
+     */
+    private function deleteRecord(string $tableName, int $recordUid): void
+    {
+        // Remove a possible entry of the element from the queue element table
+        $this->queueItemRepository
+            ->deleteByTableAndRecord(
+                $tableName,
+                $recordUid
+            );
+
+        // Determine all configured indexing services that are created below the root page ID
+        $indexingServices = $this->indexingServiceRepository->findAll();
+
+        /** @var IndexingService $indexingService */
+        foreach ($indexingServices as $indexingService) {
+            // Get underlying search engine instance
+            $searchEngineService = $this->searchEngineFactory
+                ->makeInstanceBySearchEngineModel($indexingService->getSearchEngine());
+
+            if (!($searchEngineService instanceof SearchEngineInterface)) {
+                return;
+            }
+
+            /** @var CreateUniqueDocumentIdEvent $documentIdEvent */
+            $documentIdEvent = $this->eventDispatcher
+                ->dispatch(
+                    new CreateUniqueDocumentIdEvent(
+                        $searchEngineService,
+                        $tableName,
+                        $recordUid
+                    )
                 );
 
-            // Determine all configured indexing services that are created below the root page ID
-            $indexingServices = $this->indexingServiceRepository->findAll();
-
-            /** @var IndexingService $indexingService */
-            foreach ($indexingServices as $indexingService) {
-                // Get underlying search engine instance
-                $searchEngineService = $this->searchEngineFactory
-                    ->makeInstanceBySearchEngineModel($indexingService->getSearchEngine());
-
-                if (!($searchEngineService instanceof SearchEngineInterface)) {
-                    return;
-                }
-
-                /** @var CreateUniqueDocumentIdEvent $documentIdEvent */
-                $documentIdEvent = $this->eventDispatcher
-                    ->dispatch(
-                        new CreateUniqueDocumentIdEvent(
-                            $searchEngineService,
-                            $event->getTable(),
-                            $event->getRecordUid()
-                        )
-                    );
-
-                // Remove record in search engine index
-                $searchEngineService->indexOpen($indexingService->getSearchEngine()->getIndexName());
-                $searchEngineService->documentDelete($documentIdEvent->getDocumentId());
-                $searchEngineService->indexCommit();
-                $searchEngineService->indexClose();
-            }
+            // Remove record in search engine index
+            $searchEngineService->indexOpen($indexingService->getSearchEngine()->getIndexName());
+            $searchEngineService->documentDelete($documentIdEvent->getDocumentId());
+            $searchEngineService->indexCommit();
+            $searchEngineService->indexClose();
         }
     }
 }

@@ -64,6 +64,11 @@ class IndexingService extends AbstractEntity
     protected SearchEngine $searchEngine;
 
     /**
+     * @var bool
+     */
+    protected bool $includeContentElements;
+
+    /**
      * @var string
      */
     protected string $pagesDoktype = '';
@@ -234,6 +239,26 @@ class IndexingService extends AbstractEntity
     public function setSearchEngine(SearchEngine $searchEngine): IndexingService
     {
         $this->searchEngine = $searchEngine;
+
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isIncludeContentElements(): bool
+    {
+        return $this->includeContentElements;
+    }
+
+    /**
+     * @param bool $includeContentElements
+     *
+     * @return IndexingService
+     */
+    public function setIncludeContentElements(bool $includeContentElements): IndexingService
+    {
+        $this->includeContentElements = $includeContentElements;
 
         return $this;
     }

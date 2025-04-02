@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Backend\ItemsProcFunc;
+use MeineKrankenkasse\Typo3SearchAlgolia\Backend\TcaItemsProcessorFunctions;
 
 return [
     'ctrl' => [
@@ -177,7 +177,7 @@ return [
                         'value' => '',
                     ],
                 ],
-                'itemsProcFunc' => ItemsProcFunc::class . '->getSearchEngines',
+                'itemsProcFunc' => TcaItemsProcessorFunctions::class . '->populateSearchEngines',
                 'minitems'      => 1,
                 'maxitems'      => 1,
                 'required'      => true,

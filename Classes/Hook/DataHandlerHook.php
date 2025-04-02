@@ -84,7 +84,8 @@ readonly class DataHandlerHook
     }
 
     /**
-     * Hooks into DataHandler and monitors record deletion commands.
+     * Hooks into DataHandler and monitors record deletion commands. The hook is called after
+     * the record has already been deleted in TYPO3.
      *
      * @param string              $command      The DataHandler command
      * @param string              $table        The table currently processing data for

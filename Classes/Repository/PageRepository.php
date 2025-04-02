@@ -17,9 +17,10 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\RootlineUtility;
 
 /**
- * The domain model page repository.
+ * The page repository.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -144,5 +145,30 @@ readonly class PageRepository
         }
 
         return array_merge(...$pageIds);
+    }
+
+    /**
+     * Returns the UID of the root page to which this page belongs. Returns 0 if the
+     * root page ID could not be determined.
+     *
+     * @param int $pageId The page ID to be used to determine the root page ID
+     *
+     * @return int The page ID of the root page
+     */
+    public function getRootPageId(int $pageId): int
+    {
+        // TODO Could possibly replaced with a "WITH RECURSIVE" SQL call
+        // @see https://dba.stackexchange.com/a/291328
+
+        $rootLineUtility = GeneralUtility::makeInstance(RootlineUtility::class, $pageId);
+        $rootLines       = $rootLineUtility->get();
+
+        foreach ($rootLines as $rootLine) {
+            if (isset($rootLine['is_siteroot']) && ($rootLine['is_siteroot'] === 1)) {
+                return $rootLine['uid'];
+            }
+        }
+
+        return 0;
     }
 }

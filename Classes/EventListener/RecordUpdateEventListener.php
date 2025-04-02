@@ -15,13 +15,13 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Utility\RootlineUtility;
 
 /**
- * The record update event listener.
+ * The record update event listener. This event listener is called when
+ * a new record is created or an existing record is changed.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -29,6 +29,11 @@ use TYPO3\CMS\Core\Utility\RootlineUtility;
  */
 readonly class RecordUpdateEventListener
 {
+    /**
+     * @var PageRepository
+     */
+    private PageRepository $pageRepository;
+
     /**
      * @var IndexerFactory
      */
@@ -42,13 +47,16 @@ readonly class RecordUpdateEventListener
     /**
      * Constructor.
      *
+     * @param PageRepository            $pageRepository
      * @param IndexerFactory            $indexerFactory
      * @param IndexingServiceRepository $indexingServiceRepository
      */
     public function __construct(
+        PageRepository $pageRepository,
         IndexerFactory $indexerFactory,
         IndexingServiceRepository $indexingServiceRepository,
     ) {
+        $this->pageRepository            = $pageRepository;
         $this->indexerFactory            = $indexerFactory;
         $this->indexingServiceRepository = $indexingServiceRepository;
     }
@@ -103,7 +111,8 @@ readonly class RecordUpdateEventListener
                 $indexingService->getUid()
             );
 
-            // Ignore this indexing service as it is not responsible
+            // Ignore this indexing service because the root page IDs do not match,
+            // meaning the indexing service is not part of the same page tree.
             if ($rootPageId !== $indexingServiceRootPageId) {
                 continue;
             }
@@ -132,11 +141,11 @@ readonly class RecordUpdateEventListener
             $recordPageId = $this->getRecordPageId($tableName, $recordUid);
         }
 
-        return $this->getRootPageId($recordPageId);
+        return $this->pageRepository->getRootPageId($recordPageId);
     }
 
     /**
-     * Returns the page ID of the record or 0 if no valid record was found.
+     * Returns the ID of the page where the record is stored or 0 if no valid record was found.
      *
      * @param string $tableName The table name from which the record is retrieved
      * @param int    $recordUid The UID of the data record to be retrieved
@@ -152,26 +161,5 @@ readonly class RecordUpdateEventListener
         }
 
         return $record['pid'] ? ((int) $record['pid']) : 0;
-    }
-
-    /**
-     * Returns the root page ID for a given page ID. Returns 0 if the root page ID could not be determined.
-     *
-     * @param int $pageId The page ID to be used to determine the root page ID
-     *
-     * @return int
-     */
-    private function getRootPageId(int $pageId): int
-    {
-        $rootLineUtility = GeneralUtility::makeInstance(RootlineUtility::class, $pageId);
-        $rootLines       = $rootLineUtility->get();
-
-        foreach ($rootLines as $rootLine) {
-            if (isset($rootLine['is_siteroot']) && ($rootLine['is_siteroot'] === 1)) {
-                return $rootLine['uid'];
-            }
-        }
-
-        return 0;
     }
 }
