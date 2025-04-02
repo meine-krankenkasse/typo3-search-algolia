@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
+use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use Override;
 use Psr\Http\Message\ResponseInterface;
@@ -112,6 +113,27 @@ abstract class AbstractBaseModuleController extends ActionController
     ): ResponseInterface {
         $this->moduleTemplate->addFlashMessage(
             $this->translate($key),
+            $this->translate('error.title'),
+            $severity
+        );
+
+        return new ForwardResponse('error');
+    }
+
+    /**
+     * Adds a flash message to the message queue and forward to the error action to abort further processing.
+     *
+     * @param Exception                  $exception
+     * @param ContextualFeedbackSeverity $severity
+     *
+     * @return ResponseInterface
+     */
+    protected function forwardExceptionFlashMessage(
+        Exception $exception,
+        ContextualFeedbackSeverity $severity = ContextualFeedbackSeverity::ERROR,
+    ): ResponseInterface {
+        $this->moduleTemplate->addFlashMessage(
+            $exception->getMessage(),
             $this->translate('error.title'),
             $severity
         );

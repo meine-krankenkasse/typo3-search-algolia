@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
+use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\SearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\SearchEngineRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Exception\RateLimitException;
@@ -86,7 +87,11 @@ class AdministrationModuleController extends AbstractBaseModuleController
             $searchEnginesGrouped[$searchEngine->getEngine()][] = $searchEngine;
         }
 
-        $searchEnginesInfo = $this->querySearchEngineInformation($searchEnginesGrouped);
+        try {
+            $searchEnginesInfo = $this->querySearchEngineInformation($searchEnginesGrouped);
+        } catch (Exception $exception) {
+            return $this->forwardExceptionFlashMessage($exception);
+        }
 
         $this->moduleTemplate->assign(
             'searchEnginesInfo',

@@ -21,6 +21,7 @@ use Algolia\AlgoliaSearch\Model\Search\UpdatedAtResponse;
 use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Exception\MissingConfigurationException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Exception\RateLimitException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
@@ -71,6 +72,8 @@ class AlgoliaSearchEngine implements SearchEngineInterface
      *
      * @param EventDispatcherInterface $eventDispatcher
      * @param ExtensionConfiguration   $extensionConfiguration
+     *
+     * @throws MissingConfigurationException
      */
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
@@ -82,6 +85,15 @@ class AlgoliaSearchEngine implements SearchEngineInterface
             $configuration = $extensionConfiguration->get(Constants::EXTENSION_NAME);
         } catch (Exception) {
             $configuration = [];
+        }
+
+        if (($configuration['appId'] === false)
+            || ($configuration['apiKey'] === false)
+        ) {
+            throw new MissingConfigurationException(
+                'Please provide a valid application ID and API key for the Algolia Search Engine.',
+                1743580689
+            );
         }
 
         $this->appId  = $configuration['appId'] ?? '';
