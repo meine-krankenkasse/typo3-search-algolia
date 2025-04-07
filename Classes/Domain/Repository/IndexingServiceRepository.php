@@ -73,13 +73,13 @@ class IndexingServiceRepository extends Repository
     }
 
     /**
-     * Finds all indexer records matching the given type.
+     * Finds all indexer records matching the given table name.
      *
-     * @param string $type
+     * @param string $tableName
      *
      * @return QueryResultInterface<IndexingService>
      */
-    public function findByType(string $type): QueryResultInterface
+    public function findAllByTableName(string $tableName): QueryResultInterface
     {
         $querySettings = GeneralUtility::makeInstance(Typo3QuerySettings::class);
         $querySettings
@@ -91,7 +91,7 @@ class IndexingServiceRepository extends Repository
         $query->matching(
             $query->equals(
                 'type',
-                $type
+                $tableName
             )
         );
 

@@ -21,6 +21,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Override;
+use RuntimeException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\DefaultRestrictionContainer;
@@ -131,9 +132,52 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     #[Override]
-    public function enqueueOne(IndexingService $indexingService, int $recordUid): int
+    public function withIndexingService(IndexingService $indexingService): IndexerInterface
     {
-        $this->indexingService = $indexingService;
+        $clone                  = clone $this;
+        $clone->indexingService = $indexingService;
+
+        return $clone;
+    }
+
+    #[Override]
+    public function dequeueOne(int $recordUid): IndexerInterface
+    {
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
+
+        $this->queueItemRepository
+            ->deleteByTableAndRecordUIDs(
+                $this->getTable(),
+                [
+                    $recordUid,
+                ],
+                (int) $this->indexingService->getUid(),
+            );
+
+        return $this;
+    }
+
+    #[Override]
+    public function dequeueAll(): IndexerInterface
+    {
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
+
+        $this->queueItemRepository
+            ->deleteByIndexingService($this->indexingService);
+
+        return $this;
+    }
+
+    #[Override]
+    public function enqueueOne(int $recordUid): int
+    {
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
 
         $queueItemRecord = $this->initQueueItemRecord($recordUid);
 
@@ -141,24 +185,16 @@ abstract class AbstractIndexer implements IndexerInterface
             return 0;
         }
 
-        $this->queueItemRepository
-            ->deleteByTableAndRecord(
-                $queueItemRecord['table_name'],
-                $queueItemRecord['record_uid'],
-                (int) $queueItemRecord['service_uid'],
-            );
-
         return $this->queueItemRepository
             ->insert($queueItemRecord);
     }
 
     #[Override]
-    public function enqueueAll(IndexingService $indexingService): int
+    public function enqueueAll(): int
     {
-        $this->indexingService = $indexingService;
-
-        $this->queueItemRepository
-            ->deleteByIndexingService($indexingService);
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
 
         return $this->queueItemRepository
             ->bulkInsert(
@@ -246,7 +282,6 @@ abstract class AbstractIndexer implements IndexerInterface
 
         $selectLiterals = [
             "'" . $this->getTable() . "' as table_name",
-            "'" . $this->getType() . "' AS indexer_type",
             "'" . $serviceUid . "' AS service_uid",
             $changedFieldStatement . ' AS changed',
             '0 AS priority',
@@ -274,7 +309,7 @@ abstract class AbstractIndexer implements IndexerInterface
 
         if ($pageUIDs !== []) {
             $constraints[] = $queryBuilder->expr()->in(
-                ($this->getType() === PageIndexer::TYPE) ? 'uid' : 'pid',
+                ($this->getTable() === PageIndexer::TABLE) ? 'uid' : 'pid',
                 $pageUIDs,
             );
         }

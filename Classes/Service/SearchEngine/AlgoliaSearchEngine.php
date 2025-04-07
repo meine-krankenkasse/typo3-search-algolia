@@ -24,7 +24,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Exception\MissingConfigurationException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Exception\RateLimitException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Override;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
@@ -40,13 +39,8 @@ use function is_array;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class AlgoliaSearchEngine implements SearchEngineInterface
+class AlgoliaSearchEngine extends AbstractSearchEngine
 {
-    /**
-     * @var EventDispatcherInterface
-     */
-    private readonly EventDispatcherInterface $eventDispatcher;
-
     /**
      * @var SearchClient
      */
@@ -63,11 +57,6 @@ class AlgoliaSearchEngine implements SearchEngineInterface
     private readonly string $apiKey;
 
     /**
-     * @var string|null
-     */
-    private ?string $indexName = null;
-
-    /**
      * Constructor.
      *
      * @param EventDispatcherInterface $eventDispatcher
@@ -79,7 +68,7 @@ class AlgoliaSearchEngine implements SearchEngineInterface
         EventDispatcherInterface $eventDispatcher,
         ExtensionConfiguration $extensionConfiguration,
     ) {
-        $this->eventDispatcher = $eventDispatcher;
+        parent::__construct($eventDispatcher);
 
         try {
             $configuration = $extensionConfiguration->get(Constants::EXTENSION_NAME);

@@ -22,15 +22,7 @@ use Override;
  */
 class ContentIndexer extends AbstractIndexer
 {
-    public const string TYPE = 'tt_content';
-
     public const string TABLE = 'tt_content';
-
-    #[Override]
-    public function getType(): string
-    {
-        return self::TYPE;
-    }
 
     #[Override]
     public function getTable(): string

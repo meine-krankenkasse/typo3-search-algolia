@@ -31,11 +31,6 @@ return [
                 'type' => 'passthrough',
             ],
         ],
-        'indexer_type' => [
-            'config' => [
-                'type' => 'passthrough',
-            ],
-        ],
         'service_uid' => [
             'config' => [
                 'type' => 'passthrough',

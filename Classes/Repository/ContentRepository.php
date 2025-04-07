@@ -22,12 +22,12 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class ContentRepository
+readonly class ContentRepository
 {
     /**
      * @var ConnectionPool
      */
-    private readonly ConnectionPool $connectionPool;
+    private ConnectionPool $connectionPool;
 
     /**
      * Constructor.

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
@@ -81,10 +82,10 @@ class QueueItemRepository extends Repository
             ->getQueryBuilderForTable(self::TABLE_NAME);
 
         return $queryBuilder
-            ->select('indexer_type')
+            ->select('table_name')
             ->addSelectLiteral('COUNT(*) AS count')
             ->from(self::TABLE_NAME)
-            ->groupBy('indexer_type')
+            ->groupBy('table_name')
             ->executeQuery()
             ->fetchAllAssociative();
     }
@@ -175,19 +176,19 @@ class QueueItemRepository extends Repository
     }
 
     /**
-     * Deletes a single record from the queue.
+     * Deletes records from the queue.
      *
      * @param string $tableName
-     * @param int    $recordUid
+     * @param int[]  $recordUids
      * @param int    $serviceUid
      *
      * @return void
      *
      * @throws Exception
      */
-    public function deleteByTableAndRecord(
+    public function deleteByTableAndRecordUIDs(
         string $tableName,
-        int $recordUid,
+        array $recordUids,
         int $serviceUid = 0,
     ): void {
         $queryBuilder = $this->connectionPool
@@ -200,11 +201,11 @@ class QueueItemRepository extends Repository
                     'table_name',
                     $queryBuilder->createNamedParameter($tableName)
                 ),
-                $queryBuilder->expr()->eq(
+                $queryBuilder->expr()->in(
                     'record_uid',
                     $queryBuilder->createNamedParameter(
-                        $recordUid,
-                        Connection::PARAM_INT
+                        $recordUids,
+                        ArrayParameterType::INTEGER
                     )
                 )
             );

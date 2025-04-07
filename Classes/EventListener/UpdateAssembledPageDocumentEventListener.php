@@ -33,22 +33,22 @@ use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class UpdateAssembledPageDocumentEventListener
+readonly class UpdateAssembledPageDocumentEventListener
 {
     /**
      * @var ConfigurationManagerInterface
      */
-    private readonly ConfigurationManagerInterface $configurationManager;
+    private ConfigurationManagerInterface $configurationManager;
 
     /**
      * @var SiteFinder
      */
-    private readonly SiteFinder $siteFinder;
+    private SiteFinder $siteFinder;
 
     /**
      * @var ContentRepository
      */
-    private readonly ContentRepository $contentRepository;
+    private ContentRepository $contentRepository;
 
     /**
      * Constructor.
@@ -84,11 +84,16 @@ class UpdateAssembledPageDocumentEventListener
         $site     = $this->getSite($pageId);
 
         // Set page related fields
-        $document
-            ->setField('site', $this->getSiteDomain($site));
+        $document->setField(
+            'site',
+            $this->getSiteDomain($site)
+        );
 
         if ($record['SYS_LASTCHANGED'] !== 0) {
-            $document->setField('changed', $record['SYS_LASTCHANGED']);
+            $document->setField(
+                'changed',
+                $record['SYS_LASTCHANGED']
+            );
         }
 
         if ($site instanceof Site) {
@@ -102,11 +107,10 @@ class UpdateAssembledPageDocumentEventListener
         }
 
         if ($event->getIndexingService()->isIncludeContentElements()) {
-            $document
-                ->setField(
-                    'content',
-                    $this->getPageContent($pageId)
-                );
+            $document->setField(
+                'content',
+                $this->getPageContent($pageId)
+            );
         }
     }
 
@@ -154,19 +158,19 @@ class UpdateAssembledPageDocumentEventListener
     }
 
     /**
-     * Returns the page content.
+     * Returns the page content or NULL if content is empty.
      *
      * @param int $pageId
      *
-     * @return string
+     * @return string|null
      *
      * @throws Exception
      */
-    private function getPageContent(int $pageId): string
+    private function getPageContent(int $pageId): ?string
     {
         // Get configured fields
         $typoscriptConfiguration = $this->getTypoScriptConfiguration();
-        $contentElementFields    = $typoscriptConfiguration['indexer'][ContentIndexer::TYPE]['fields'];
+        $contentElementFields    = $typoscriptConfiguration['indexer'][ContentIndexer::TABLE]['fields'];
 
         $rows = $this->contentRepository
             ->findAllByPid(
@@ -182,7 +186,9 @@ class UpdateAssembledPageDocumentEventListener
             }
         }
 
-        return ContentExtractor::cleanHtml($content);
+        $content = ContentExtractor::cleanHtml($content);
+
+        return $content !== '' ? $content : null;
     }
 
     /**

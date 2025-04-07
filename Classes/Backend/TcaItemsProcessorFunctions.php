@@ -50,7 +50,7 @@ class TcaItemsProcessorFunctions
         foreach (IndexerRegistry::getRegisteredIndexers() as $indexer) {
             $fieldDefinition['items'][] = [
                 'label' => $indexer['title'],
-                'value' => $indexer['type'],
+                'value' => $indexer['tableName'],
                 'icon'  => $indexer['icon'],
             ];
         }

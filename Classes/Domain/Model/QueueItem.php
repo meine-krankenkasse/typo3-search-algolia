@@ -34,11 +34,6 @@ class QueueItem extends AbstractEntity
     protected int $recordUid = 0;
 
     /**
-     * @var string
-     */
-    protected string $indexerType = '';
-
-    /**
      * @var int
      */
     protected int $serviceUid = 0;
@@ -89,26 +84,6 @@ class QueueItem extends AbstractEntity
     public function setRecordUid(int $recordUid): QueueItem
     {
         $this->recordUid = $recordUid;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getIndexerType(): string
-    {
-        return $this->indexerType;
-    }
-
-    /**
-     * @param string $indexerType
-     *
-     * @return QueueItem
-     */
-    public function setIndexerType(string $indexerType): QueueItem
-    {
-        $this->indexerType = $indexerType;
 
         return $this;
     }

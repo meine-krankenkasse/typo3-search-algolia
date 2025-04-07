@@ -32,13 +32,13 @@
             </trans-unit>
 
             <!-- Indexer -->
-            <trans-unit id="indexer.page.title">
+            <trans-unit id="indexer.pages.title">
                 <source>Pages</source>
             </trans-unit>
             <trans-unit id="indexer.tt_content.title">
                 <source>Content elements</source>
             </trans-unit>
-            <trans-unit id="indexer.news.title">
+            <trans-unit id="indexer.tx_news_domain_model_news.title">
                 <source>News</source>
             </trans-unit>
 
@@ -64,7 +64,7 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.description">
                 <source>Select the type of indexer to be used.</source>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.page">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.pages">
                 <source>The page indexer indexes individually selectable pages or entire page trees and can also be restricted to specific page types. It also offers the option of adding the content elements contained on a page to the index as searchable content. However, if the search engine used has a record size limit, indexing a page may fail.</source>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.tt_content">

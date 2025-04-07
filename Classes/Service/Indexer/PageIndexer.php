@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use Override;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -24,20 +25,21 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class PageIndexer extends AbstractIndexer
 {
-    public const string TYPE = 'page';
-
     public const string TABLE = 'pages';
-
-    #[Override]
-    public function getType(): string
-    {
-        return self::TYPE;
-    }
 
     #[Override]
     public function getTable(): string
     {
         return self::TABLE;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isIncludeContentElements(): bool
+    {
+        return ($this->indexingService instanceof IndexingService)
+            && $this->indexingService->isIncludeContentElements();
     }
 
     #[Override]

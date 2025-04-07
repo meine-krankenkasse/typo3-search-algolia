@@ -22,15 +22,7 @@ use Override;
  */
 class NewsIndexer extends AbstractIndexer
 {
-    public const string TYPE = 'news';
-
     public const string TABLE = 'tx_news_domain_model_news';
-
-    #[Override]
-    public function getType(): string
-    {
-        return self::TYPE;
-    }
 
     #[Override]
     public function getTable(): string

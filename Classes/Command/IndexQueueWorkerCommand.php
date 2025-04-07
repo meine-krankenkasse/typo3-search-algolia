@@ -180,7 +180,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             }
 
             // Find matching indexer
-            $indexerInstance = $indexerFactory->makeInstanceByType($item->getIndexerType());
+            $indexerInstance = $indexerFactory->makeInstanceByType($item->getTableName());
 
             $indexingService = $this->indexingServiceRepository
                 ->findByUid($item->getServiceUid());

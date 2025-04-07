@@ -27,18 +27,20 @@ use TYPO3\CMS\Core\SingletonInterface;
 interface IndexerInterface extends SingletonInterface
 {
     /**
-     * Returns the type of the indexer.
-     *
-     * @return string
-     */
-    public function getType(): string;
-
-    /**
      * Returns the table of the indexer.
      *
      * @return string
      */
     public function getTable(): string;
+
+    /**
+     * Returns an instance with the specified indexing service.
+     *
+     * @param IndexingService $indexingService
+     *
+     * @return IndexerInterface
+     */
+    public function withIndexingService(IndexingService $indexingService): IndexerInterface;
 
     /**
      * Indexes a single record using the configured search engine and indexing service configuration.
@@ -51,25 +53,38 @@ interface IndexerInterface extends SingletonInterface
     public function indexRecord(IndexingService $indexingService, array $record): bool;
 
     /**
+     * Dequeues a single indexing service related item.
+     *
+     * @param int $recordUid
+     *
+     * @return IndexerInterface
+     */
+    public function dequeueOne(int $recordUid): IndexerInterface;
+
+    /**
+     * Dequeues the indexing service related items.
+     *
+     * @return IndexerInterface
+     */
+    public function dequeueAll(): IndexerInterface;
+
+    /**
      * Enqueues a single indexing service related item. Returns the number of enqueued items (0 or 1).
      *
-     * @param IndexingService $indexingService
-     * @param int             $recordUid
+     * @param int $recordUid
      *
      * @return int
      *
      * @throws Exception
      */
-    public function enqueueOne(IndexingService $indexingService, int $recordUid): int;
+    public function enqueueOne(int $recordUid): int;
 
     /**
      * Enqueues the indexing service related items. Returns the number of enqueued items.
      *
-     * @param IndexingService $indexingService
-     *
      * @return int
      *
      * @throws Exception
      */
-    public function enqueueAll(IndexingService $indexingService): int;
+    public function enqueueAll(): int;
 }

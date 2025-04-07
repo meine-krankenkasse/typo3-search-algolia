@@ -41,11 +41,6 @@ class DocumentBuilder
     private readonly EventDispatcherInterface $eventDispatcher;
 
     /**
-     * @var IndexerInterface|null
-     */
-    private ?IndexerInterface $indexer = null;
-
-    /**
      * @var Document
      */
     private Document $document;
@@ -54,6 +49,11 @@ class DocumentBuilder
      * @var IndexingService
      */
     private IndexingService $indexingService;
+
+    /**
+     * @var IndexerInterface|null
+     */
+    private ?IndexerInterface $indexer = null;
 
     /**
      * @var array<string, mixed>
@@ -198,7 +198,7 @@ class DocumentBuilder
             return;
         }
 
-        $indexerType             = $this->indexer->getType();
+        $indexerType             = $this->indexer->getTable();
         $typoscriptConfiguration = $this->getTypoScriptConfiguration();
 
         foreach ($this->record as $recordFieldName => $recordValue) {

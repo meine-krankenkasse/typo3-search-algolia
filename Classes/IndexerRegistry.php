@@ -26,19 +26,19 @@ class IndexerRegistry
      * Registers a new indexer.
      *
      * @param class-string $className The class name of the actual indexer
-     * @param string       $type      The type of the indexer (must be unique among all indexers)
+     * @param string       $tableName The name of the table to which the indexer refers (must be unique among all indexers)
      * @param string       $title     The title of the indexer (used inside TCA selectors)
      * @param string|null  $icon      The icon of the indexer (used inside TCA selectors)
      */
     public static function register(
         string $className,
-        string $type,
+        string $tableName,
         string $title,
         ?string $icon = null,
     ): void {
         $GLOBALS['TYPO3_CONF_VARS']['EXTCONF'][Constants::EXTENSION_NAME]['indexer'][] = [
             'className' => $className,
-            'type'      => $type,
+            'tableName' => $tableName,
             'title'     => $title,
             'icon'      => $icon,
         ];
@@ -47,7 +47,7 @@ class IndexerRegistry
     /**
      * Returns the list of all registered indexers.
      *
-     * @return array<int, array{className: class-string, type: string, title: string, icon: string|null}>
+     * @return array<int, array{className: class-string, tableName: string, title: string, icon: string|null}>
      */
     public static function getRegisteredIndexers(): array
     {
@@ -63,14 +63,14 @@ class IndexerRegistry
     /**
      * Returns the icon of the indexer.
      *
-     * @param string $type
+     * @param string $tableName
      *
      * @return string
      */
-    public static function getIndexerIcon(string $type): string
+    public static function getIndexerIcon(string $tableName): string
     {
         foreach (self::getRegisteredIndexers() as $indexerConfiguration) {
-            if ($indexerConfiguration['type'] === $type) {
+            if ($indexerConfiguration['tableName'] === $tableName) {
                 return $indexerConfiguration['icon'] ?? '';
             }
         }

@@ -51,14 +51,14 @@ call_user_func(static function (): void {
     // Indexer registration
     IndexerRegistry::register(
         PageIndexer::class,
-        PageIndexer::TYPE,
-        'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.page.title',
+        PageIndexer::TABLE,
+        'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.pages.title',
         'apps-pagetree-page-default'
     );
 
     IndexerRegistry::register(
         ContentIndexer::class,
-        ContentIndexer::TYPE,
+        ContentIndexer::TABLE,
         'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.tt_content.title',
         'apps-pagetree-page-content-from-page',
     );
@@ -66,8 +66,8 @@ call_user_func(static function (): void {
     if (ExtensionManagementUtility::isLoaded('news')) {
         IndexerRegistry::register(
             NewsIndexer::class,
-            NewsIndexer::TYPE,
-            'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.news.title',
+            NewsIndexer::TABLE,
+            'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.tx_news_domain_model_news.title',
             'content-news'
         );
     }

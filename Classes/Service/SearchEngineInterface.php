@@ -26,6 +26,13 @@ use TYPO3\CMS\Core\SingletonInterface;
 interface SearchEngineInterface extends SingletonInterface
 {
     /**
+     * @param string $indexName
+     *
+     * @return SearchEngineInterface
+     */
+    public function withIndexName(string $indexName): SearchEngineInterface;
+
+    /**
      * Opens an index for processing.
      *
      * @param string $indexName The name of the index to open
@@ -114,4 +121,14 @@ interface SearchEngineInterface extends SingletonInterface
      * @return bool
      */
     public function documentDelete(string $documentId): bool;
+
+    /**
+     * Removes the entry from the index.
+     *
+     * @param string $tableName
+     * @param int    $recordUid
+     *
+     * @return void
+     */
+    public function deleteFromIndex(string $tableName, int $recordUid): void;
 }

@@ -5,8 +5,8 @@ module {
         #
         # Field mapping TYPO3 field name <=> Search Engine field name
         indexer {
-            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer::TYPE
-            page {
+            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer::TABLE
+            pages {
                 fields {
                     title = title
                     subtitle = subTitle
@@ -18,7 +18,7 @@ module {
                 }
             }
 
-            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer::TYPE
+            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer::TABLE
             tt_content {
                 fields {
                     header = title
@@ -27,8 +27,8 @@ module {
                 }
             }
 
-            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer::TYPE
-            news {
+            # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer::TABLE
+            tx_news_domain_model_news {
                 fields {
                     title = title
                     abstract = teaser

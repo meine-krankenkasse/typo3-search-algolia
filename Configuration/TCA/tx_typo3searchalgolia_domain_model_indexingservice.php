@@ -210,7 +210,7 @@ return [
             'exclude'     => false,
             'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements',
             'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements.description',
-            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE,
+            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TABLE,
             'config'      => [
                 'type'       => 'check',
                 'renderType' => 'checkboxToggle',
@@ -221,7 +221,7 @@ return [
             'exclude'     => false,
             'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype',
             'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype.description',
-            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE,
+            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TABLE,
             'config'      => [
                 'type'          => 'select',
                 'renderType'    => 'selectCheckBox',
@@ -236,7 +236,7 @@ return [
             'exclude'     => false,
             'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_single',
             'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_single.description',
-            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE . ',' . ContentIndexer::TYPE . ',' . NewsIndexer::TYPE,
+            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TABLE . ',' . ContentIndexer::TABLE . ',' . NewsIndexer::TABLE,
             'config'      => [
                 'type'        => 'group',
                 'allowed'     => 'pages',
@@ -250,7 +250,7 @@ return [
             'exclude'     => false,
             'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive',
             'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_recursive.description',
-            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TYPE . ',' . ContentIndexer::TYPE . ',' . NewsIndexer::TYPE,
+            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TABLE . ',' . ContentIndexer::TABLE . ',' . NewsIndexer::TABLE,
             'config'      => [
                 'type'        => 'group',
                 'allowed'     => 'pages',

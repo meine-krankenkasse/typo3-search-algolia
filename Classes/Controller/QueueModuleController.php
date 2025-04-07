@@ -180,7 +180,10 @@ class QueueModuleController extends AbstractBaseModuleController
                 }
 
                 try {
-                    $itemCount += $indexerInstance->enqueueAll($indexingService);
+                    $itemCount += $indexerInstance
+                        ->withIndexingService($indexingService)
+                        ->dequeueAll()
+                        ->enqueueAll();
                 } catch (Exception $exception) {
                     $this->addFlashMessage(
                         $exception->getMessage(),

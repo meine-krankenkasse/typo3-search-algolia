@@ -43,7 +43,7 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_indexingservice
 
     title                    varchar(100)         DEFAULT ''  NOT NULL,
     description              text,
-    type                     varchar(32)          DEFAULT ''  NOT NULL,
+    type                     varchar(128)         DEFAULT ''  NOT NULL,
     search_engine            int(10) unsigned     DEFAULT '0',
     include_content_elements smallint(5) unsigned DEFAULT '0' NOT NULL,
     pages_doktype            text,
@@ -63,7 +63,6 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_queueitem
     pid          int(11) unsigned     DEFAULT '0' NOT NULL,
     table_name   varchar(255)         DEFAULT ''  NOT NULL,
     record_uid   int(11)              DEFAULT '0' NOT NULL,
-    indexer_type varchar(32)          DEFAULT ''  NOT NULL,
     service_uid  int(11)              DEFAULT '0' NOT NULL,
     changed      int(11) unsigned     DEFAULT '0' NOT NULL,
     priority     smallint(5) unsigned DEFAULT '0' NOT NULL,
@@ -72,7 +71,6 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_queueitem
     KEY parent (pid),
     KEY table_name (table_name),
     KEY record_uid (record_uid),
-    KEY indexer_type (indexer_type),
     KEY service_uid (service_uid),
     KEY changed (changed),
     UNIQUE unqiue (table_name, record_uid, service_uid)

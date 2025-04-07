@@ -84,8 +84,9 @@ readonly class DataHandlerHook
     }
 
     /**
-     * Hooks into DataHandler and monitors record deletion commands. The hook is called after
-     * the record has already been deleted in TYPO3.
+     * Hooks into the DataHandler and monitors delete commands. The hook is called before the record is
+     * deleted from TYPO3, so that all subsequent database queries still function properly and receive
+     * the correct data.
      *
      * @param string              $command      The DataHandler command
      * @param string              $table        The table currently processing data for
@@ -93,7 +94,7 @@ readonly class DataHandlerHook
      * @param string|array<mixed> $commandValue The commands value, typically an array with more detailed command information
      * @param DataHandler         $dataHandler  The DataHandler parent object
      */
-    public function processCmdmap_postProcess(
+    public function processCmdmap_preProcess(
         string $command,
         string $table,
         int $recordUid,

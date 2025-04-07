@@ -42,7 +42,7 @@
                                     <f:for each="{queueStatistics}" as="statistic">
                                         <tr>
                                             <td>
-                                                <f:translate key="indexer.{statistic.indexer_type}.title" />
+                                                <f:translate key="indexer.{statistic.table_name}.title" />
                                             </td>
                                             <td class="text-end">
                                                 {statistic.count -> f:format.number(decimals: 0, thousandsSeparator: '.')}

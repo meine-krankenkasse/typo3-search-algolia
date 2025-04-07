@@ -32,13 +32,13 @@
             </trans-unit>
 
             <!-- Indexer -->
-            <trans-unit id="indexer.page.title">
+            <trans-unit id="indexer.pages.title">
                 <target>Seiten</target>
             </trans-unit>
             <trans-unit id="indexer.tt_content.title">
                 <target>Inhaltselemente</target>
             </trans-unit>
-            <trans-unit id="indexer.news.title">
+            <trans-unit id="indexer.tx_news_domain_model_news.title">
                 <target>Nachrichten</target>
             </trans-unit>
 
@@ -76,7 +76,7 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.description">
                 <target>Wählen Sie den zu verwendenden Indexertyp aus.</target>
             </trans-unit>
-            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.page">
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.pages">
                 <target>Der Seitenindexer indexiert einzeln auswählbare Seiten oder ganze Seitenbäume und lässt sich auch auf bestimmte Seitentypen beschränken. Er bietet zudem die Möglichkeit, die auf einer Seite enthaltenen Inhaltselemente als durchsuchbare Inhalte in den Index aufzunehmen. Falls die verwendete Suchmaschine eine Datensatzgrößenbeschränkung hat, kann die Indexierung einer Seite allerdings fehlschlagen.</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type.tt_content">

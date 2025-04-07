@@ -11,14 +11,14 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
-use Psr\EventDispatcher\EventDispatcherInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 
 /**
  * The record delete event listener. This event listener is called when an existing record is deleted.
@@ -27,46 +27,43 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class RecordDeleteEventListener
+class RecordDeleteEventListener
 {
     /**
-     * @var EventDispatcherInterface
+     * @var DataHandler
      */
-    private EventDispatcherInterface $eventDispatcher;
+    private readonly DataHandler $dataHandler;
 
     /**
-     * @var SearchEngineFactory
+     * @var RecordHandler
      */
-    private SearchEngineFactory $searchEngineFactory;
+    private readonly RecordHandler $recordHandler;
 
     /**
      * @var IndexingServiceRepository
      */
-    private IndexingServiceRepository $indexingServiceRepository;
+    private readonly IndexingServiceRepository $indexingServiceRepository;
 
     /**
-     * @var QueueItemRepository
+     * @var DataHandlerRecordDeleteEvent
      */
-    private QueueItemRepository $queueItemRepository;
+    private DataHandlerRecordDeleteEvent $event;
 
     /**
      * Constructor.
      *
-     * @param EventDispatcherInterface  $eventDispatcher
-     * @param SearchEngineFactory       $searchEngineFactory
+     * @param DataHandler               $dataHandler
+     * @param RecordHandler             $recordHandler
      * @param IndexingServiceRepository $indexingServiceRepository
-     * @param QueueItemRepository       $queueItemRepository
      */
     public function __construct(
-        EventDispatcherInterface $eventDispatcher,
-        SearchEngineFactory $searchEngineFactory,
+        DataHandler $dataHandler,
+        RecordHandler $recordHandler,
         IndexingServiceRepository $indexingServiceRepository,
-        QueueItemRepository $queueItemRepository,
     ) {
-        $this->eventDispatcher           = $eventDispatcher;
-        $this->searchEngineFactory       = $searchEngineFactory;
+        $this->dataHandler               = $dataHandler;
+        $this->recordHandler             = $recordHandler;
         $this->indexingServiceRepository = $indexingServiceRepository;
-        $this->queueItemRepository       = $queueItemRepository;
     }
 
     /**
@@ -76,60 +73,123 @@ readonly class RecordDeleteEventListener
      */
     public function __invoke(DataHandlerRecordDeleteEvent $event): void
     {
-        if ($event->getTable() === 'tt_content') {
-            // ???
+        $this->event = $event;
+
+        // Determine the root page ID for the event record
+        $rootPageId = $this->recordHandler
+            ->getRecordRootPageId(
+                $this->event->getTable(),
+                $this->event->getRecordUid()
+            );
+
+        // Remove record from queue and index
+        $this->processRecordDeletion($rootPageId);
+
+        // Update page if required
+        if ($this->isContentElementUpdate()) {
+            // Alternatively, replace with BackendUtility::getRecord()
+            $pageUid = $this->dataHandler
+                ->getPID(
+                    ContentIndexer::TABLE,
+                    $this->event->getRecordUid()
+                );
+
+            // Process page update
+            if ($pageUid !== false) {
+                $indexingServices = $this->indexingServiceRepository
+                    ->findAllByTableName(PageIndexer::TABLE);
+
+                /** @var IndexingService $indexingService */
+                foreach ($indexingServices as $indexingService) {
+                    $indexerInstance = $this->recordHandler
+                        ->getResponsibleRecordIndexer(
+                            $indexingService,
+                            $rootPageId
+                        );
+
+                    if (!($indexerInstance instanceof PageIndexer)) {
+                        continue;
+                    }
+
+                    // If the page indexer is configured to include content items in the page index record,
+                    // we add an additional entry to the queue for the content item's page.
+                    if (!$indexerInstance->isIncludeContentElements()) {
+                        continue;
+                    }
+
+                    // Remove possible entry of the record from the queue item table
+                    // and add it again to update index
+                    $indexerInstance
+                        ->dequeueOne($pageUid)
+                        ->enqueueOne($pageUid);
+                }
+            }
         }
 
-        if ($event->getTable() === 'pages') {
-            // TODO Remove all indexed content elements from index
+        // Handle page deletion and related content elements
+        if ($this->isPageUpdate()) {
+            // Page update with all content elements requested
+            $this->recordHandler
+                ->processContentElementsOfPage(
+                    $this->event->getRecordUid(),
+                    true
+                );
         }
-
-        $this->deleteRecord($event->getTable(), $event->getRecordUid());
     }
 
     /**
-     * @param string $tableName
-     * @param int    $recordUid
+     * Removes the event record from the queue item table and the search engine index.
      *
-     * @return void
+     * @param int $rootPageId
      */
-    private function deleteRecord(string $tableName, int $recordUid): void
+    private function processRecordDeletion(int $rootPageId): void
     {
-        // Remove a possible entry of the element from the queue element table
-        $this->queueItemRepository
-            ->deleteByTableAndRecord(
-                $tableName,
-                $recordUid
-            );
-
-        // Determine all configured indexing services that are created below the root page ID
-        $indexingServices = $this->indexingServiceRepository->findAll();
+        $indexingServices = $this->indexingServiceRepository
+            ->findAllByTableName($this->event->getTable());
 
         /** @var IndexingService $indexingService */
         foreach ($indexingServices as $indexingService) {
-            // Get underlying search engine instance
-            $searchEngineService = $this->searchEngineFactory
-                ->makeInstanceBySearchEngineModel($indexingService->getSearchEngine());
-
-            if (!($searchEngineService instanceof SearchEngineInterface)) {
-                return;
-            }
-
-            /** @var CreateUniqueDocumentIdEvent $documentIdEvent */
-            $documentIdEvent = $this->eventDispatcher
-                ->dispatch(
-                    new CreateUniqueDocumentIdEvent(
-                        $searchEngineService,
-                        $tableName,
-                        $recordUid
-                    )
+            $indexerInstance = $this->recordHandler
+                ->getResponsibleRecordIndexer(
+                    $indexingService,
+                    $rootPageId
                 );
 
-            // Remove record in search engine index
-            $searchEngineService->indexOpen($indexingService->getSearchEngine()->getIndexName());
-            $searchEngineService->documentDelete($documentIdEvent->getDocumentId());
-            $searchEngineService->indexCommit();
-            $searchEngineService->indexClose();
+            if (!($indexerInstance instanceof IndexerInterface)) {
+                continue;
+            }
+
+            // Remove the record from the queue item table
+            $indexerInstance
+                ->dequeueOne($this->event->getRecordUid());
+
+            // Remove record from index
+            $this->recordHandler
+                ->deleteRecordFromSearchEngine(
+                    $indexingService->getSearchEngine(),
+                    $this->event->getTable(),
+                    $this->event->getRecordUid()
+                );
         }
+    }
+
+    /**
+     * Returns TRUE if a content element update is performed.
+     *
+     * @return bool
+     */
+    private function isContentElementUpdate(): bool
+    {
+        return $this->event->getTable() === 'tt_content';
+    }
+
+    /**
+     * Returns TRUE if a page update is performed.
+     *
+     * @return bool
+     */
+    private function isPageUpdate(): bool
+    {
+        return $this->event->getTable() === 'pages';
     }
 }

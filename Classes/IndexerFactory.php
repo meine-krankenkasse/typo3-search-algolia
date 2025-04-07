@@ -48,7 +48,7 @@ class IndexerFactory implements SingletonInterface
      * Creates and returns a new instance of an indexer for the given type. Returns NULL if the
      * specified type is not registered and therefore no instance could be created.
      *
-     * @param string $type The indexer type
+     * @param string $type The indexer type/table
      *
      * @return IndexerInterface|null
      */
@@ -59,7 +59,7 @@ class IndexerFactory implements SingletonInterface
         }
 
         foreach (IndexerRegistry::getRegisteredIndexers() as $indexerConfiguration) {
-            if ($indexerConfiguration['type'] !== $type) {
+            if ($indexerConfiguration['tableName'] !== $type) {
                 continue;
             }
 

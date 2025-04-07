@@ -26,12 +26,12 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class UpdateAssembledContentElementDocumentEventListener
+readonly class UpdateAssembledContentElementDocumentEventListener
 {
     /**
      * @var SiteFinder
      */
-    private readonly SiteFinder $siteFinder;
+    private SiteFinder $siteFinder;
 
     /**
      * Constructor.
@@ -61,8 +61,10 @@ class UpdateAssembledContentElementDocumentEventListener
         $contentElementId = $record['uid'];
 
         // Set content element related fields
-        $document
-            ->setField('site', $this->getSiteDomain($site));
+        $document->setField(
+            'site',
+            $this->getSiteDomain($site)
+        );
 
         if ($site instanceof Site) {
             $document->setField(
