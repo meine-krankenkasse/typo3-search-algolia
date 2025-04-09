@@ -154,6 +154,16 @@ class QueueModuleController extends AbstractBaseModuleController
 
         $this->addDocHeaderNewButton();
 
+        // Remove all entries from queue item table matching the submitted table
+        if ($this->request->hasArgument('delete')) {
+            $tableName = $this->request->getArgument('delete')['table_name'] ?? null;
+
+            $this->queueItemRepository
+                ->deleteByTableAndRecordUIDs(
+                    $tableName
+                );
+        }
+
         if (!($queueDemand instanceof QueueDemand)) {
             $queueDemand = GeneralUtility::makeInstance(QueueDemand::class);
         }

@@ -37,6 +37,7 @@
                                         <th class="text-end">
                                             <f:translate key="index_queue.statistics.column.count" />
                                         </th>
+                                        <th class="col-control"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -47,6 +48,18 @@
                                             </td>
                                             <td class="text-end">
                                                 {statistic.count -> f:format.number(decimals: 0, thousandsSeparator: '.')}
+                                            </td>
+                                            <td class="col-control">
+                                                <div class="btn-group" role="group">
+                                                    <f:be.link
+                                                            route="mkk_typo3_search_queue"
+                                                            parameters="{delete: {table_name: statistic.table_name}}"
+                                                            class="btn btn-default"
+                                                            title="{f:translate(key: 'LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:delete')}"
+                                                    >
+                                                        <core:icon identifier="actions-delete" />
+                                                    </f:be.link>
+                                                </div>
                                             </td>
                                         </tr>
                                     </f:for>

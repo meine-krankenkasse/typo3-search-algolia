@@ -209,7 +209,7 @@ class QueueItemRepository extends Repository
      */
     public function deleteByTableAndRecordUIDs(
         string $tableName,
-        array $recordUids,
+        array $recordUids = [],
         int $serviceUid = 0,
     ): void {
         $queryBuilder = $this->connectionPool
@@ -221,7 +221,11 @@ class QueueItemRepository extends Repository
                 $queryBuilder->expr()->eq(
                     'table_name',
                     $queryBuilder->createNamedParameter($tableName)
-                ),
+                )
+            );
+
+        if ($recordUids !== []) {
+            $queryBuilder->andWhere(
                 $queryBuilder->expr()->in(
                     'record_uid',
                     $queryBuilder->createNamedParameter(
@@ -230,6 +234,7 @@ class QueueItemRepository extends Repository
                     )
                 )
             );
+        }
 
         if ($serviceUid !== 0) {
             $queryBuilder->andWhere(
