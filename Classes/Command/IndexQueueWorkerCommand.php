@@ -162,7 +162,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         $this->io->text('Start indexing');
         $this->io->newLine();
 
-        $queueItems = $this->getItemsFromQueue($documentsToIndex);
+        $queueItems = $this->queueItemRepository
+            ->findAllLimited($documentsToIndex);
 
         $progressBar = $this->io->createProgressBar($queueItems->count());
         $progressBar->start();
@@ -253,25 +254,6 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         } catch (Throwable) {
             return false;
         }
-    }
-
-    /**
-     * @param int $documentsToIndex
-     *
-     * @return QueryResultInterface<QueueItem>
-     */
-    private function getItemsFromQueue(int $documentsToIndex): QueryResultInterface
-    {
-        return $this->queueItemRepository
-            ->findAll()
-            ->getQuery()
-            ->setLimit($documentsToIndex)
-            ->setOrderings(
-                [
-                    'changed' => QueryInterface::ORDER_DESCENDING,
-                ]
-            )
-            ->execute();
     }
 
     /**

@@ -12,12 +12,8 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 
 /**
@@ -40,11 +36,6 @@ class RecordDeleteEventListener
     private readonly RecordHandler $recordHandler;
 
     /**
-     * @var IndexingServiceRepository
-     */
-    private readonly IndexingServiceRepository $indexingServiceRepository;
-
-    /**
      * @var DataHandlerRecordDeleteEvent
      */
     private DataHandlerRecordDeleteEvent $event;
@@ -52,18 +43,15 @@ class RecordDeleteEventListener
     /**
      * Constructor.
      *
-     * @param DataHandler               $dataHandler
-     * @param RecordHandler             $recordHandler
-     * @param IndexingServiceRepository $indexingServiceRepository
+     * @param DataHandler   $dataHandler
+     * @param RecordHandler $recordHandler
      */
     public function __construct(
         DataHandler $dataHandler,
         RecordHandler $recordHandler,
-        IndexingServiceRepository $indexingServiceRepository,
     ) {
-        $this->dataHandler               = $dataHandler;
-        $this->recordHandler             = $recordHandler;
-        $this->indexingServiceRepository = $indexingServiceRepository;
+        $this->dataHandler   = $dataHandler;
+        $this->recordHandler = $recordHandler;
     }
 
     /**
@@ -83,52 +71,26 @@ class RecordDeleteEventListener
             );
 
         // Remove record from queue and index
-        $this->processRecordDeletion($rootPageId);
+        $this->processRecordDelete($rootPageId);
 
         // Update page if required
         if ($this->isContentElementUpdate()) {
             // Alternatively, replace with BackendUtility::getRecord()
-            $pageUid = $this->dataHandler
+            $pageId = $this->dataHandler
                 ->getPID(
                     ContentIndexer::TABLE,
                     $this->event->getRecordUid()
                 );
 
             // Process page update
-            if ($pageUid !== false) {
-                $indexingServices = $this->indexingServiceRepository
-                    ->findAllByTableName(PageIndexer::TABLE);
-
-                /** @var IndexingService $indexingService */
-                foreach ($indexingServices as $indexingService) {
-                    $indexerInstance = $this->recordHandler
-                        ->getResponsibleRecordIndexer(
-                            $indexingService,
-                            $rootPageId
-                        );
-
-                    if (!($indexerInstance instanceof PageIndexer)) {
-                        continue;
-                    }
-
-                    // If the page indexer is configured to include content items in the page index record,
-                    // we add an additional entry to the queue for the content item's page.
-                    if (!$indexerInstance->isIncludeContentElements()) {
-                        continue;
-                    }
-
-                    // Remove possible entry of the record from the queue item table
-                    // and add it again to update index
-                    $indexerInstance
-                        ->dequeueOne($pageUid)
-                        ->enqueueOne($pageUid);
-                }
+            if ($pageId !== false) {
+                $this->recordHandler->processPage($rootPageId, $pageId);
             }
         }
 
-        // Handle page deletion and related content elements
+        // Handle the deletion of the page and its content elements
         if ($this->isPageUpdate()) {
-            // Page update with all content elements requested
+            // Remove all content elements from queue and index
             $this->recordHandler
                 ->processContentElementsOfPage(
                     $this->event->getRecordUid(),
@@ -140,35 +102,24 @@ class RecordDeleteEventListener
     /**
      * Removes the event record from the queue item table and the search engine index.
      *
-     * @param int $rootPageId
+     * @param int $rootPageId The root page UID
      */
-    private function processRecordDeletion(int $rootPageId): void
+    private function processRecordDelete(int $rootPageId): void
     {
-        $indexingServices = $this->indexingServiceRepository
-            ->findAllByTableName($this->event->getTable());
+        $indexerInstanceGenerator = $this->recordHandler
+            ->createIndexerGenerator(
+                $rootPageId,
+                $this->event->getTable(),
+            );
 
-        /** @var IndexingService $indexingService */
-        foreach ($indexingServices as $indexingService) {
-            $indexerInstance = $this->recordHandler
-                ->getResponsibleRecordIndexer(
-                    $indexingService,
-                    $rootPageId
-                );
-
-            if (!($indexerInstance instanceof IndexerInterface)) {
-                continue;
-            }
-
-            // Remove the record from the queue item table
-            $indexerInstance
-                ->dequeueOne($this->event->getRecordUid());
-
-            // Remove record from index
+        foreach ($indexerInstanceGenerator as $indexingService => $indexerInstance) {
             $this->recordHandler
-                ->deleteRecordFromSearchEngine(
-                    $indexingService->getSearchEngine(),
+                ->deleteRecord(
+                    $indexingService,
+                    $indexerInstance,
                     $this->event->getTable(),
-                    $this->event->getRecordUid()
+                    $this->event->getRecordUid(),
+                    true
                 );
         }
     }

@@ -158,50 +158,55 @@ class QueueModuleController extends AbstractBaseModuleController
             $queueDemand = GeneralUtility::makeInstance(QueueDemand::class);
         }
 
+        $selectedIndexingServices = $queueDemand->getIndexingServices();
+
+        if ($queueDemand->getIndexingService() !== 0) {
+            $selectedIndexingServices[] = $queueDemand->getIndexingService();
+        }
+
         // TODO Use PropertyMapper to map selected indexing services directly into the matching IndexingService-Model
-        $indexingServicesUIDs = array_map(
-            '\intval',
-            $queueDemand->getIndexingServices()
-        );
+        $indexingServicesUIDs = array_map('\intval', $selectedIndexingServices);
 
         if ($indexingServicesUIDs !== []) {
             $indexingServices = $this->indexingServiceRepository
                 ->findAllByUIDs($indexingServicesUIDs);
 
-            $itemCount = 0;
+            if ($indexingServices->count() > 0) {
+                $itemCount = 0;
 
-            /** @var IndexingService $indexingService */
-            foreach ($indexingServices as $indexingService) {
-                $indexerInstance = $this->indexerFactory
-                    ->makeInstanceByType($indexingService->getType());
+                /** @var IndexingService $indexingService */
+                foreach ($indexingServices as $indexingService) {
+                    $indexerInstance = $this->indexerFactory
+                        ->makeInstanceByType($indexingService->getType());
 
-                if (!($indexerInstance instanceof IndexerInterface)) {
-                    continue;
+                    if (!($indexerInstance instanceof IndexerInterface)) {
+                        continue;
+                    }
+
+                    try {
+                        $itemCount += $indexerInstance
+                            ->withIndexingService($indexingService)
+                            ->dequeueAll()
+                            ->enqueueAll();
+                    } catch (Exception $exception) {
+                        $this->addFlashMessage(
+                            $exception->getMessage(),
+                            $this->translate('flash_message.error.title'),
+                            ContextualFeedbackSeverity::ERROR
+                        );
+                    }
                 }
 
-                try {
-                    $itemCount += $indexerInstance
-                        ->withIndexingService($indexingService)
-                        ->dequeueAll()
-                        ->enqueueAll();
-                } catch (Exception $exception) {
-                    $this->addFlashMessage(
-                        $exception->getMessage(),
-                        $this->translate('flash_message.error.title'),
-                        ContextualFeedbackSeverity::ERROR
-                    );
-                }
+                $this->addFlashMessage(
+                    $this->translate(
+                        'index_queue.flash_message.body',
+                        [
+                            $itemCount,
+                        ]
+                    ),
+                    $this->translate('index_queue.flash_message.title')
+                );
             }
-
-            $this->addFlashMessage(
-                $this->translate(
-                    'index_queue.flash_message.body',
-                    [
-                        $itemCount,
-                    ]
-                ),
-                $this->translate('index_queue.flash_message.title')
-            );
         }
 
         $this->moduleTemplate->assign(

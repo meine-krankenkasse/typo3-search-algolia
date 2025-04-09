@@ -42,7 +42,7 @@ readonly class ContentRepository
     /**
      * Finds all records for given page ID. Returns only the given columns for each record.
      *
-     * @param int      $pageId
+     * @param int      $pageId  The UID of the page to be processed
      * @param string[] $columns
      *
      * @return array<int, array<string, mixed>>

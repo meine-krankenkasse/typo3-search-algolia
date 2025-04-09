@@ -3,6 +3,10 @@
     <file source-language="en" datatype="plaintext" original="messages">
         <header/>
         <body>
+            <trans-unit id="module.name">
+                <source>TYPO3 Search</source>
+            </trans-unit>
+
             <!-- TCA -->
             <trans-unit id="tca.tabs.general">
                 <source>General</source>
@@ -172,6 +176,9 @@
             </trans-unit>
             <trans-unit id="index_queue.indexingServicess.available">
                 <source>Services:</source>
+            </trans-unit>
+            <trans-unit id="index_queue.indexingServices.execute">
+                <source>Execute indexing service</source>
             </trans-unit>
             <trans-unit id="index_queue.button.submit">
                 <source>Queue selected content for indexing</source>

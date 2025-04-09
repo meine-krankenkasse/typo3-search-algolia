@@ -19,6 +19,8 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
+use TYPO3\CMS\Extbase\Persistence\QueryInterface;
+use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 use TYPO3\CMS\Extbase\Persistence\Repository;
 
 use function count;
@@ -67,6 +69,25 @@ class QueueItemRepository extends Repository
             ->setRespectStoragePage(false);
 
         $this->setDefaultQuerySettings($querySettings);
+    }
+
+    /**
+     * Finds all queue item entries but limited to the given number of elements.
+     *
+     * @param int $limit
+     *
+     * @return QueryResultInterface<QueueItem>
+     */
+    public function findAllLimited(int $limit): QueryResultInterface
+    {
+        return $this->createQuery()
+            ->setLimit($limit)
+            ->setOrderings(
+                [
+                    'changed' => QueryInterface::ORDER_DESCENDING,
+                ]
+            )
+            ->execute();
     }
 
     /**

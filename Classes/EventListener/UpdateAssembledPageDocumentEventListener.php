@@ -160,7 +160,7 @@ readonly class UpdateAssembledPageDocumentEventListener
     /**
      * Returns the page content or NULL if content is empty.
      *
-     * @param int $pageId
+     * @param int $pageId The UID of the page to be processed
      *
      * @return string|null
      *

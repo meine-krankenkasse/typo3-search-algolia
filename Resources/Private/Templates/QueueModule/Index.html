@@ -16,7 +16,8 @@
         />
 
         <div class="col-md-12">
-            <h1><f:translate key="index_queue" /></h1>
+            <h1><f:translate key="module.name" /></h1>
+            <h2><f:translate key="index_queue" /></h2>
             <p><f:translate key="index_queue.description" /></p>
 
             <div class="mt-4">
@@ -30,7 +31,7 @@
                             <table class="table table-striped table-hover">
                                 <thead>
                                     <tr>
-                                        <th>
+                                        <th class="col-title">
                                             <f:translate key="index_queue.statistics.column.type" />
                                         </th>
                                         <th class="text-end">
@@ -79,7 +80,7 @@
                             <tbody data-multi-record-selection-row-selection="true">
                                 <f:for each="{indexingServices}" as="indexingService">
                                     <tr data-multi-record-selection-element="true">
-                                        <td class="col-checkbox">
+                                        <td class="align-top col-checkbox">
                                             <span class="form-check form-check-type-toggle">
                                                 <f:form.checkbox class="form-check-input t3js-multi-record-selection-check"
                                                                  property="indexingServices"
@@ -117,6 +118,17 @@
                                                 </backend:link.editRecord>
 
                                                 <f:render partial="VisibilityToggleButton" arguments="{indexingService: indexingService}" />
+                                            </div>
+                                            <div class="btn-group" role="group">
+                                                <f:form.button
+                                                        class="btn btn-default"
+                                                        type="submit"
+                                                        property="indexingService"
+                                                        value="{indexingService.uid}"
+                                                        title="{f:translate(key: 'index_queue.indexingServices.execute')}"
+                                                >
+                                                    <core:icon identifier="actions-play" />
+                                                </f:form.button>
                                             </div>
                                         </td>
                                     </tr>

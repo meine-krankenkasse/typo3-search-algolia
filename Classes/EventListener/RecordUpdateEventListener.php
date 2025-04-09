@@ -12,11 +12,8 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 
@@ -41,11 +38,6 @@ class RecordUpdateEventListener
     private readonly RecordHandler $recordHandler;
 
     /**
-     * @var IndexingServiceRepository
-     */
-    private readonly IndexingServiceRepository $indexingServiceRepository;
-
-    /**
      * @var DataHandlerRecordUpdateEvent
      */
     private DataHandlerRecordUpdateEvent $event;
@@ -53,18 +45,15 @@ class RecordUpdateEventListener
     /**
      * Constructor.
      *
-     * @param DataHandler               $dataHandler
-     * @param RecordHandler             $recordHandler
-     * @param IndexingServiceRepository $indexingServiceRepository
+     * @param DataHandler   $dataHandler
+     * @param RecordHandler $recordHandler
      */
     public function __construct(
         DataHandler $dataHandler,
         RecordHandler $recordHandler,
-        IndexingServiceRepository $indexingServiceRepository,
     ) {
-        $this->dataHandler               = $dataHandler;
-        $this->recordHandler             = $recordHandler;
-        $this->indexingServiceRepository = $indexingServiceRepository;
+        $this->dataHandler   = $dataHandler;
+        $this->recordHandler = $recordHandler;
     }
 
     /**
@@ -76,26 +65,6 @@ class RecordUpdateEventListener
     {
         $this->event = $event;
 
-        // The following considerations for the process precede:
-        //
-        // - Determine the indexer responsible for $event->getTable()
-        //   - Currently, only one indexer is responsible/possible for each table
-        // - Read the record using $event->getRecordUid()
-        // - Determine the root page ID for the record
-        // - Determine all configured indexing services created below the root page ID
-        // - Handle the existing entry for the record in the queue table
-        // - Perform indexing for all found indexing services
-
-        $pageUid = $this->event->getRecordUid();
-
-        // Determine the page ID on which the content element is located.
-        // This will be needed later when the page indexer has been configured to include the content elements
-        // in the page index record.
-        if ($this->isContentElementUpdate()) {
-            // Alternatively, replace with BackendUtility::getRecord()
-            $pageUid = $this->dataHandler->getPID('tt_content', $this->event->getRecordUid());
-        }
-
         // Determine the root page ID for the event record
         $rootPageId = $this->recordHandler
             ->getRecordRootPageId(
@@ -103,74 +72,67 @@ class RecordUpdateEventListener
                 $this->event->getRecordUid()
             );
 
-        // Determine all configured indexing services that are created below the root page ID
-        $indexingServices = $this->indexingServiceRepository->findAll();
+        $isRecordEnabled = $this->isRecordEnabled(
+            $this->event->getTable(),
+            $this->event->getRecordUid()
+        );
 
-        /** @var IndexingService $indexingService */
-        foreach ($indexingServices as $indexingService) {
-            $indexerInstance = $this->recordHandler
-                ->getResponsibleRecordIndexer(
-                    $indexingService,
-                    $rootPageId
+        // Update record at queue and index
+        $this->processRecordUpdate($rootPageId, $isRecordEnabled);
+
+        // Update page if required
+        if ($this->isContentElementUpdate()) {
+            // Alternatively, replace with BackendUtility::getRecord()
+            $pageId = $this->dataHandler
+                ->getPID(
+                    ContentIndexer::TABLE,
+                    $this->event->getRecordUid()
                 );
 
-            if (!($indexerInstance instanceof IndexerInterface)) {
-                continue;
+            // Process page update
+            if ($pageId !== false) {
+                $this->recordHandler->processPage($rootPageId, $pageId);
             }
+        }
 
-            $recordUid = $this->event->getRecordUid();
+        // Handle the update of the page and its content elements
+        if ($this->isPageUpdate()) {
+            // Update all content elements of page
+            $this->recordHandler
+                ->processContentElementsOfPage(
+                    $this->event->getRecordUid(),
+                    !$isRecordEnabled
+                );
+        }
+    }
 
-            // If this is the page indexer, and it is configured to include content items in the page index record,
-            // we add an additional entry to the queue for the content item's page.
-            $isContentElementRequestsPageUpdate = ($indexerInstance instanceof PageIndexer)
-                && $indexerInstance->isIncludeContentElements()
-                && $this->isContentElementUpdate();
+    /**
+     * Updates the event record at the queue item table and the search engine index.
+     *
+     * @param int  $rootPageId      The root page UID
+     * @param bool $isRecordEnabled TRUE if the processed record is enabled or not
+     */
+    private function processRecordUpdate(int $rootPageId, bool $isRecordEnabled): void
+    {
+        $indexerInstanceGenerator = $this->recordHandler
+            ->createIndexerGenerator(
+                $rootPageId,
+                $this->event->getTable(),
+            );
 
-            if ($isContentElementRequestsPageUpdate) {
-                if ($pageUid !== false) {
-                    $recordUid = $pageUid;
-                }
-            } elseif ($indexerInstance->getTable() !== $this->event->getTable()) {
-                // Indexer is not responsible for this kind of table
-                continue;
-            }
+        foreach ($indexerInstanceGenerator as $indexingService => $indexerInstance) {
+            $this->recordHandler
+                ->deleteRecord(
+                    $indexingService,
+                    $indexerInstance,
+                    $this->event->getTable(),
+                    $this->event->getRecordUid(),
+                    !$isRecordEnabled
+                );
 
-            // Remove the record from the queue item table
+            // Put the record into the queue to update the index again
             $indexerInstance
-                ->dequeueOne($recordUid);
-
-            if (!$isContentElementRequestsPageUpdate) {
-                $removePageContentElements = false;
-
-                // Remove record from index if it is not available anymore
-                if (!$this->isRecordEnabled($this->event->getTable(), $this->event->getRecordUid())) {
-                    $removePageContentElements = true;
-
-                    // Remove record from index
-                    $this->recordHandler
-                        ->deleteRecordFromSearchEngine(
-                            $indexingService->getSearchEngine(),
-                            $this->event->getTable(),
-                            $this->event->getRecordUid()
-                        );
-                }
-
-                // Page update with all content elements requested
-                if (
-                    $this->isPageUpdate()
-                    && $indexingService->isIncludeContentElements()
-                ) {
-                    $this->recordHandler
-                        ->processContentElementsOfPage(
-                            $this->event->getRecordUid(),
-                            $removePageContentElements
-                        );
-                }
-            }
-
-            // Put the record into the queue (puts only enabled records into queue)
-            $indexerInstance
-                ->enqueueOne($recordUid);
+                ->enqueueOne($this->event->getRecordUid());
         }
     }
 

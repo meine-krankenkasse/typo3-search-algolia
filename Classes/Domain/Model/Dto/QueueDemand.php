@@ -21,11 +21,36 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\Dto;
 class QueueDemand
 {
     /**
+     * @var int
+     */
+    private int $indexingService = 0;
+
+    /**
      * The UIDs of the selected indexers.
      *
      * @var string[]
      */
     private array $indexingServices = [];
+
+    /**
+     * @return int
+     */
+    public function getIndexingService(): int
+    {
+        return $this->indexingService;
+    }
+
+    /**
+     * @param int $indexingService
+     *
+     * @return QueueDemand
+     */
+    public function setIndexingService(int $indexingService): QueueDemand
+    {
+        $this->indexingService = $indexingService;
+
+        return $this;
+    }
 
     /**
      * @return string[]

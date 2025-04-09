@@ -3,6 +3,10 @@
     <file target-language="de" datatype="plaintext" original="messages">
         <header/>
         <body>
+            <trans-unit id="module.name">
+                <target>TYPO3 Suche</target>
+            </trans-unit>
+
             <!-- TCA -->
             <trans-unit id="tca.tabs.general">
                 <target>Allgemein</target>
@@ -172,6 +176,9 @@
             </trans-unit>
             <trans-unit id="index_queue.indexingServices.available">
                 <target>Indexdienste:</target>
+            </trans-unit>
+            <trans-unit id="index_queue.indexingServices.execute">
+                <target>Indexdienst ausführen</target>
             </trans-unit>
             <trans-unit id="index_queue.button.submit">
                 <target>Ausgewählten Inhalt zur Indizierung in die Warteschlange stellen</target>

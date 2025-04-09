@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\DataHandling;
 
 use Doctrine\DBAL\Exception;
+use Generator;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\SearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
@@ -20,6 +21,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -82,6 +84,122 @@ class RecordHandler
     }
 
     /**
+     * Create a generator to return the indexing service and the associated indexer instance.
+     *
+     * @param int    $rootPageId The root page UID
+     * @param string $tableName  The name of the table to be processed
+     *
+     * @return Generator
+     */
+    public function createIndexerGenerator(int $rootPageId, string $tableName): Generator
+    {
+        $indexingServices = $this->indexingServiceRepository
+            ->findAllByTableName($tableName);
+
+        /** @var IndexingService $indexingService */
+        foreach ($indexingServices as $indexingService) {
+            $indexerInstance = $this->getResponsibleRecordIndexer(
+                $indexingService,
+                $rootPageId
+            );
+
+            if (!($indexerInstance instanceof IndexerInterface)) {
+                continue;
+            }
+
+            yield $indexingService => $indexerInstance;
+        }
+    }
+
+    /**
+     * Processes the specified page and removes and re-adds it to the queue item table.
+     *
+     * @param int $rootPageId The root page UID
+     * @param int $pageId     The UID of the page to be processed
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function processPage(int $rootPageId, int $pageId): void
+    {
+        $indexerInstanceGenerator = $this->createIndexerGenerator(
+            $rootPageId,
+            PageIndexer::TABLE
+        );
+
+        foreach ($indexerInstanceGenerator as $indexerInstance) {
+            if (!($indexerInstance instanceof PageIndexer)) {
+                continue;
+            }
+
+            // If the page indexer is configured to include content items in the page index record,
+            // we add an additional entry to the queue for the content element's page.
+            if (!$indexerInstance->isIncludeContentElements()) {
+                continue;
+            }
+
+            // Remove possible entry of the record from the queue item table
+            // and add it again to update index
+            $indexerInstance
+                ->dequeueOne($pageId)
+                ->enqueueOne($pageId);
+        }
+    }
+
+    /**
+     * Processes all content elements related to the page. Removes or adds elements from the queue and index.
+     *
+     * @param int  $pageId                    The UID of the page to be processed
+     * @param bool $removePageContentElements TRUE to remove elements from queue and index
+     *
+     * @throws Exception
+     */
+    public function processContentElementsOfPage(
+        int $pageId,
+        bool $removePageContentElements,
+    ): void {
+        // Get all the UIDs of all content elements of this page
+        $rowsWithUid = $this->contentRepository
+            ->findAllByPid(
+                $pageId,
+                [
+                    'uid',
+                ]
+            );
+
+        // Get all content element indexer services
+        $indexingServices = $this->indexingServiceRepository
+            ->findAllByTableName(ContentIndexer::TABLE);
+
+        /** @var IndexingService $indexingService */
+        foreach ($indexingServices as $indexingService) {
+            $indexerInstance = $this->indexerFactory
+                ->makeInstanceByType($indexingService->getType())
+                ?->withIndexingService($indexingService);
+
+            if (!($indexerInstance instanceof ContentIndexer)) {
+                continue;
+            }
+
+            foreach (array_column($rowsWithUid, 'uid') as $contentElementUid) {
+                if ($removePageContentElements) {
+                    $this->deleteRecord(
+                        $indexingService,
+                        $indexerInstance,
+                        $indexerInstance->getTable(),
+                        $contentElementUid,
+                        true
+                    );
+                } else {
+                    $indexerInstance
+                        ->enqueueOne($contentElementUid);
+                }
+            }
+        }
+    }
+
+    /**
      * Returns the root page ID for the specified table and record UID.
      *
      * @param string $tableName The table name used for the query
@@ -128,7 +246,7 @@ class RecordHandler
      *
      * @return IndexerInterface|null
      */
-    public function getResponsibleRecordIndexer(
+    private function getResponsibleRecordIndexer(
         IndexingService $indexingService,
         int $rootPageId,
     ): ?IndexerInterface {
@@ -150,6 +268,36 @@ class RecordHandler
     }
 
     /**
+     * @param IndexingService  $indexingService
+     * @param IndexerInterface $indexerInstance
+     * @param string           $tableName
+     * @param int              $recordUid
+     * @param bool             $isRemoveFromIndex
+     *
+     * @return void
+     */
+    public function deleteRecord(
+        IndexingService $indexingService,
+        IndexerInterface $indexerInstance,
+        string $tableName,
+        int $recordUid,
+        bool $isRemoveFromIndex,
+    ): void {
+        // Remove possible entry of the record from the queue item table
+        $indexerInstance
+            ->dequeueOne($recordUid);
+
+        // Remove record from index
+        if ($isRemoveFromIndex) {
+            $this->deleteRecordFromSearchEngine(
+                $indexingService->getSearchEngine(),
+                $tableName,
+                $recordUid
+            );
+        }
+    }
+
+    /**
      * Removes a record from the search engine index.
      *
      * @param SearchEngine $searchEngine
@@ -158,7 +306,7 @@ class RecordHandler
      *
      * @return void
      */
-    public function deleteRecordFromSearchEngine(
+    private function deleteRecordFromSearchEngine(
         SearchEngine $searchEngine,
         string $tableName,
         int $recordUid,
@@ -174,59 +322,5 @@ class RecordHandler
         $searchEngineService
             ->withIndexName($searchEngine->getIndexName())
             ->deleteFromIndex($tableName, $recordUid);
-    }
-
-    /**
-     * Processes all content element related to the page.
-     *
-     * @param int  $pageId                    The page UID to process
-     * @param bool $removePageContentElements TRUE to remove elements from queue and index
-     *
-     * @throws Exception
-     */
-    public function processContentElementsOfPage(
-        int $pageId,
-        bool $removePageContentElements,
-    ): void {
-        // Get all the UIDs of all content elements of this page
-        $rowsWithUid = $this->contentRepository
-            ->findAllByPid(
-                $pageId,
-                [
-                    'uid',
-                ]
-            );
-
-        // Get all content element indexer services
-        $indexingServices = $this->indexingServiceRepository
-            ->findAllByTableName(ContentIndexer::TABLE);
-
-        /** @var IndexingService $indexingService */
-        foreach ($indexingServices as $indexingService) {
-            $indexerInstance = $this->indexerFactory
-                ->makeInstanceByType($indexingService->getType())
-                ?->withIndexingService($indexingService);
-
-            if (!($indexerInstance instanceof IndexerInterface)) {
-                continue;
-            }
-
-            foreach (array_column($rowsWithUid, 'uid') as $contentElementUid) {
-                if ($removePageContentElements) {
-                    $indexerInstance
-                        ->dequeueOne($contentElementUid);
-
-                    // Remove record from index
-                    $this->deleteRecordFromSearchEngine(
-                        $indexingService->getSearchEngine(),
-                        $indexerInstance->getTable(),
-                        $contentElementUid
-                    );
-                } else {
-                    $indexerInstance
-                        ->enqueueOne($contentElementUid);
-                }
-            }
-        }
     }
 }
