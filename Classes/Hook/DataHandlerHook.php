@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Hook;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -26,12 +27,17 @@ use function is_int;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class DataHandlerHook
+class DataHandlerHook
 {
     /**
      * @var EventDispatcherInterface
      */
     private EventDispatcherInterface $eventDispatcher;
+
+    /**
+     * @var array<string, array<int, int>>
+     */
+    private array $recordMovements = [];
 
     /**
      * Constructor.
@@ -51,7 +57,7 @@ readonly class DataHandlerHook
      * @param string                    $status      The status of the current operation, 'new' or 'update'
      * @param string                    $table       The table currently processing data for
      * @param int<1, max>|string        $recordUid   The record uid currently processing data for, [integer] or [string] (like 'NEW...')
-     * @param array<string, int|string> $fields      The field array of a record
+     * @param array<string, int|string> $fields      The changed field array of a record
      * @param DataHandler               $dataHandler The DataHandler parent object
      */
     public function processDatamap_afterDatabaseOperations(
@@ -106,6 +112,67 @@ readonly class DataHandlerHook
                 ->dispatch(
                     new DataHandlerRecordDeleteEvent($table, $recordUid)
                 );
+        }
+    }
+
+    /**
+     * Hooks into DataHandler and monitors all record movements.
+     *
+     * @param string              $command      The DataHandler command
+     * @param string              $table        The table currently processing data for
+     * @param int                 $recordUid    The record uid currently processing data for
+     * @param string|array<mixed> $commandValue The commands value, typically an array with more detailed command information
+     * @param DataHandler         $dataHandler  The DataHandler parent object
+     */
+    public function processCmdmap_postProcess(
+        string $command,
+        string $table,
+        int $recordUid,
+        array|string $commandValue,
+        DataHandler $dataHandler,
+    ): void {
+        // TODO Handle workspaces?
+
+        if ($command === 'move') {
+            $event = new DataHandlerRecordMoveEvent(
+                $table,
+                $recordUid,
+                (int) $commandValue
+            );
+
+            $event->setPreviousPid(
+                $this->recordMovements[$table][(int) $commandValue] ?? null
+            );
+
+            $this->eventDispatcher->dispatch($event);
+        }
+    }
+
+    /**
+     * Hooks into DataHandler and tracks all record movements.
+     *
+     * @param string      $table          The table currently processing data for
+     * @param int         $uid            The record uid currently processing data for
+     * @param int         $destPid        The target parent ID
+     * @param array       $propArr        The record properties
+     * @param array       $moveRec        The moved record
+     * @param int         $resolvedPid    The resolved parent ID
+     * @param bool        $recordWasMoved Set to TRUE if the hook already moved the record
+     * @param DataHandler $dataHandler    The DataHandler parent object
+     */
+    public function moveRecord(
+        string $table,
+        int $uid,
+        int $destPid,
+        array $propArr,
+        array $moveRec,
+        int $resolvedPid,
+        bool &$recordWasMoved,
+        DataHandler $dataHandler
+    ): void {
+        if (($table === 'pages') ||($table === 'tt_content')) {
+            // Track movement of record <TARGET PID> = <SOURCE PID>
+            $this->recordMovements[$table][$destPid] = (int) $moveRec['pid'];
         }
     }
 }

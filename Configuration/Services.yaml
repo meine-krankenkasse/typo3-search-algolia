@@ -46,6 +46,11 @@ services:
             -   name: event.listener
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent
 
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\RecordMoveEventListener:
+        tags:
+            -   name: event.listener
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent
+
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\RecordDeleteEventListener:
         tags:
             -   name: event.listener

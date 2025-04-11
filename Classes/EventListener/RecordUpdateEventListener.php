@@ -13,9 +13,9 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\DataHandling\DataHandler;
 
 /**
  * The record update event listener. This event listener is called when
@@ -28,14 +28,14 @@ use TYPO3\CMS\Core\DataHandling\DataHandler;
 class RecordUpdateEventListener
 {
     /**
-     * @var DataHandler
-     */
-    private readonly DataHandler $dataHandler;
-
-    /**
      * @var RecordHandler
      */
     private readonly RecordHandler $recordHandler;
+
+    /**
+     * @var RecordRepository
+     */
+    private readonly RecordRepository $recordRepository;
 
     /**
      * @var DataHandlerRecordUpdateEvent
@@ -45,15 +45,15 @@ class RecordUpdateEventListener
     /**
      * Constructor.
      *
-     * @param DataHandler   $dataHandler
-     * @param RecordHandler $recordHandler
+     * @param RecordHandler    $recordHandler
+     * @param RecordRepository $recordRepository
      */
     public function __construct(
-        DataHandler $dataHandler,
         RecordHandler $recordHandler,
+        RecordRepository $recordRepository,
     ) {
-        $this->dataHandler   = $dataHandler;
         $this->recordHandler = $recordHandler;
+        $this->recordRepository = $recordRepository;
     }
 
     /**
@@ -82,16 +82,15 @@ class RecordUpdateEventListener
 
         // Update page if required
         if ($this->isContentElementUpdate()) {
-            // Alternatively, replace with BackendUtility::getRecord()
-            $pageId = $this->dataHandler
-                ->getPID(
+            $pageId = $this->recordRepository
+                ->findPid(
                     ContentIndexer::TABLE,
                     $this->event->getRecordUid()
                 );
 
             // Process page update
             if ($pageId !== false) {
-                $this->recordHandler->processPage($rootPageId, $pageId);
+                $this->recordHandler->processPageOfContentElement($rootPageId, $pageId);
             }
         }
 

@@ -112,7 +112,32 @@ class RecordHandler
     }
 
     /**
-     * Processes the specified page and removes and re-adds it to the queue item table.
+     * Removes the given record from the queue table if it exists and adds it again.
+     *
+     * @param int    $rootPageId The root page UID
+     * @param string $tableName  The name of the table to be processed
+     * @param int    $recordUid  The UID of the record to be processed
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function updateRecordInQueue(int $rootPageId, string $tableName, int $recordUid): void
+    {
+        $indexerInstanceGenerator = $this->createIndexerGenerator($rootPageId, $tableName);
+
+        foreach ($indexerInstanceGenerator as $indexerInstance) {
+            // Remove possible entry of the record from the queue item table
+            // and add it again to update index
+            $indexerInstance
+                ->dequeueOne($recordUid)
+                ->enqueueOne($recordUid);
+        }
+    }
+
+    /**
+     * Processes the page of a content element and removes and re-adds it to the queue item table
+     * if the page stores the content of content elements along with the page properties.
      *
      * @param int $rootPageId The root page UID
      * @param int $pageId     The UID of the page to be processed
@@ -121,7 +146,7 @@ class RecordHandler
      *
      * @throws Exception
      */
-    public function processPage(int $rootPageId, int $pageId): void
+    public function processPageOfContentElement(int $rootPageId, int $pageId): void
     {
         $indexerInstanceGenerator = $this->createIndexerGenerator(
             $rootPageId,
@@ -155,10 +180,8 @@ class RecordHandler
      *
      * @throws Exception
      */
-    public function processContentElementsOfPage(
-        int $pageId,
-        bool $removePageContentElements,
-    ): void {
+    public function processContentElementsOfPage(int $pageId, bool $removePageContentElements): void
+    {
         // Get all the UIDs of all content elements of this page
         $rowsWithUid = $this->contentRepository
             ->findAllByPid(
@@ -268,6 +291,8 @@ class RecordHandler
     }
 
     /**
+     * Removes a record from the queue item table and the search engine index if requested.
+     *
      * @param IndexingService  $indexingService
      * @param IndexerInterface $indexerInstance
      * @param string           $tableName

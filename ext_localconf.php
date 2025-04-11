@@ -80,9 +80,10 @@ call_user_func(static function (): void {
         'additionalFields' => ExecuteSchedulableCommandAdditionalFieldProvider::class,
     ];
 
-    // register "after save" hook
+    // Register DataHandler hooks
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][] = DataHandlerHook::class;
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][]  = DataHandlerHook::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['moveRecordClass'][]     = DataHandlerHook::class;
 
     // Custom render types
     $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1743533083] = [
