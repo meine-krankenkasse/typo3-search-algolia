@@ -40,9 +40,9 @@ final readonly class DataHandlerRecordUpdateEvent
      *
      * @param string                    $table     The table currently processing data for
      * @param int<1, max>               $recordUid The record uid currently processing data for
-     * @param array<string, int|string> $fields    The field array of a record
+     * @param array<string, int|string> $fields    The updated field array of a record
      */
-    public function __construct(string $table, int $recordUid, array $fields)
+    public function __construct(string $table, int $recordUid, array $fields = [])
     {
         $this->table     = $table;
         $this->recordUid = $recordUid;

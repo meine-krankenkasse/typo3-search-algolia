@@ -52,7 +52,7 @@ class RecordUpdateEventListener
         RecordHandler $recordHandler,
         RecordRepository $recordRepository,
     ) {
-        $this->recordHandler = $recordHandler;
+        $this->recordHandler    = $recordHandler;
         $this->recordRepository = $recordRepository;
     }
 

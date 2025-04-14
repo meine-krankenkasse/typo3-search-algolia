@@ -26,7 +26,7 @@ class RecordRepository
     /**
      * @var ConnectionPool
      */
-    private ConnectionPool $connectionPool;
+    private readonly ConnectionPool $connectionPool;
 
     /**
      * Constructor.

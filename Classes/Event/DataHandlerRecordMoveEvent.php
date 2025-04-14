@@ -23,12 +23,19 @@ final class DataHandlerRecordMoveEvent
     /**
      * @var string
      */
-    private string $table;
+    private readonly string $table;
 
     /**
      * @var int<1, max>
      */
-    private int $recordUid;
+    private readonly int $recordUid;
+
+    /**
+     * The newly assigned parent ID (after moving).
+     *
+     * @var int
+     */
+    private readonly int $targetPid;
 
     /**
      * The previous parent ID (before moving).
@@ -36,13 +43,6 @@ final class DataHandlerRecordMoveEvent
      * @var int|null
      */
     private ?int $previousPid = null;
-
-    /**
-     * The newly assigned parent ID (after moving).
-     *
-     * @var int
-     */
-    private int $targetPid;
 
     /**
      * Constructor.
@@ -86,7 +86,7 @@ final class DataHandlerRecordMoveEvent
     }
 
     /**
-     * @return null|int
+     * @return int|null
      */
     public function getPreviousPid(): ?int
     {
@@ -94,13 +94,14 @@ final class DataHandlerRecordMoveEvent
     }
 
     /**
-     * @param null|int $previousPid
+     * @param int|null $previousPid
      *
      * @return DataHandlerRecordMoveEvent
      */
     public function setPreviousPid(?int $previousPid): DataHandlerRecordMoveEvent
     {
         $this->previousPid = $previousPid;
+
         return $this;
     }
 }

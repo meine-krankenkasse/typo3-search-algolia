@@ -71,15 +71,16 @@ class RecordMoveEventListener
                 $this->event->getRecordUid()
             );
 
-        if ($this->isContentElementUpdate()) {
-            // Update previous page
-            if ($this->event->getPreviousPid() !== null) {
-                $this->recordHandler
-                    ->processPageOfContentElement(
-                        $rootPageId,
-                        $this->event->getPreviousPid()
-                    );
-            }
+        // Update previous page
+        if (
+            $this->isContentElementUpdate()
+            && ($this->event->getPreviousPid() !== null)
+        ) {
+            $this->recordHandler
+                ->processPageOfContentElement(
+                    $rootPageId,
+                    $this->event->getPreviousPid()
+                );
         }
     }
 

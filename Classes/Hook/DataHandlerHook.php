@@ -32,7 +32,7 @@ class DataHandlerHook
     /**
      * @var EventDispatcherInterface
      */
-    private EventDispatcherInterface $eventDispatcher;
+    private readonly EventDispatcherInterface $eventDispatcher;
 
     /**
      * @var array<string, array<int, int>>
@@ -96,7 +96,7 @@ class DataHandlerHook
      *
      * @param string              $command      The DataHandler command
      * @param string              $table        The table currently processing data for
-     * @param int                 $recordUid    The record uid currently processing data for
+     * @param int<1, max>         $recordUid    The record uid currently processing data for
      * @param string|array<mixed> $commandValue The commands value, typically an array with more detailed command information
      * @param DataHandler         $dataHandler  The DataHandler parent object
      */
@@ -120,7 +120,7 @@ class DataHandlerHook
      *
      * @param string              $command      The DataHandler command
      * @param string              $table        The table currently processing data for
-     * @param int                 $recordUid    The record uid currently processing data for
+     * @param int<1, max>         $recordUid    The record uid currently processing data for
      * @param string|array<mixed> $commandValue The commands value, typically an array with more detailed command information
      * @param DataHandler         $dataHandler  The DataHandler parent object
      */
@@ -146,19 +146,26 @@ class DataHandlerHook
 
             $this->eventDispatcher->dispatch($event);
         }
+
+        if ($command === 'undelete') {
+            $this->eventDispatcher
+                ->dispatch(
+                    new DataHandlerRecordUpdateEvent($table, $recordUid)
+                );
+        }
     }
 
     /**
      * Hooks into DataHandler and tracks all record movements.
      *
-     * @param string      $table          The table currently processing data for
-     * @param int         $uid            The record uid currently processing data for
-     * @param int         $destPid        The target parent ID
-     * @param array       $propArr        The record properties
-     * @param array       $moveRec        The moved record
-     * @param int         $resolvedPid    The resolved parent ID
-     * @param bool        $recordWasMoved Set to TRUE if the hook already moved the record
-     * @param DataHandler $dataHandler    The DataHandler parent object
+     * @param string       $table          The table currently processing data for
+     * @param int          $uid            The record uid currently processing data for
+     * @param int          $destPid        The target parent ID
+     * @param array<mixed> $propArr        The record properties
+     * @param array<mixed> $moveRec        The moved record
+     * @param int          $resolvedPid    The resolved parent ID
+     * @param bool         $recordWasMoved Set to TRUE if the hook already moved the record
+     * @param DataHandler  $dataHandler    The DataHandler parent object
      */
     public function moveRecord(
         string $table,
@@ -168,9 +175,9 @@ class DataHandlerHook
         array $moveRec,
         int $resolvedPid,
         bool &$recordWasMoved,
-        DataHandler $dataHandler
+        DataHandler $dataHandler,
     ): void {
-        if (($table === 'pages') ||($table === 'tt_content')) {
+        if (($table === 'pages') || ($table === 'tt_content')) {
             // Track movement of record <TARGET PID> = <SOURCE PID>
             $this->recordMovements[$table][$destPid] = (int) $moveRec['pid'];
         }

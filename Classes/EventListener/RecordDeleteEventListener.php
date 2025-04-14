@@ -43,14 +43,14 @@ class RecordDeleteEventListener
     /**
      * Constructor.
      *
-     * @param RecordHandler $recordHandler
+     * @param RecordHandler    $recordHandler
      * @param RecordRepository $recordRepository
      */
     public function __construct(
         RecordHandler $recordHandler,
         RecordRepository $recordRepository,
     ) {
-        $this->recordHandler = $recordHandler;
+        $this->recordHandler    = $recordHandler;
         $this->recordRepository = $recordRepository;
     }
 
