@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
+use Smalot\PdfParser\Parser;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileRepository;
 
@@ -98,10 +100,32 @@ class UpdateAssembledFileDocumentEventListener
             );
         }
 
-        // TODO
-        //        $document->setField(
-        //            'content',
-        //            $this->getFileContent($file)
-        //        );
+        $document->setField(
+            'content',
+            $this->getFileContent($file)
+        );
+    }
+
+    /**
+     * Returns the PDF file content as string.
+     *
+     * @param FileInterface $file
+     *
+     * @return string|null
+     */
+    private function getFileContent(FileInterface $file): ?string
+    {
+        // Currently only PDF files are supported
+        if ($file->getExtension() !== 'pdf') {
+            return null;
+        }
+
+        $parser = new Parser();
+
+        // Parse the pdf file content
+        $pdf     = $parser->parseContent($file->getContents());
+        $content = ContentExtractor::cleanHtml($pdf->getText());
+
+        return $content !== '' ? $content : null;
     }
 }

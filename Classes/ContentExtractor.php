@@ -39,14 +39,17 @@ class ContentExtractor
         // Prevent word concatenation when HTML tags are subsequently removed
         $content = str_replace(['<', '>'], [' <', '> '], $content);
 
-        // Replace line breaks and tabs with single spaces
-        $content = str_replace(["\t", "\n", "\r", '&nbsp;'], ' ', $content);
+        // Replace "non-breaking space" with single space
+        $content = str_replace('&nbsp;', ' ', $content);
 
         // Remove HTML tags
         $content = strip_tags($content);
 
         // Convert HTML entities to their corresponding characters
         $content = html_entity_decode($content, ENT_QUOTES, 'UTF-8');
+
+        // Replace multiple spaces, \r, \n and \t with a single space
+        $content = (string) preg_replace('/\s+/', ' ', $content);
 
         // Remove leading and trailing spaces
         return trim($content);
