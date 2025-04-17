@@ -207,11 +207,11 @@ abstract class AbstractIndexer implements IndexerInterface
      *
      * @param int $recordUid
      *
-     * @return array<string, int|string>|false
+     * @return array<array-key, int|string>|false
      *
      * @throws Exception
      */
-    private function initQueueItemRecord(int $recordUid): array|bool
+    protected function initQueueItemRecord(int $recordUid): array|bool
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
@@ -284,7 +284,7 @@ abstract class AbstractIndexer implements IndexerInterface
             "'" . $this->getTable() . "' as table_name",
             "'" . $serviceUid . "' AS service_uid",
             $changedFieldStatement . ' AS changed',
-            '0 AS priority',
+            "'" . $this->getPriority() . "' AS priority",
         ];
 
         return $queryBuilder
@@ -293,6 +293,17 @@ abstract class AbstractIndexer implements IndexerInterface
             ->from($this->getTable())
             ->where(...$constraints)
             ->executeQuery();
+    }
+
+    /**
+     * Returns the indexing priority.
+     *
+     * @return int
+     */
+    protected function getPriority(): int
+    {
+        // TODO Currently not used
+        return 0;
     }
 
     /**

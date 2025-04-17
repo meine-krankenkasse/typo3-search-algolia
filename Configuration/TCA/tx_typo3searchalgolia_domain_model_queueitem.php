@@ -9,6 +9,8 @@
 
 declare(strict_types=1);
 
+defined('TYPO3') || exit('Access denied.');
+
 return [
     'ctrl' => [
         'title'        => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_queueitem',

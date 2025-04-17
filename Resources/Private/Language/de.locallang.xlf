@@ -7,6 +7,11 @@
                 <target>TYPO3 Suche</target>
             </trans-unit>
 
+            <!-- Context menu -->
+            <trans-unit id="context-menu.enqueueOne">
+                <target>In die Warteschlange stellen</target>
+            </trans-unit>
+
             <!-- TCA -->
             <trans-unit id="tca.tabs.general">
                 <target>Allgemein</target>
@@ -47,6 +52,14 @@
             </trans-unit>
             <trans-unit id="indexer.tx_news_domain_model_news.title">
                 <target>Nachrichten</target>
+            </trans-unit>
+
+            <!-- sys_file_metadata -->
+            <trans-unit id="sys_file_metadata.tabs.behaviour">
+                <target>Verhalten</target>
+            </trans-unit>
+            <trans-unit id="sys_file_metadata.no_search">
+                <target>In Suche einbeziehen</target>
             </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_indexingservice -->
@@ -114,7 +127,7 @@
                 <target>Dateisammlungen</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.file_collections.description">
-                <target>Wählen Sie die Dateisammlungen aus, die für die Indizierung verwendet werden sollen.</target>
+                <target>Wählen Sie die Dateisammlungen aus, die für die Indizierung verwendet werden sollen. Die Indexierung erfolgt nur für Dateien, deren Option "In Suche einbeziehen" in den Metadateneigenschaften aktiviert ist.</target>
             </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_searchengine -->
@@ -251,6 +264,9 @@
             </trans-unit>
             <trans-unit id="flash_message.success.message.clearIndex">
                 <target>Der Index "%s" wurde erfolgreich geleert.</target>
+            </trans-unit>
+            <trans-unit id="flash_message.success.message.enqueueOne">
+                <target>Die Datei "%s" wurde erfolgreich zur Warteschlange hinzugefügt.</target>
             </trans-unit>
         </body>
     </file>

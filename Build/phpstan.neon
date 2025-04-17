@@ -19,6 +19,7 @@ parameters:
         - %currentWorkingDirectory%/ext_emconf.php
 
     treatPhpDocTypesAsCertain: false
+    reportMaybesInPropertyPhpDocTypes: false
 
     # Prevent false positives
     typo3:

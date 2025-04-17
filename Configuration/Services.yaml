@@ -8,6 +8,9 @@ services:
         resource: '../Classes/*'
         exclude: '../Classes/Domain/Model/*'
 
+    MeineKrankenkasse\Typo3SearchAlgolia\Controller\EnqueueOneController:
+        public: true
+
     # Commands
     MeineKrankenkasse\Typo3SearchAlgolia\Command\IndexQueueWorkerCommand:
         tags:
@@ -65,3 +68,34 @@ services:
         tags:
             -   name: event.listener
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent
+
+    # File event listeners
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileAddedEventListener:
+        tags:
+            -   name: event.listener
+                event: TYPO3\CMS\Core\Resource\Event\AfterFileAddedEvent
+
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileDeletedEventListener:
+        tags:
+            -   name: event.listener
+                event: TYPO3\CMS\Core\Resource\Event\AfterFileDeletedEvent
+
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileCopiedEventListener:
+        tags:
+            -   name: event.listener
+                event: TYPO3\CMS\Core\Resource\Event\AfterFileCopiedEvent
+
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileMovedEventListener:
+        tags:
+            -   name: event.listener
+                event: TYPO3\CMS\Core\Resource\Event\AfterFileMovedEvent
+
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileRenamedEventListener:
+        tags:
+            -   name: event.listener
+                event: TYPO3\CMS\Core\Resource\Event\AfterFileRenamedEvent
+
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileReplacedEventListener:
+        tags:
+            -   name: event.listener
+                event: TYPO3\CMS\Core\Resource\Event\AfterFileReplacedEvent

@@ -16,6 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Extbase\Utility\DebuggerUtility;
 
 /**
  * The record update event listener. This event listener is called when
@@ -130,8 +131,10 @@ class RecordUpdateEventListener
                 );
 
             // Put the record into the queue to update the index again
-            $indexerInstance
-                ->enqueueOne($this->event->getRecordUid());
+            if ($isRecordEnabled) {
+                $indexerInstance
+                    ->enqueueOne($this->event->getRecordUid());
+            }
         }
     }
 
@@ -153,7 +156,10 @@ class RecordUpdateEventListener
                 && ($record[$GLOBALS['TCA'][$tableName]['ctrl']['enablecolumns']['disabled']] !== 0))
             || (isset($GLOBALS['TCA'][$tableName]['ctrl']['delete'])
                 && ($record[$GLOBALS['TCA'][$tableName]['ctrl']['delete']] !== 0))
-            || (($tableName === 'pages') && ($record['no_search'] !== 0)));
+            // Record is excluded from search
+            || ((($tableName === 'pages') || ($tableName === 'sys_file_metadata'))
+                && ($record['no_search'] !== 0))
+        );
     }
 
     /**

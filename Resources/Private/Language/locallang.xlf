@@ -7,6 +7,11 @@
                 <source>TYPO3 Search</source>
             </trans-unit>
 
+            <!-- Context menu -->
+            <trans-unit id="context-menu.enqueueOne">
+                <source>Enqueue</source>
+            </trans-unit>
+
             <!-- TCA -->
             <trans-unit id="tca.tabs.general">
                 <source>General</source>
@@ -47,6 +52,14 @@
             </trans-unit>
             <trans-unit id="indexer.tx_news_domain_model_news.title">
                 <source>News</source>
+            </trans-unit>
+
+            <!-- sys_file_metadata -->
+            <trans-unit id="sys_file_metadata.tabs.behaviour">
+                <source>Behaviour</source>
+            </trans-unit>
+            <trans-unit id="sys_file_metadata.no_search">
+                <source>Include in Search</source>
             </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_indexingservice -->
@@ -114,7 +127,7 @@
                 <source>File collections</source>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.file_collections.description">
-                <source>Select the file collections that should be used for indexing.</source>
+                <source>Select the file collections that should be used for indexing. Indexing will only occur for files whose "Include in Search" option is enabled in the metadata properties.</source>
             </trans-unit>
 
             <!-- tx_typo3searchalgolia_domain_model_searchengine -->
@@ -251,6 +264,9 @@
             </trans-unit>
             <trans-unit id="flash_message.success.message.clearIndex">
                 <source>The index "%s" was successfully emptied.</source>
+            </trans-unit>
+            <trans-unit id="flash_message.success.message.enqueueOne">
+                <source>The file "%s" was successfully added to the queue.</source>
             </trans-unit>
         </body>
     </file>

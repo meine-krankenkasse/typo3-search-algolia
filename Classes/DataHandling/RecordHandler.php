@@ -257,7 +257,7 @@ class RecordHandler
             return 0;
         }
 
-        return $record['pid'] ? ((int) $record['pid']) : 0;
+        return (int) ($record['pid'] ?? 0);
     }
 
     /**
@@ -273,16 +273,18 @@ class RecordHandler
         IndexingService $indexingService,
         int $rootPageId,
     ): ?IndexerInterface {
-        // Determine the root page ID for the indexing service
-        $indexingServiceRootPageId = $this->getRecordRootPageId(
-            'tx_typo3searchalgolia_domain_model_indexingservice',
-            (int) $indexingService->getUid()
-        );
+        if ($indexingService->getType() !== 'sys_file_metadata') {
+            // Determine the root page ID for the indexing service
+            $indexingServiceRootPageId = $this->getRecordRootPageId(
+                'tx_typo3searchalgolia_domain_model_indexingservice',
+                (int) $indexingService->getUid()
+            );
 
-        // Ignore this indexing service because the root page IDs do not match,
-        // meaning the indexing service is not part of the same page tree.
-        if ($rootPageId !== $indexingServiceRootPageId) {
-            return null;
+            // Ignore this indexing service because the root page IDs do not match,
+            // meaning the indexing service is not part of the same page tree.
+            if ($rootPageId !== $indexingServiceRootPageId) {
+                return null;
+            }
         }
 
         return $this->indexerFactory

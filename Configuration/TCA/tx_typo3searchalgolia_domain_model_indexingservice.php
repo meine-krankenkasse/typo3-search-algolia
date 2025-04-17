@@ -15,6 +15,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 
+defined('TYPO3') || exit('Access denied.');
+
 return [
     'ctrl' => [
         'title'                    => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice',

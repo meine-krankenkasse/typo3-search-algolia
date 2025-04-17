@@ -1,4 +1,12 @@
 #
+# Table structure for table 'sys_file_metadata'
+#
+CREATE TABLE sys_file_metadata
+(
+    no_search tinyint(3) unsigned DEFAULT '0' NOT NULL
+);
+
+#
 # Table structure for table 'tx_typo3searchalgolia_domain_model_searchengine'
 #
 CREATE TABLE tx_typo3searchalgolia_domain_model_searchengine

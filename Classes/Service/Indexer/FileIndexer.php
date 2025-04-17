@@ -13,12 +13,14 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\FileHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileCollectionRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use Override;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileReference;
@@ -52,6 +54,11 @@ class FileIndexer extends AbstractIndexer
     private readonly FileCollectionRepository $fileCollectionRepository;
 
     /**
+     * @var FileHandler
+     */
+    private readonly FileHandler $fileHandler;
+
+    /**
      * Constructor.
      *
      * @param ConnectionPool                $connectionPool
@@ -62,6 +69,7 @@ class FileIndexer extends AbstractIndexer
      * @param DocumentBuilder               $documentBuilder
      * @param ConfigurationManagerInterface $configurationManager
      * @param FileCollectionRepository      $fileCollectionRepository
+     * @param FileHandler                   $fileHandler
      */
     public function __construct(
         ConnectionPool $connectionPool,
@@ -72,6 +80,7 @@ class FileIndexer extends AbstractIndexer
         DocumentBuilder $documentBuilder,
         ConfigurationManagerInterface $configurationManager,
         FileCollectionRepository $fileCollectionRepository,
+        FileHandler $fileHandler,
     ) {
         parent::__construct(
             $connectionPool,
@@ -84,12 +93,26 @@ class FileIndexer extends AbstractIndexer
 
         $this->configurationManager     = $configurationManager;
         $this->fileCollectionRepository = $fileCollectionRepository;
+        $this->fileHandler              = $fileHandler;
     }
 
     #[Override]
     public function getTable(): string
     {
         return self::TABLE;
+    }
+
+    /**
+     * Returns the constraints used to query pages.
+     *
+     * @param QueryBuilder $queryBuilder
+     *
+     * @return string[]
+     */
+    #[Override]
+    protected function getPagesQueryConstraint(QueryBuilder $queryBuilder): array
+    {
+        return [];
     }
 
     /**
@@ -120,18 +143,22 @@ class FileIndexer extends AbstractIndexer
 
             /** @var File $file */
             foreach ($collection as $file) {
-                if (!in_array($file->getExtension(), $fileExtensions, true)) {
+                if (!$this->isExtensionAllowed($file, $fileExtensions)) {
                     continue;
                 }
 
-                $metadata = $this->getMetadataFromFile($file);
+                if (!$this->isIndexable($file)) {
+                    continue;
+                }
 
-                if ($metadata === []) {
+                $metadataUid = $this->fileHandler->getMetadataUid($file);
+
+                if ($metadataUid === false) {
                     continue;
                 }
 
                 // See UNIQUE column key in ext_tables.sql => table_name, record_uid, service_uid
-                $uniqueKey = $this->getTable() . '-' . $metadata['uid'] . '-' . $serviceUid;
+                $uniqueKey = $this->getTable() . '-' . $metadataUid . '-' . $serviceUid;
 
                 // It's possible that a file appears multiple times in one or more collections. However,
                 // the records are unique, so we don't need to add it again if it's already been queued.
@@ -141,10 +168,10 @@ class FileIndexer extends AbstractIndexer
 
                 $items[$uniqueKey] = [
                     'table_name'  => $this->getTable(),
-                    'record_uid'  => (int) $metadata['uid'],
+                    'record_uid'  => $metadataUid,
                     'service_uid' => $serviceUid,
                     'changed'     => (int) ($GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 0),
-                    'priority'    => 0,
+                    'priority'    => $this->getPriority(),
                 ];
             }
         }
@@ -153,26 +180,29 @@ class FileIndexer extends AbstractIndexer
     }
 
     /**
-     * Returns the metadata record of the file.
+     * Returns TRUE if the file extension of the specified file belongs to the list of allowed file extensions.
+     *
+     * @param FileInterface $file
+     * @param string[]      $fileExtensions
+     *
+     * @return bool
+     */
+    private function isExtensionAllowed(FileInterface $file, array $fileExtensions): bool
+    {
+        return in_array($file->getExtension(), $fileExtensions, true);
+    }
+
+    /**
+     * Returns TRUE if the file is not excluded from indexing.
      *
      * @param FileInterface $file
      *
-     * @return array<string, int|float|string|null>
+     * @return bool
      */
-    protected function getMetadataFromFile(FileInterface $file): array
+    private function isIndexable(FileInterface $file): bool
     {
-        if ($file instanceof File) {
-            return $file->getMetaData()->get();
-        }
-
-        if (
-            ($file instanceof FileReference)
-            || ($file instanceof ProcessedFile)
-        ) {
-            return $file->getOriginalFile()->getMetaData()->get();
-        }
-
-        return [];
+        return $file->hasProperty('no_search')
+            && ((int) $file->getProperty('no_search') === 0);
     }
 
     /**

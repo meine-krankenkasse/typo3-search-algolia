@@ -57,6 +57,8 @@ class RecordMoveEventListener
             return;
         }
 
+        // TODO Check if record is enabled before adding to queue and index
+
         // Determine the root page ID for the event record
         $rootPageId = $this->recordHandler
             ->getRecordRootPageId(
