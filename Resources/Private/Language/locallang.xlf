@@ -64,7 +64,7 @@
 
             <!-- tx_typo3searchalgolia_domain_model_indexingservice -->
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice">
-                <source>Indexer</source>
+                <source>Indexing Service</source>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.title">
                 <source>Title</source>
@@ -109,7 +109,7 @@
                 <source>Page type</source>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype.description">
-                <source>Select the page types by which the pages selected below to be indexed should be filtered.</source>
+                <source>Select the page types by which the pages selected below for indexing should be filtered. If no selection is made here, all page types will be included.</source>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_single">
                 <source>Single pages</source>

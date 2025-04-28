@@ -109,7 +109,7 @@
                 <target>Seitentyp</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype.description">
-                <target>Wählen Sie die Seitentypen aus, nach denen die unten zur Indexierung ausgewählten Seiten gefiltert werden sollen.</target>
+                <target>Wählen Sie die Seitentypen aus, nach denen die unten zur Indexierung ausgewählten Seiten gefiltert werden sollen. Wird hier keine Auswahl getroffen, werden alle Seitentypen berücksichtigt.</target>
             </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_single">
                 <target>Einzelseiten</target>
