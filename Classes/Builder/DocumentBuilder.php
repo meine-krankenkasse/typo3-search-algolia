@@ -11,15 +11,14 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Builder;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 /**
  * Class DocumentBuilder.
@@ -30,11 +29,6 @@ use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
  */
 class DocumentBuilder
 {
-    /**
-     * @var ConfigurationManagerInterface
-     */
-    private readonly ConfigurationManagerInterface $configurationManager;
-
     /**
      * @var EventDispatcherInterface
      */
@@ -51,6 +45,11 @@ class DocumentBuilder
     private IndexingService $indexingService;
 
     /**
+     * @var TypoScriptService
+     */
+    private readonly TypoScriptService $typoScriptService;
+
+    /**
      * @var IndexerInterface|null
      */
     private ?IndexerInterface $indexer = null;
@@ -63,15 +62,15 @@ class DocumentBuilder
     /**
      * Constructor.
      *
-     * @param ConfigurationManagerInterface $configurationManager
-     * @param EventDispatcherInterface      $eventDispatcher
+     * @param EventDispatcherInterface $eventDispatcher
+     * @param TypoScriptService        $typoScriptService
      */
     public function __construct(
-        ConfigurationManagerInterface $configurationManager,
         EventDispatcherInterface $eventDispatcher,
+        TypoScriptService $typoScriptService,
     ) {
-        $this->configurationManager = $configurationManager;
-        $this->eventDispatcher      = $eventDispatcher;
+        $this->eventDispatcher   = $eventDispatcher;
+        $this->typoScriptService = $typoScriptService;
     }
 
     /**
@@ -199,7 +198,7 @@ class DocumentBuilder
         }
 
         $indexerType             = $this->indexer->getTable();
-        $typoscriptConfiguration = $this->getTypoScriptConfiguration();
+        $typoscriptConfiguration = $this->typoScriptService->getTypoScriptConfiguration();
 
         foreach ($this->record as $recordFieldName => $recordValue) {
             if (!isset($typoscriptConfiguration['indexer'][$indexerType]['fields'][$recordFieldName])) {
@@ -227,21 +226,5 @@ class DocumentBuilder
                 ContentExtractor::cleanHtml($fieldValue)
             );
         }
-    }
-
-    /**
-     * Returns the TypoScript configuration of the extension.
-     *
-     * @return array<string, array<string, array<string, string|array<string, string>>>>
-     */
-    private function getTypoScriptConfiguration(): array
-    {
-        $typoscriptConfiguration = $this->configurationManager
-            ->getConfiguration(
-                ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT,
-                Constants::EXTENSION_NAME
-            );
-
-        return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'];
     }
 }

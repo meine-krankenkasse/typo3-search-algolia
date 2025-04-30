@@ -11,12 +11,14 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\ContextMenu\ItemProviders;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
 use TYPO3\CMS\Backend\ContextMenu\ItemProviders\AbstractProvider;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -115,15 +117,36 @@ class QueueProvider extends AbstractProvider
      */
     private function canBeEnqueued(): bool
     {
-        // TODO Rely on typoscript configured file extensions
+        $allowedFileExtensions = $this->getTypoScriptService()->getAllowedFileExtensions();
 
         return ($this->record instanceof File)
             && ($this->record->isIndexed() === true)
-            && ($this->record->getExtension() === 'pdf')
+            && $this->isExtensionAllowed($this->record, $allowedFileExtensions)
             && $this->record->checkActionPermission('editMeta')
             && $this->record->getMetaData()->offsetExists('uid')
             && $this->backendUser->check('tables_modify', 'sys_file_metadata')
             && $this->backendUser->checkLanguageAccess(0);
+    }
+
+    /**
+     * @return TypoScriptService
+     */
+    private function getTypoScriptService(): TypoScriptService
+    {
+        return GeneralUtility::makeInstance(TypoScriptService::class);
+    }
+
+    /**
+     * Returns TRUE if the file extension of the specified file belongs to the list of allowed file extensions.
+     *
+     * @param FileInterface $file
+     * @param string[]      $fileExtensions
+     *
+     * @return bool
+     */
+    private function isExtensionAllowed(FileInterface $file, array $fileExtensions): bool
+    {
+        return in_array($file->getExtension(), $fileExtensions, true);
     }
 
     /**

@@ -12,12 +12,12 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
-use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\FileHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileCollectionRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -25,10 +25,8 @@ use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 use function in_array;
-use function is_string;
 
 /**
  * Class FileIndexer.
@@ -42,11 +40,6 @@ class FileIndexer extends AbstractIndexer
     public const string TABLE = 'sys_file_metadata';
 
     /**
-     * @var ConfigurationManagerInterface
-     */
-    private readonly ConfigurationManagerInterface $configurationManager;
-
-    /**
      * @var FileCollectionRepository
      */
     private readonly FileCollectionRepository $fileCollectionRepository;
@@ -57,17 +50,22 @@ class FileIndexer extends AbstractIndexer
     private readonly FileHandler $fileHandler;
 
     /**
+     * @var TypoScriptService
+     */
+    private readonly TypoScriptService $typoScriptService;
+
+    /**
      * Constructor.
      *
-     * @param ConnectionPool                $connectionPool
-     * @param SiteFinder                    $siteFinder
-     * @param PageRepository                $pageRepository
-     * @param SearchEngineFactory           $searchEngineFactory
-     * @param QueueItemRepository           $queueItemRepository
-     * @param DocumentBuilder               $documentBuilder
-     * @param ConfigurationManagerInterface $configurationManager
-     * @param FileCollectionRepository      $fileCollectionRepository
-     * @param FileHandler                   $fileHandler
+     * @param ConnectionPool           $connectionPool
+     * @param SiteFinder               $siteFinder
+     * @param PageRepository           $pageRepository
+     * @param SearchEngineFactory      $searchEngineFactory
+     * @param QueueItemRepository      $queueItemRepository
+     * @param DocumentBuilder          $documentBuilder
+     * @param FileCollectionRepository $fileCollectionRepository
+     * @param FileHandler              $fileHandler
+     * @param TypoScriptService        $typoScriptService
      */
     public function __construct(
         ConnectionPool $connectionPool,
@@ -76,9 +74,9 @@ class FileIndexer extends AbstractIndexer
         SearchEngineFactory $searchEngineFactory,
         QueueItemRepository $queueItemRepository,
         DocumentBuilder $documentBuilder,
-        ConfigurationManagerInterface $configurationManager,
         FileCollectionRepository $fileCollectionRepository,
         FileHandler $fileHandler,
+        TypoScriptService $typoScriptService,
     ) {
         parent::__construct(
             $connectionPool,
@@ -89,9 +87,9 @@ class FileIndexer extends AbstractIndexer
             $documentBuilder
         );
 
-        $this->configurationManager     = $configurationManager;
         $this->fileCollectionRepository = $fileCollectionRepository;
         $this->fileHandler              = $fileHandler;
+        $this->typoScriptService        = $typoScriptService;
     }
 
     #[Override]
@@ -131,7 +129,7 @@ class FileIndexer extends AbstractIndexer
             ->fileCollectionRepository
             ->findAllByCollections($collectionIds);
 
-        $fileExtensions = $this->getAllowedFileExtensions();
+        $fileExtensions = $this->typoScriptService->getAllowedFileExtensions();
         $serviceUid     = $this->indexingService?->getUid() ?? 0;
         $items          = [];
 
@@ -201,45 +199,5 @@ class FileIndexer extends AbstractIndexer
     {
         return $file->hasProperty('no_search')
             && ((int) $file->getProperty('no_search') === 0);
-    }
-
-    /**
-     * Returns the configured file extensions.
-     *
-     * @return string[]
-     */
-    private function getAllowedFileExtensions(): array
-    {
-        $indexerType             = $this->getTable();
-        $typoscriptConfiguration = $this->getTypoScriptConfiguration();
-
-        if (
-            !isset($typoscriptConfiguration['indexer'][$indexerType]['extensions'])
-            || !is_string($typoscriptConfiguration['indexer'][$indexerType]['extensions'])
-        ) {
-            return [];
-        }
-
-        return GeneralUtility::trimExplode(
-            ',',
-            $typoscriptConfiguration['indexer'][$indexerType]['extensions'],
-            true
-        );
-    }
-
-    /**
-     * Returns the TypoScript configuration of the extension.
-     *
-     * @return array<string, array<string, array<string, string|array<string, string>>>>
-     */
-    private function getTypoScriptConfiguration(): array
-    {
-        $typoscriptConfiguration = $this->configurationManager
-            ->getConfiguration(
-                ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT,
-                Constants::EXTENSION_NAME
-            );
-
-        return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'];
     }
 }

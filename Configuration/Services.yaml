@@ -11,6 +11,9 @@ services:
     MeineKrankenkasse\Typo3SearchAlgolia\Controller\EnqueueOneController:
         public: true
 
+    MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService:
+        public: true
+
     # Commands
     MeineKrankenkasse\Typo3SearchAlgolia\Command\IndexQueueWorkerCommand:
         tags:
