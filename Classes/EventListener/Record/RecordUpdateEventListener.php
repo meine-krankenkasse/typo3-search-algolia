@@ -9,21 +9,23 @@
 
 declare(strict_types=1);
 
-namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
+namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
-use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 /**
- * The record delete event listener. This event listener is called when an existing record is deleted.
+ * The record update event listener. This event listener is called when
+ * a new record is created or an existing record is changed.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class RecordDeleteEventListener
+class RecordUpdateEventListener
 {
     /**
      * @var RecordHandler
@@ -36,9 +38,9 @@ class RecordDeleteEventListener
     private readonly RecordRepository $recordRepository;
 
     /**
-     * @var DataHandlerRecordDeleteEvent
+     * @var DataHandlerRecordUpdateEvent
      */
-    private DataHandlerRecordDeleteEvent $event;
+    private DataHandlerRecordUpdateEvent $event;
 
     /**
      * Constructor.
@@ -57,9 +59,9 @@ class RecordDeleteEventListener
     /**
      * Invoke the event listener.
      *
-     * @param DataHandlerRecordDeleteEvent $event
+     * @param DataHandlerRecordUpdateEvent $event
      */
-    public function __invoke(DataHandlerRecordDeleteEvent $event): void
+    public function __invoke(DataHandlerRecordUpdateEvent $event): void
     {
         $this->event = $event;
 
@@ -70,8 +72,13 @@ class RecordDeleteEventListener
                 $this->event->getRecordUid()
             );
 
-        // Remove record from queue and index
-        $this->processRecordDelete($rootPageId);
+        $isRecordEnabled = $this->isRecordEnabled(
+            $this->event->getTable(),
+            $this->event->getRecordUid()
+        );
+
+        // Update record at queue and index
+        $this->processRecordUpdate($rootPageId, $isRecordEnabled);
 
         // Update page if required
         if ($this->isContentElementUpdate()) {
@@ -87,23 +94,24 @@ class RecordDeleteEventListener
             }
         }
 
-        // Handle the deletion of the page and its content elements
+        // Handle the update of the page and its content elements
         if ($this->isPageUpdate()) {
-            // Remove all content elements from queue and index
+            // Update all content elements of page
             $this->recordHandler
                 ->processContentElementsOfPage(
                     $this->event->getRecordUid(),
-                    true
+                    !$isRecordEnabled
                 );
         }
     }
 
     /**
-     * Removes the event record from the queue item table and the search engine index.
+     * Updates the event record at the queue item table and the search engine index.
      *
-     * @param int $rootPageId The root page UID
+     * @param int  $rootPageId      The root page UID
+     * @param bool $isRecordEnabled TRUE if the processed record is enabled or not
      */
-    private function processRecordDelete(int $rootPageId): void
+    private function processRecordUpdate(int $rootPageId, bool $isRecordEnabled): void
     {
         $indexerInstanceGenerator = $this->recordHandler
             ->createIndexerGenerator(
@@ -118,9 +126,39 @@ class RecordDeleteEventListener
                     $indexerInstance,
                     $this->event->getTable(),
                     $this->event->getRecordUid(),
-                    true
+                    !$isRecordEnabled
                 );
+
+            // Put the record into the queue to update the index again
+            if ($isRecordEnabled) {
+                $indexerInstance
+                    ->enqueueOne($this->event->getRecordUid());
+            }
         }
+    }
+
+    /**
+     * Returns TRUE if the record is enabled otherwise FALSE.
+     *
+     * @param string $tableName
+     * @param int    $recordUid
+     *
+     * @return bool
+     */
+    private function isRecordEnabled(string $tableName, int $recordUid): bool
+    {
+        $record = BackendUtility::getRecord($tableName, $recordUid) ?? [];
+
+        return !(
+            ($record === [])
+            || (isset($GLOBALS['TCA'][$tableName]['ctrl']['enablecolumns']['disabled'])
+                && ($record[$GLOBALS['TCA'][$tableName]['ctrl']['enablecolumns']['disabled']] !== 0))
+            || (isset($GLOBALS['TCA'][$tableName]['ctrl']['delete'])
+                && ($record[$GLOBALS['TCA'][$tableName]['ctrl']['delete']] !== 0))
+            // Record is excluded from search
+            || ((($tableName === 'pages') || ($tableName === 'sys_file_metadata'))
+                && ($record['no_search'] !== 0))
+        );
     }
 
     /**

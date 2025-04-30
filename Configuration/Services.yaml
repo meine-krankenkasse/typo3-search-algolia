@@ -26,17 +26,22 @@ services:
     MeineKrankenkasse\Typo3SearchAlgolia\Hook\DataHandlerHook:
         public: true
 
-    # Indexers
-    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer:
-        public: true
-
-    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer:
-        public: true
-
-    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer:
-        public: true
+#    # Indexers
+#    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer:
+#        public: true
+#
+#    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer:
+#        public: true
+#
+#    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer:
+#        public: true
 
     # Event listeners
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\CreateDefaultDocumentIdEventListener:
+        tags:
+            -   name: event.listener
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent
+
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledContentElementDocumentEventListener:
         tags:
             -   name: event.listener
@@ -52,27 +57,23 @@ services:
             -   name: event.listener
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent
 
-    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\RecordUpdateEventListener:
+    # Record event listeners
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\RecordUpdateEventListener:
         tags:
             -   name: event.listener
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent
 
-    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\RecordMoveEventListener:
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\RecordMoveEventListener:
         tags:
             -   name: event.listener
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent
 
-    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\RecordDeleteEventListener:
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\RecordDeleteEventListener:
         tags:
             -   name: event.listener
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent
 
-    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\CreateDefaultDocumentIdEventListener:
-        tags:
-            -   name: event.listener
-                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent
-
-    # File event listeners
+    # Resource event listeners
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileAddedEventListener:
         tags:
             -   name: event.listener

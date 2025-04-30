@@ -132,6 +132,7 @@ class DataHandlerHook
         DataHandler $dataHandler,
     ): void {
         // TODO Handle workspaces?
+        // TODO Handle copying of records
 
         if ($command === 'move') {
             $event = new DataHandlerRecordMoveEvent(
