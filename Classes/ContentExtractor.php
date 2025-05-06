@@ -31,7 +31,7 @@ class ContentExtractor
     {
         // Remove JavaScript and internal CSS styles
         $content = (string) preg_replace(
-            '@<(script|style)[^>]*?>.*?</\\1>@si',
+            '#<(script|style)[^>]*?>.*?</\\1>#msi',
             '',
             $content
         );
