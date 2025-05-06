@@ -176,6 +176,23 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     #[Override]
+    public function dequeueMultiple(array $recordUids): IndexerInterface
+    {
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
+
+        $this->queueItemRepository
+            ->deleteByTableAndRecordUIDs(
+                $this->getTable(),
+                $recordUids,
+                (int) $this->indexingService->getUid(),
+            );
+
+        return $this;
+    }
+
+    #[Override]
     public function dequeueAll(): IndexerInterface
     {
         if (!($this->indexingService instanceof IndexingService)) {
@@ -203,6 +220,19 @@ abstract class AbstractIndexer implements IndexerInterface
 
         return $this->queueItemRepository
             ->insert($queueItemRecord);
+    }
+
+    #[Override]
+    public function enqueueMultiple(array $pageIds): int
+    {
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
+
+        return $this->queueItemRepository
+            ->bulkInsert(
+                $this->initQueueItemRecords($pageIds)
+            );
     }
 
     #[Override]
@@ -251,18 +281,20 @@ abstract class AbstractIndexer implements IndexerInterface
     /**
      * Returns records from the current indexer table matching certain constraints.
      *
+     * @param int[] $pageIds
+     *
      * @return array<array-key, array<string, int|string>>
      *
      * @throws Exception
      */
-    protected function initQueueItemRecords(): array
+    protected function initQueueItemRecords(array $pageIds = []): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
 
         $constraints = array_merge(
             [],
-            $this->getPagesQueryConstraint($queryBuilder),
+            $this->getPagesQueryConstraint($queryBuilder, $pageIds),
             $this->getAdditionalQueryConstraints($queryBuilder)
         );
 
@@ -326,12 +358,15 @@ abstract class AbstractIndexer implements IndexerInterface
      * Returns the constraints used to query pages.
      *
      * @param QueryBuilder $queryBuilder
+     * @param int[]        $pageUIDs     A list of page UIDs used as page constraint
      *
      * @return string[]
      */
-    protected function getPagesQueryConstraint(QueryBuilder $queryBuilder): array
-    {
-        $pageUIDs    = $this->getPages();
+    protected function getPagesQueryConstraint(
+        QueryBuilder $queryBuilder,
+        array $pageUIDs = [],
+    ): array {
+        $pageUIDs    = $pageUIDs === [] ? $this->getPages() : $pageUIDs;
         $constraints = [];
 
         if ($pageUIDs !== []) {
@@ -383,6 +418,7 @@ abstract class AbstractIndexer implements IndexerInterface
             ->getPageIdsRecursive(
                 $pagesRecursive,
                 99,
+                true,
                 $this->excludeHiddenPages
             );
 

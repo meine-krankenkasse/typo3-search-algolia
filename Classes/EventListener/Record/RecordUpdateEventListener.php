@@ -13,6 +13,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -38,6 +39,11 @@ class RecordUpdateEventListener
     private readonly RecordRepository $recordRepository;
 
     /**
+     * @var PageRepository
+     */
+    private readonly PageRepository $pageRepository;
+
+    /**
      * @var DataHandlerRecordUpdateEvent
      */
     private DataHandlerRecordUpdateEvent $event;
@@ -47,13 +53,16 @@ class RecordUpdateEventListener
      *
      * @param RecordHandler    $recordHandler
      * @param RecordRepository $recordRepository
+     * @param PageRepository   $pageRepository
      */
     public function __construct(
         RecordHandler $recordHandler,
         RecordRepository $recordRepository,
+        PageRepository $pageRepository,
     ) {
         $this->recordHandler    = $recordHandler;
         $this->recordRepository = $recordRepository;
+        $this->pageRepository   = $pageRepository;
     }
 
     /**
@@ -78,7 +87,11 @@ class RecordUpdateEventListener
         );
 
         // Update record at queue and index
-        $this->processRecordUpdate($rootPageId, $isRecordEnabled);
+        $this->processRecordUpdate(
+            $rootPageId,
+            $this->event->getRecordUid(),
+            $isRecordEnabled
+        );
 
         // Update page if required
         if ($this->isContentElementUpdate()) {
@@ -96,12 +109,44 @@ class RecordUpdateEventListener
 
         // Handle the update of the page and its content elements
         if ($this->isPageUpdate()) {
-            // Update all content elements of page
+            // Update all content elements of the page
             $this->recordHandler
                 ->processContentElementsOfPage(
                     $this->event->getRecordUid(),
                     !$isRecordEnabled
                 );
+
+            // Get all subpages of the current processed page
+            $subPageIds = $this->pageRepository
+                ->getPageIdsRecursive(
+                    [
+                        $this->event->getRecordUid(),
+                    ],
+                    99,
+                    false,
+                    true
+                );
+
+            $this->processRecordUpdates(
+                $rootPageId,
+                $subPageIds,
+                $isRecordEnabled
+            );
+
+            foreach ($subPageIds as $subPageId) {
+                // Subpage record is only enabled if the parent page record is also enabled
+                $isSubpageRecordEnabled = $isRecordEnabled
+                    && $this->isRecordEnabled(
+                        $this->event->getTable(),
+                        $subPageId
+                    );
+
+                $this->recordHandler
+                    ->processContentElementsOfPage(
+                        $subPageId,
+                        !$isSubpageRecordEnabled
+                    );
+            }
         }
     }
 
@@ -109,9 +154,10 @@ class RecordUpdateEventListener
      * Updates the event record at the queue item table and the search engine index.
      *
      * @param int  $rootPageId      The root page UID
+     * @param int  $recordUid       The record UID
      * @param bool $isRecordEnabled TRUE if the processed record is enabled or not
      */
-    private function processRecordUpdate(int $rootPageId, bool $isRecordEnabled): void
+    private function processRecordUpdate(int $rootPageId, int $recordUid, bool $isRecordEnabled): void
     {
         $indexerInstanceGenerator = $this->recordHandler
             ->createIndexerGenerator(
@@ -125,14 +171,47 @@ class RecordUpdateEventListener
                     $indexingService,
                     $indexerInstance,
                     $this->event->getTable(),
-                    $this->event->getRecordUid(),
+                    $recordUid,
                     !$isRecordEnabled
                 );
 
             // Put the record into the queue to update the index again
             if ($isRecordEnabled) {
                 $indexerInstance
-                    ->enqueueOne($this->event->getRecordUid());
+                    ->enqueueOne($recordUid);
+            }
+        }
+    }
+
+    /**
+     * Updates the event record at the queue item table and the search engine index.
+     *
+     * @param int   $rootPageId      The root page UID
+     * @param int[] $recordUids      The record UIDs
+     * @param bool  $isRecordEnabled TRUE if the processed record is enabled or not
+     */
+    private function processRecordUpdates(int $rootPageId, array $recordUids, bool $isRecordEnabled): void
+    {
+        $indexerInstanceGenerator = $this->recordHandler
+            ->createIndexerGenerator(
+                $rootPageId,
+                $this->event->getTable(),
+            );
+
+        foreach ($indexerInstanceGenerator as $indexingService => $indexerInstance) {
+            $this->recordHandler
+                ->deleteRecords(
+                    $indexingService,
+                    $indexerInstance,
+                    $this->event->getTable(),
+                    $recordUids,
+                    !$isRecordEnabled
+                );
+
+            // Put the record into the queue to update the index again
+            if ($isRecordEnabled) {
+                $indexerInstance
+                    ->enqueueMultiple($recordUids);
             }
         }
     }

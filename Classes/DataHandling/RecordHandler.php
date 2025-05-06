@@ -325,6 +325,38 @@ class RecordHandler
     }
 
     /**
+     * Removes a record from the queue item table and the search engine index if requested.
+     *
+     * @param IndexingService  $indexingService
+     * @param IndexerInterface $indexerInstance
+     * @param string           $tableName
+     * @param int[]            $recordUids
+     * @param bool             $isRemoveFromIndex
+     *
+     * @return void
+     */
+    public function deleteRecords(
+        IndexingService $indexingService,
+        IndexerInterface $indexerInstance,
+        string $tableName,
+        array $recordUids,
+        bool $isRemoveFromIndex,
+    ): void {
+        // Remove possible entry of the record from the queue item table
+        $indexerInstance
+            ->dequeueMultiple($recordUids);
+
+        // Remove record from index
+        if ($isRemoveFromIndex) {
+            $this->deleteRecordsFromSearchEngine(
+                $indexingService->getSearchEngine(),
+                $tableName,
+                $recordUids
+            );
+        }
+    }
+
+    /**
      * Removes a record from the search engine index.
      *
      * @param SearchEngine $searchEngine
@@ -348,6 +380,41 @@ class RecordHandler
 
         $searchEngineService
             ->withIndexName($searchEngine->getIndexName())
-            ->deleteFromIndex($tableName, $recordUid);
+            ->deleteFromIndex(
+                $tableName,
+                $recordUid
+            );
+    }
+
+    /**
+     * Removes a record from the search engine index.
+     *
+     * @param SearchEngine $searchEngine
+     * @param string       $tableName
+     * @param int[]        $recordUids
+     *
+     * @return void
+     */
+    private function deleteRecordsFromSearchEngine(
+        SearchEngine $searchEngine,
+        string $tableName,
+        array $recordUids,
+    ): void {
+        // Get underlying search engine instance
+        $searchEngineService = $this->searchEngineFactory
+            ->makeInstanceBySearchEngineModel($searchEngine);
+
+        if (!($searchEngineService instanceof SearchEngineInterface)) {
+            return;
+        }
+
+        foreach ($recordUids as $recordUid) {
+            $searchEngineService
+                ->withIndexName($searchEngine->getIndexName())
+                ->deleteFromIndex(
+                    $tableName,
+                    $recordUid
+                );
+        }
     }
 }

@@ -133,17 +133,17 @@ class UpdateAssembledFileDocumentEventListener
         try {
             $pdf     = $parser->parseContent($file->getContents());
             $content = ContentExtractor::cleanHtml($pdf->getText());
-        } catch (Exception $exception) {
+        } catch (Exception) {
             // TODO Track indexing errors and display failed records in backend
 
             return null;
         }
 
-//        $content = mb_convert_encoding(
-//            $content,
-//            mb_detect_encoding($content),
-//            'UTF-8'
-//        );
+        //        $content = mb_convert_encoding(
+        //            $content,
+        //            mb_detect_encoding($content),
+        //            'UTF-8'
+        //        );
 
         return $content !== '' ? $content : null;
     }

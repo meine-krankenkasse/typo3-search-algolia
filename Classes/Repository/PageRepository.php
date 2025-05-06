@@ -45,18 +45,23 @@ readonly class PageRepository
     }
 
     /**
-     * Recursively fetches all pages with given IDs. Includes the list of given page IDs.
+     * Recursively fetches all pages with given IDs.
      *
-     * @param int[]       $pageIds
-     * @param int<0, max> $depth              The recursive iteration depth
-     * @param bool        $excludeHiddenPages Set to TRUE to exclude hidden subpages from the result
+     * @param int[]       $pageIds              A list of page IDs for which the subpages will be recursively determined
+     * @param int<0, max> $depth                The recursive iteration depth
+     * @param bool        $includeAncestorPages Set to TRUE to include the given page IDs in the result
+     * @param bool        $excludeHiddenPages   Set to TRUE to exclude hidden subpages from the result
      *
      * @return int[]
      *
      * @throws Exception
      */
-    public function getPageIdsRecursive(array $pageIds, int $depth, bool $excludeHiddenPages = false): array
-    {
+    public function getPageIdsRecursive(
+        array $pageIds,
+        int $depth,
+        bool $includeAncestorPages = true,
+        bool $excludeHiddenPages = false,
+    ): array {
         if ($pageIds === []) {
             return [];
         }
@@ -65,9 +70,11 @@ readonly class PageRepository
             return $pageIds;
         }
 
-        $recursivePageIds = [
-            $pageIds,
-        ];
+        $recursivePageIds = [];
+
+        if ($includeAncestorPages) {
+            $recursivePageIds[] = $pageIds;
+        }
 
         foreach ($pageIds as $pageId) {
             $recursivePageIds[] = $this->getSubPageIdsRecursive(

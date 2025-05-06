@@ -71,6 +71,15 @@ interface IndexerInterface extends SingletonInterface
     public function dequeueOne(int $recordUid): IndexerInterface;
 
     /**
+     * Dequeues multiple indexing service related items.
+     *
+     * @param int[] $recordUids
+     *
+     * @return IndexerInterface
+     */
+    public function dequeueMultiple(array $recordUids): IndexerInterface;
+
+    /**
      * Dequeues the indexing service related items.
      *
      * @return IndexerInterface
@@ -87,6 +96,17 @@ interface IndexerInterface extends SingletonInterface
      * @throws Exception
      */
     public function enqueueOne(int $recordUid): int;
+
+    /**
+     * Enqueues multiple indexing service related items. Returns the number of enqueued items.
+     *
+     * @param int[] $pageIds The list of page IDs to enqueue
+     *
+     * @return int
+     *
+     * @throws Exception
+     */
+    public function enqueueMultiple(array $pageIds): int;
 
     /**
      * Enqueues the indexing service related items. Returns the number of enqueued items.
