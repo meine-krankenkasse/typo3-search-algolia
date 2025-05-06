@@ -11,9 +11,11 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 
+use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
+use Smalot\PdfParser\Config;
 use Smalot\PdfParser\Parser;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileRepository;
@@ -120,11 +122,28 @@ class UpdateAssembledFileDocumentEventListener
             return null;
         }
 
-        $parser = new Parser();
+        $config = new Config();
+        $config->setRetainImageContent(false);
+        $config->setHorizontalOffset('');
+        $config->setIgnoreEncryption(true);
 
-        // Parse the pdf file content
-        $pdf     = $parser->parseContent($file->getContents());
-        $content = ContentExtractor::cleanHtml($pdf->getText());
+        $parser = new Parser([], $config);
+
+        // Parse the PDF file content
+        try {
+            $pdf     = $parser->parseContent($file->getContents());
+            $content = ContentExtractor::cleanHtml($pdf->getText());
+        } catch (Exception $exception) {
+            // TODO Track indexing errors and display failed records in backend
+
+            return null;
+        }
+
+//        $content = mb_convert_encoding(
+//            $content,
+//            mb_detect_encoding($content),
+//            'UTF-8'
+//        );
 
         return $content !== '' ? $content : null;
     }
