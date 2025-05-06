@@ -15,6 +15,7 @@ use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\RootlineUtility;
@@ -47,13 +48,14 @@ readonly class PageRepository
      * Recursively fetches all pages with given IDs. Includes the list of given page IDs.
      *
      * @param int[]       $pageIds
-     * @param int<0, max> $depth
+     * @param int<0, max> $depth              The recursive iteration depth
+     * @param bool        $excludeHiddenPages Set to TRUE to exclude hidden subpages from the result
      *
      * @return int[]
      *
      * @throws Exception
      */
-    public function getPageIdsRecursive(array $pageIds, int $depth): array
+    public function getPageIdsRecursive(array $pageIds, int $depth, bool $excludeHiddenPages = false): array
     {
         if ($pageIds === []) {
             return [];
@@ -63,10 +65,16 @@ readonly class PageRepository
             return $pageIds;
         }
 
-        $recursivePageIds = [$pageIds];
+        $recursivePageIds = [
+            $pageIds,
+        ];
 
         foreach ($pageIds as $pageId) {
-            $recursivePageIds[] = $this->getSubPageIdsRecursive($pageId, $depth);
+            $recursivePageIds[] = $this->getSubPageIdsRecursive(
+                $pageId,
+                $depth,
+                $excludeHiddenPages
+            );
         }
 
         return array_unique(
@@ -81,14 +89,15 @@ readonly class PageRepository
      * This method is a duplication and modification of \TYPO3\CMS\Core\Database\QueryGenerator as this has
      * been deprecated/removed.
      *
-     * @param int         $id    The UID of the page
-     * @param int<0, max> $depth
+     * @param int         $id                 The UID of the page
+     * @param int<0, max> $depth              The recursive iteration depth
+     * @param bool        $excludeHiddenPages Set to TRUE to exclude hidden subpages from the result
      *
      * @return int[] The list of descendant page
      *
      * @throws Exception
      */
-    public function getSubPageIdsRecursive(int $id, int $depth): array
+    public function getSubPageIdsRecursive(int $id, int $depth, bool $excludeHiddenPages = false): array
     {
         if ($depth === 0) {
             return [];
@@ -108,6 +117,11 @@ readonly class PageRepository
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
                 ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
+
+            if ($excludeHiddenPages) {
+                $queryBuilder->getRestrictions()
+                    ->add(GeneralUtility::makeInstance(HiddenRestriction::class));
+            }
 
             $queryBuilder
                 ->select('uid')
@@ -140,7 +154,7 @@ readonly class PageRepository
 
             while ($subPageRow = $statement->fetchAssociative()) {
                 $pageIds[] = [$subPageRow['uid']];
-                $pageIds[] = $this->getSubPageIdsRecursive($subPageRow['uid'], $depth - 1);
+                $pageIds[] = $this->getSubPageIdsRecursive($subPageRow['uid'], $depth - 1, $excludeHiddenPages);
             }
         }
 

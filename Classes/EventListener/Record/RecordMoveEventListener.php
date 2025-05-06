@@ -13,7 +13,6 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
-use TYPO3\CMS\Extbase\Utility\DebuggerUtility;
 
 /**
  * The record move event listener. This event listener is called when a record is moved.
@@ -52,8 +51,7 @@ class RecordMoveEventListener
     public function __invoke(DataHandlerRecordMoveEvent $event): void
     {
         $this->event = $event;
-        DebuggerUtility::var_dump($this->event);
-        exit;
+
         // Source and target parent ID are the same => Do nothing
         if ($this->event->getTargetPid() === $this->event->getPreviousPid()) {
             return;

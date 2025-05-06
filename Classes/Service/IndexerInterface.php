@@ -43,6 +43,15 @@ interface IndexerInterface extends SingletonInterface
     public function withIndexingService(IndexingService $indexingService): IndexerInterface;
 
     /**
+     * Returns an instance of the indexing service which excludes hidden pages.
+     *
+     * @param bool $excludeHiddenPages
+     *
+     * @return IndexerInterface
+     */
+    public function withExcludeHiddenPages(bool $excludeHiddenPages): IndexerInterface;
+
+    /**
      * Indexes a single record using the configured search engine and indexing service configuration.
      *
      * @param IndexingService      $indexingService

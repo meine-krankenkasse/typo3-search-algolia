@@ -196,6 +196,7 @@ class QueueModuleController extends AbstractBaseModuleController
                     try {
                         $itemCount += $indexerInstance
                             ->withIndexingService($indexingService)
+                            ->withExcludeHiddenPages(true)
                             ->dequeueAll()
                             ->enqueueAll();
                     } catch (Exception $exception) {

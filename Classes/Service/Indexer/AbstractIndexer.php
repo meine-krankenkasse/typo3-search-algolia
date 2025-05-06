@@ -76,6 +76,13 @@ abstract class AbstractIndexer implements IndexerInterface
     protected ?IndexingService $indexingService = null;
 
     /**
+     * Whether hidden pages should be excluded from indexing or not.
+     *
+     * @var bool
+     */
+    protected bool $excludeHiddenPages = false;
+
+    /**
      * Constructor.
      *
      * @param ConnectionPool      $connectionPool
@@ -136,6 +143,15 @@ abstract class AbstractIndexer implements IndexerInterface
     {
         $clone                  = clone $this;
         $clone->indexingService = $indexingService;
+
+        return $clone;
+    }
+
+    #[Override]
+    public function withExcludeHiddenPages(bool $excludeHiddenPages): IndexerInterface
+    {
+        $clone                     = clone $this;
+        $clone->excludeHiddenPages = $excludeHiddenPages;
 
         return $clone;
     }
@@ -363,7 +379,12 @@ abstract class AbstractIndexer implements IndexerInterface
         // Recursively determine all associated pages and subpages
         $pageIds   = [[]];
         $pageIds[] = $pagesSingle;
-        $pageIds[] = $this->pageRepository->getPageIdsRecursive($pagesRecursive, 99);
+        $pageIds[] = $this->pageRepository
+            ->getPageIdsRecursive(
+                $pagesRecursive,
+                99,
+                $this->excludeHiddenPages
+            );
 
         return array_filter(
             array_merge(...$pageIds)
