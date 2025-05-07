@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
-use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
+use RuntimeException;
 use TYPO3\CMS\Core\SingletonInterface;
 
 /**
@@ -93,27 +93,27 @@ interface IndexerInterface extends SingletonInterface
      *
      * @return int
      *
-     * @throws Exception
+     * @throws RuntimeException
      */
     public function enqueueOne(int $recordUid): int;
 
     /**
      * Enqueues multiple indexing service related items. Returns the number of enqueued items.
      *
-     * @param int[] $pageIds The list of page IDs to enqueue
+     * @param int[] $recordUids The list of record IDs to enqueue
      *
      * @return int
      *
-     * @throws Exception
+     * @throws RuntimeException
      */
-    public function enqueueMultiple(array $pageIds): int;
+    public function enqueueMultiple(array $recordUids): int;
 
     /**
      * Enqueues the indexing service related items. Returns the number of enqueued items.
      *
      * @return int
      *
-     * @throws Exception
+     * @throws RuntimeException
      */
     public function enqueueAll(): int;
 }

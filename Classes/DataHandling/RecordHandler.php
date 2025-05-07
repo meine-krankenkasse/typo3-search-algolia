@@ -182,15 +182,6 @@ class RecordHandler
      */
     public function processContentElementsOfPage(int $pageId, bool $removePageContentElements): void
     {
-        // Get all the UIDs of all content elements of this page
-        $rowsWithUid = $this->contentRepository
-            ->findAllByPid(
-                $pageId,
-                [
-                    'uid',
-                ]
-            );
-
         // Get all content element indexer services
         $indexingServices = $this->indexingServiceRepository
             ->findAllByTableName(ContentIndexer::TABLE);
@@ -205,19 +196,32 @@ class RecordHandler
                 continue;
             }
 
-            foreach (array_column($rowsWithUid, 'uid') as $contentElementUid) {
-                if ($removePageContentElements) {
-                    $this->deleteRecord(
-                        $indexingService,
-                        $indexerInstance,
-                        $indexerInstance->getTable(),
-                        $contentElementUid,
-                        true
-                    );
-                } else {
-                    $indexerInstance
-                        ->enqueueOne($contentElementUid);
-                }
+            // Get all the UIDs of all content elements of this page
+            $rowsWithUid = $this->contentRepository
+                ->findAllByPid(
+                    $pageId,
+                    [
+                        'uid',
+                    ],
+                );
+
+            $contentElementUids = array_column($rowsWithUid, 'uid');
+
+            if ($contentElementUids === []) {
+                continue;
+            }
+
+            if ($removePageContentElements) {
+                $this->deleteRecords(
+                    $indexingService,
+                    $indexerInstance,
+                    $indexerInstance->getTable(),
+                    $contentElementUids,
+                    true
+                );
+            } else {
+                $indexerInstance
+                    ->enqueueMultiple($contentElementUids);
             }
         }
     }

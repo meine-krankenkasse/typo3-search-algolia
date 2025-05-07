@@ -90,6 +90,12 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements.description">
                 <target>Aktivieren Sie diese Option, um zusätzlich zu den Seiteneigenschaften auch die Inhaltselemente der Seite zu indexieren. Alternativ können Sie den Inhaltselement-Indexer verwenden, insbesondere wenn die Suchmaschine eine Datensatzgrößenbeschränkung hat.</target>
             </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.content_element_types">
+                <target>Inhaltselementtypen</target>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.content_element_types.description">
+                <target>Wählen Sie alle Inhaltselementtypen aus, die indexiert werden sollen. Standardmäßig: Aufzählung, HTML, Tabelle, Text, Text &amp; Bilder, Text &amp; Medien und Überschrift</target>
+            </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.type">
                 <target>Typ</target>
             </trans-unit>

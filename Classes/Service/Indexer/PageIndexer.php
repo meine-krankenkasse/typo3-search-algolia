@@ -63,7 +63,7 @@ class PageIndexer extends AbstractIndexer
             // Filter by page type
             $constraints[] = $queryBuilder->expr()->in(
                 'doktype',
-                $pageTypes
+                $queryBuilder->quoteArrayBasedValueListToIntegerList($pageTypes)
             );
         }
 

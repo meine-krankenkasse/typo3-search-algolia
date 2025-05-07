@@ -54,6 +54,7 @@ CREATE TABLE tx_typo3searchalgolia_domain_model_indexingservice
     type                     varchar(128)         DEFAULT ''  NOT NULL,
     search_engine            int(10) unsigned     DEFAULT '0',
     include_content_elements smallint(5) unsigned DEFAULT '0' NOT NULL,
+    content_element_types    text,
     pages_doktype            text,
     pages_single             text,
     pages_recursive          text,

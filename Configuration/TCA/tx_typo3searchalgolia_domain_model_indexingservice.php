@@ -59,7 +59,7 @@ return [
         ],
         'special' => [
             'label'    => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tca.palettes.special',
-            'showitem' => 'include_content_elements, --linebreak--, pages_doktype, --linebreak--, pages_single, --linebreak--, pages_recursive, --linebreak--, file_collections',
+            'showitem' => 'include_content_elements, --linebreak--, content_element_types, --linebreak--, pages_doktype, --linebreak--, pages_single, --linebreak--, pages_recursive, --linebreak--, file_collections',
         ],
         'visibility' => [
             'label'    => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tca.palettes.visibility',
@@ -209,17 +209,6 @@ return [
                 'maxitems'      => 1,
             ],
         ],
-        'include_content_elements' => [
-            'exclude'     => false,
-            'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements',
-            'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements.description',
-            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TABLE,
-            'config'      => [
-                'type'       => 'check',
-                'renderType' => 'checkboxToggle',
-                'default'    => 0,
-            ],
-        ],
         'pages_doktype' => [
             'exclude'     => false,
             'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype',
@@ -233,6 +222,45 @@ return [
                 'autoSizeMax'   => 10,
                 'minitems'      => 0,
                 'maxitems'      => 100,
+            ],
+        ],
+        'include_content_elements' => [
+            'exclude'     => false,
+            'onChange'    => 'reload',
+            'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements',
+            'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements.description',
+            'displayCond' => 'FIELD:type:IN:' . PageIndexer::TABLE,
+            'config'      => [
+                'type'       => 'check',
+                'renderType' => 'checkboxToggle',
+                'default'    => 0,
+            ],
+        ],
+        'content_element_types' => [
+            'exclude'     => false,
+            'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.content_element_types',
+            'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_indexingservice.content_element_types.description',
+            'displayCond' => [
+                'OR' => [
+                    'FIELD:type:=:' . ContentIndexer::TABLE,
+                    'AND' => [
+                        'FIELD:type:=:' . PageIndexer::TABLE,
+                        'FIELD:include_content_elements:REQ:true',
+                    ],
+                ],
+            ],
+            'config' => [
+                'type'          => 'select',
+                'renderType'    => 'selectCheckBox',
+                'itemsProcFunc' => TcaItemsProcessorFunctions::class . '->populateAvailableContentTypes',
+                'sortItems'     => [
+                    'label' => 'asc',
+                ],
+                'size'        => 5,
+                'autoSizeMax' => 10,
+                'minitems'    => 0,
+                'maxitems'    => 100,
+                'default'     => 'header,text,textpic,textmedia,bullets,table,html',
             ],
         ],
         'pages_single' => [

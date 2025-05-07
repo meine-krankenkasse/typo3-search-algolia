@@ -16,6 +16,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineRegistry;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use function is_array;
+
 /**
  * Provides methods to dynamically populate table and field selection lists.
  *
@@ -63,7 +65,7 @@ class TcaItemsProcessorFunctions
      */
     public function populateAvailablePageTypes(array &$fieldDefinition): void
     {
-        GeneralUtility::makeInstance(\TYPO3\CMS\Core\Hooks\TcaItemsProcessorFunctions::class)
+        $this->getTcaItemsProcessorFunctionsInstance()
             ->populateAvailablePageTypes($fieldDefinition);
 
         /** @var array{label: string, value: int|string, icon: string} $item */
@@ -82,5 +84,44 @@ class TcaItemsProcessorFunctions
             $fieldDefinition['items'],
             static fn (array $a, array $b): int => ((int) $a['value']) <=> ((int) $b['value'])
         );
+    }
+
+    /**
+     * @return \TYPO3\CMS\Core\Hooks\TcaItemsProcessorFunctions
+     */
+    private function getTcaItemsProcessorFunctionsInstance(): \TYPO3\CMS\Core\Hooks\TcaItemsProcessorFunctions
+    {
+        return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Hooks\TcaItemsProcessorFunctions::class);
+    }
+
+    /**
+     * Populates the available content types into the selection list.
+     *
+     * @param array<string, mixed> $fieldDefinition The configuration array
+     */
+    public function populateAvailableContentTypes(array &$fieldDefinition): void
+    {
+        $contentTypes = $GLOBALS['TCA']['tt_content']['columns']['CType']['config']['items'] ?? [];
+
+        foreach ($contentTypes as $contentType) {
+            // Skip non-arrays and divider items
+            if (!is_array($contentType)) {
+                continue;
+            }
+
+            if (!isset($contentType['value'])) {
+                continue;
+            }
+
+            if ($contentType['value'] === '--div--') {
+                continue;
+            }
+
+            $fieldDefinition['items'][] = [
+                'label' => $contentType['label'],
+                'value' => $contentType['value'],
+                'icon'  => $contentType['icon'],
+            ];
+        }
     }
 }

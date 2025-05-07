@@ -140,11 +140,13 @@ class UpdateAssembledFileDocumentEventListener
         }
 
         // Prevent "json_encode error: Malformed UTF-8 characters, possibly incorrectly encoded"
-        $content = mb_convert_encoding(
-            $content,
-            mb_detect_encoding($content),
-            'UTF-8'
-        );
+        if (mb_detect_encoding($content) !== false) {
+            $content = mb_convert_encoding(
+                $content,
+                mb_detect_encoding($content),
+                'UTF-8'
+            );
+        }
 
         return $content !== '' ? $content : null;
     }

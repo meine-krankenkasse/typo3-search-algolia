@@ -95,6 +95,8 @@ class RecordUpdateEventListener
 
         // Update page if required
         if ($this->isContentElementUpdate()) {
+            // TODO Updating the page can be neglected if the changed content element is not taken
+            //      into account in the page indexing service.
             $pageId = $this->recordRepository
                 ->findPid(
                     ContentIndexer::TABLE,
@@ -127,25 +129,28 @@ class RecordUpdateEventListener
                     true
                 );
 
-            $this->processRecordUpdates(
-                $rootPageId,
-                $subPageIds,
-                $isRecordEnabled
-            );
+            // TODO Updates to subpages may only need to be made when visibility has changed and not with every update.
+            if ($subPageIds !== []) {
+                $this->processRecordUpdates(
+                    $rootPageId,
+                    $subPageIds,
+                    $isRecordEnabled
+                );
 
-            foreach ($subPageIds as $subPageId) {
-                // Subpage record is only enabled if the parent page record is also enabled
-                $isSubpageRecordEnabled = $isRecordEnabled
-                    && $this->isRecordEnabled(
-                        $this->event->getTable(),
-                        $subPageId
-                    );
+                foreach ($subPageIds as $subPageId) {
+                    // Subpage record is only enabled if the parent page record is also enabled
+                    $isSubpageRecordEnabled = $isRecordEnabled
+                        && $this->isRecordEnabled(
+                            $this->event->getTable(),
+                            $subPageId
+                        );
 
-                $this->recordHandler
-                    ->processContentElementsOfPage(
-                        $subPageId,
-                        !$isSubpageRecordEnabled
-                    );
+                    $this->recordHandler
+                        ->processContentElementsOfPage(
+                            $subPageId,
+                            !$isSubpageRecordEnabled
+                        );
+                }
             }
         }
     }

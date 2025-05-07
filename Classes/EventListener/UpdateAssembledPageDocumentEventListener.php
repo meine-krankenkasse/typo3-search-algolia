@@ -23,6 +23,7 @@ use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteInterface;
 use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function is_array;
 
@@ -33,22 +34,27 @@ use function is_array;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class UpdateAssembledPageDocumentEventListener
+class UpdateAssembledPageDocumentEventListener
 {
     /**
      * @var SiteFinder
      */
-    private SiteFinder $siteFinder;
+    private readonly SiteFinder $siteFinder;
 
     /**
      * @var ContentRepository
      */
-    private ContentRepository $contentRepository;
+    private readonly ContentRepository $contentRepository;
 
     /**
      * @var TypoScriptService
      */
-    private TypoScriptService $typoScriptService;
+    private readonly TypoScriptService $typoScriptService;
+
+    /**
+     * @var AfterDocumentAssembledEvent
+     */
+    private AfterDocumentAssembledEvent $event;
 
     /**
      * Constructor.
@@ -77,6 +83,8 @@ readonly class UpdateAssembledPageDocumentEventListener
         if (!($event->getIndexer() instanceof PageIndexer)) {
             return;
         }
+
+        $this->event = $event;
 
         $document = $event->getDocument();
         $record   = $event->getRecord();
@@ -176,10 +184,17 @@ readonly class UpdateAssembledPageDocumentEventListener
             return null;
         }
 
+        $contentElementTypes = GeneralUtility::trimExplode(
+            ',',
+            $this->event->getIndexingService()->getContentElementTypes(),
+            true
+        );
+
         $rows = $this->contentRepository
             ->findAllByPid(
                 $pageId,
-                array_keys($contentElementFields)
+                array_keys($contentElementFields),
+                $contentElementTypes
             );
 
         $content = '';

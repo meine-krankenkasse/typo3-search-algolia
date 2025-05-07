@@ -105,6 +105,12 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.include_content_elements.description">
                 <source>Enable this option to index the page's content elements in addition to the page properties. Alternatively, you can use the content element indexer, especially if the search engine has a record size limit.</source>
             </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.content_element_types">
+                <source>Content element types</source>
+            </trans-unit>
+            <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.content_element_types.description">
+                <source>Select all the content element types that should be indexed. Defaults to: Bullet List, Header, HTML, Table, Text, Text &amp; Images and Text &amp; Media</source>
+            </trans-unit>
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.pages_doktype">
                 <source>Page type</source>
             </trans-unit>

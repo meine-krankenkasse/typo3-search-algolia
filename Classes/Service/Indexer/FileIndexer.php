@@ -102,15 +102,12 @@ class FileIndexer extends AbstractIndexer
      * Returns the constraints used to query pages.
      *
      * @param QueryBuilder $queryBuilder
-     * @param int[]        $pageUIDs     A list of page UIDs used as page constraint
      *
      * @return string[]
      */
     #[Override]
-    protected function getPagesQueryConstraint(
-        QueryBuilder $queryBuilder,
-        array $pageUIDs = [],
-    ): array {
+    protected function getPagesQueryConstraint(QueryBuilder $queryBuilder): array
+    {
         return [];
     }
 

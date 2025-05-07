@@ -223,7 +223,7 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     #[Override]
-    public function enqueueMultiple(array $pageIds): int
+    public function enqueueMultiple(array $recordUids): int
     {
         if (!($this->indexingService instanceof IndexingService)) {
             throw new RuntimeException('Missing indexing service instance.');
@@ -231,7 +231,7 @@ abstract class AbstractIndexer implements IndexerInterface
 
         return $this->queueItemRepository
             ->bulkInsert(
-                $this->initQueueItemRecords($pageIds)
+                $this->initQueueItemRecords($recordUids)
             );
     }
 
@@ -281,21 +281,26 @@ abstract class AbstractIndexer implements IndexerInterface
     /**
      * Returns records from the current indexer table matching certain constraints.
      *
-     * @param int[] $pageIds
+     * @param int[] $recordUids
      *
      * @return array<array-key, array<string, int|string>>
      *
      * @throws Exception
      */
-    protected function initQueueItemRecords(array $pageIds = []): array
+    protected function initQueueItemRecords(array $recordUids = []): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
 
         $constraints = array_merge(
             [],
-            $this->getPagesQueryConstraint($queryBuilder, $pageIds),
+            $this->getPagesQueryConstraint($queryBuilder),
             $this->getAdditionalQueryConstraints($queryBuilder)
+        );
+
+        $constraints[] = $queryBuilder->expr()->in(
+            'uid',
+            $recordUids,
         );
 
         return $this
@@ -358,15 +363,12 @@ abstract class AbstractIndexer implements IndexerInterface
      * Returns the constraints used to query pages.
      *
      * @param QueryBuilder $queryBuilder
-     * @param int[]        $pageUIDs     A list of page UIDs used as page constraint
      *
      * @return string[]
      */
-    protected function getPagesQueryConstraint(
-        QueryBuilder $queryBuilder,
-        array $pageUIDs = [],
-    ): array {
-        $pageUIDs    = $pageUIDs === [] ? $this->getPages() : $pageUIDs;
+    protected function getPagesQueryConstraint(QueryBuilder $queryBuilder): array
+    {
+        $pageUIDs    = $this->getPages();
         $constraints = [];
 
         if ($pageUIDs !== []) {

@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
 use Override;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class ContentIndexer.
@@ -28,5 +30,27 @@ class ContentIndexer extends AbstractIndexer
     public function getTable(): string
     {
         return self::TABLE;
+    }
+
+    #[Override]
+    protected function getAdditionalQueryConstraints(QueryBuilder $queryBuilder): array
+    {
+        $constraints = [];
+
+        $contentElementTypes = GeneralUtility::trimExplode(
+            ',',
+            $this->indexingService?->getContentElementTypes() ?? '',
+            true
+        );
+
+        if ($contentElementTypes !== []) {
+            // Filter by CType
+            $constraints[] = $queryBuilder->expr()->in(
+                'CType',
+                $queryBuilder->quoteArrayBasedValueListToStringList($contentElementTypes)
+            );
+        }
+
+        return $constraints;
     }
 }

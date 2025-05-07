@@ -71,6 +71,11 @@ class IndexingService extends AbstractEntity
     /**
      * @var string
      */
+    protected string $contentElementTypes = '';
+
+    /**
+     * @var string
+     */
     protected string $pagesDoktype = '';
 
     /**
@@ -264,6 +269,26 @@ class IndexingService extends AbstractEntity
     public function setIncludeContentElements(bool $includeContentElements): IndexingService
     {
         $this->includeContentElements = $includeContentElements;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getContentElementTypes(): string
+    {
+        return $this->contentElementTypes;
+    }
+
+    /**
+     * @param string $contentElementTypes
+     *
+     * @return IndexingService
+     */
+    public function setContentElementTypes(string $contentElementTypes): IndexingService
+    {
+        $this->contentElementTypes = $contentElementTypes;
 
         return $this;
     }
