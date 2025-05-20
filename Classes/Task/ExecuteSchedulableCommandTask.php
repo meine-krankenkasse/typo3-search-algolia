@@ -20,7 +20,12 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\ProgressProviderInterface;
 
 /**
- * Class ExecuteSchedulableCommandTask.
+ * Task for executing schedulable commands with progress tracking.
+ *
+ * This class extends TYPO3's standard ExecuteSchedulableCommandTask to add
+ * progress reporting capabilities. It implements the ProgressProviderInterface
+ * to allow the TYPO3 scheduler to display progress information for long-running
+ * indexing tasks in the backend interface.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -29,9 +34,14 @@ use TYPO3\CMS\Scheduler\ProgressProviderInterface;
 class ExecuteSchedulableCommandTask extends \TYPO3\CMS\Scheduler\Task\ExecuteSchedulableCommandTask implements ProgressProviderInterface
 {
     /**
-     * Returns the progress of the task.
+     * Returns the progress of the task as a percentage.
      *
-     * @return float
+     * This method implements the ProgressProviderInterface by retrieving
+     * the progress from the scheduled command if it implements the
+     * ProgressProviderCommandInterface. If the command doesn't support
+     * progress reporting, it returns 0.
+     *
+     * @return float Progress as a percentage between 0 and 100
      */
     #[Override]
     public function getProgress(): float
@@ -46,7 +56,12 @@ class ExecuteSchedulableCommandTask extends \TYPO3\CMS\Scheduler\Task\ExecuteSch
     /**
      * Returns the instance of the scheduled command.
      *
-     * @return Command|null
+     * This method retrieves the command object that this task is configured
+     * to execute. It uses the command identifier stored in this task to
+     * look up the corresponding command in the TYPO3 command registry.
+     * If the command cannot be found, it returns null.
+     *
+     * @return Command|null The command instance or null if not found
      */
     private function getScheduledCommand(): ?Command
     {
@@ -58,7 +73,13 @@ class ExecuteSchedulableCommandTask extends \TYPO3\CMS\Scheduler\Task\ExecuteSch
     }
 
     /**
-     * @return CommandRegistry
+     * Returns an instance of the TYPO3 command registry.
+     *
+     * This method creates and returns a CommandRegistry instance that provides
+     * access to all registered console commands in the TYPO3 system. It uses
+     * TYPO3's GeneralUtility to ensure proper dependency injection.
+     *
+     * @return CommandRegistry The command registry instance
      */
     private function getCommandRegistry(): CommandRegistry
     {

@@ -1,9 +1,19 @@
+/**
+ * Styles for the TYPO3 Algolia Search module
+ *
+ * These styles define the appearance of the Algolia Search backend module,
+ * including the brand logo and other module-specific elements.
+ */
+
+/* Module container styles */
 .typo3-module-typo3-search {
+    /* Brand logo container */
     .brand-logo {
         text-align: center;
         padding: 1rem;
         margin-bottom: 0;
 
+        /* Brand logo image */
         > img {
             max-width: 125px;
             max-height: 125px;

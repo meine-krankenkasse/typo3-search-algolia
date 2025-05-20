@@ -21,7 +21,16 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\RootlineUtility;
 
 /**
- * The page repository.
+ * Repository for accessing and navigating TYPO3 page structures.
+ *
+ * This repository provides methods for working with TYPO3 pages and page trees:
+ * - Retrieving pages recursively through the page tree
+ * - Finding root pages for specific page subtrees
+ * - Navigating page hierarchies for indexing operations
+ *
+ * The repository is essential for the indexing system to determine which pages
+ * should be included in indexing operations and to establish the proper context
+ * for indexed content (e.g., which site a page belongs to).
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -30,14 +39,25 @@ use TYPO3\CMS\Core\Utility\RootlineUtility;
 readonly class PageRepository
 {
     /**
+     * TYPO3 database connection pool for direct database operations.
+     *
+     * This property provides access to database connections for performing
+     * optimized database queries on pages. It is used to create query builders
+     * for retrieving pages and navigating page hierarchies efficiently.
+     *
      * @var ConnectionPool
      */
     private ConnectionPool $connectionPool;
 
     /**
-     * Constructor.
+     * Initializes the repository with the database connection pool.
      *
-     * @param ConnectionPool $connectionPool
+     * This constructor injects the TYPO3 connection pool that is used
+     * throughout the repository for database operations. The connection
+     * pool provides access to the database connections needed for
+     * retrieving pages and navigating page hierarchies.
+     *
+     * @param ConnectionPool $connectionPool The TYPO3 database connection pool
      */
     public function __construct(ConnectionPool $connectionPool)
     {
@@ -45,16 +65,27 @@ readonly class PageRepository
     }
 
     /**
-     * Recursively fetches all pages with given IDs.
+     * Recursively fetches all pages starting from the given page IDs.
+     *
+     * This method retrieves a complete list of page IDs by starting with the
+     * provided page IDs and then recursively traversing down the page tree
+     * to include all subpages up to the specified depth. It offers options to:
+     * - Include or exclude the starting pages themselves
+     * - Include or exclude hidden pages from the results
+     *
+     * The method is primarily used by indexers to determine which pages should
+     * be included in indexing operations based on the indexing service configuration.
+     * It's essential for implementing the "recursive page selection" feature in
+     * indexing services.
      *
      * @param int[]       $pageIds              A list of page IDs for which the subpages will be recursively determined
-     * @param int<0, max> $depth                The recursive iteration depth
+     * @param int<0, max> $depth                The recursive iteration depth (0 means no recursion, just the starting pages)
      * @param bool        $includeAncestorPages Set to TRUE to include the given page IDs in the result
      * @param bool        $excludeHiddenPages   Set to TRUE to exclude hidden subpages from the result
      *
-     * @return int[]
+     * @return int[] Array of page UIDs that match the criteria
      *
-     * @throws Exception
+     * @throws Exception If a database error occurs during the query
      */
     public function getPageIdsRecursive(
         array $pageIds,
@@ -90,19 +121,26 @@ readonly class PageRepository
     }
 
     /**
-     * Recursively fetch all descendants of a given page. Excludes the current page ID and also pages of
-     * page type DOKTYPE_RECYCLER and DOKTYPE_BE_USER_SECTION.
+     * Recursively fetches all descendant pages of a given page.
      *
-     * This method is a duplication and modification of \TYPO3\CMS\Core\Database\QueryGenerator as this has
-     * been deprecated/removed.
+     * This method traverses the page tree starting from a specific page and
+     * collects all subpages down to the specified depth. It automatically:
+     * - Excludes the starting page itself from the results
+     * - Filters out system pages (recycler and backend user section pages)
+     * - Respects workspace and deletion restrictions
+     * - Optionally filters out hidden pages
      *
-     * @param int         $id                 The UID of the page
-     * @param int<0, max> $depth              The recursive iteration depth
+     * The method is an optimized replacement for TYPO3's deprecated QueryGenerator
+     * functionality and is used internally by getPageIdsRecursive() to perform
+     * the actual recursive page retrieval.
+     *
+     * @param int         $id                 The UID of the starting page
+     * @param int<0, max> $depth              The recursive iteration depth (0 means no recursion)
      * @param bool        $excludeHiddenPages Set to TRUE to exclude hidden subpages from the result
      *
-     * @return int[] The list of descendant page
+     * @return int[] Array of page UIDs that are descendants of the starting page
      *
-     * @throws Exception
+     * @throws Exception If a database error occurs during the query
      */
     public function getSubPageIdsRecursive(int $id, int $depth, bool $excludeHiddenPages = false): array
     {
@@ -169,12 +207,22 @@ readonly class PageRepository
     }
 
     /**
-     * Returns the UID of the root page to which this page belongs. Returns 0 if the
-     * root page ID could not be determined.
+     * Determines the root page (site root) for any page in the TYPO3 page tree.
      *
-     * @param int $pageId The page ID to be used to determine the root page ID
+     * This method traverses up the page tree from the given page to find the
+     * site root page (a page marked with the "is_siteroot" flag). This information
+     * is critical for:
+     * - Determining which indexing services apply to a specific page
+     * - Establishing the correct site context for indexed content
+     * - Grouping indexed content by site
      *
-     * @return int The page ID of the root page
+     * The method uses TYPO3's RootlineUtility to efficiently retrieve the page's
+     * rootline (path from the page to the root of the tree) and then identifies
+     * the site root within that path.
+     *
+     * @param int $pageId The page ID to find the root page for
+     *
+     * @return int The UID of the root page, or 0 if no root page could be determined
      */
     public function getRootPageId(int $pageId): int
     {

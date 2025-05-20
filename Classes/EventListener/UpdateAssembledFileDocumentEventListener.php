@@ -21,7 +21,25 @@ use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileRepository;
 
 /**
- * Class UpdateAssembledFileDocumentEventListener.
+ * Event listener for enhancing file documents with file-specific information.
+ *
+ * This listener responds to AfterDocumentAssembledEvent events that are dispatched
+ * after a file document has been assembled. It enhances the document by adding
+ * various file-specific fields:
+ * - File extension (for filtering by file type)
+ * - MIME type (for proper content handling)
+ * - File name (for display in search results)
+ * - File size (for informational purposes)
+ * - Public URL (for linking to the file)
+ * - File content (extracted from the file for full-text search)
+ *
+ * For PDF files, this listener uses the PdfParser library to extract the text
+ * content, which is then cleaned and normalized for indexing. This allows users
+ * to search for text within PDF documents, not just their metadata.
+ *
+ * These enhancements make file search results more useful by providing both
+ * the necessary metadata for display and filtering, as well as the actual
+ * content for full-text search capabilities.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -30,14 +48,28 @@ use TYPO3\CMS\Core\Resource\FileRepository;
 class UpdateAssembledFileDocumentEventListener
 {
     /**
+     * TYPO3 file repository for retrieving file objects.
+     *
+     * This property stores the FileRepository service that is used to retrieve
+     * file objects based on their UIDs. It's essential for accessing the actual
+     * file data and content that needs to be added to the document, including
+     * file properties like extension, MIME type, name, size, and the file content
+     * itself for full-text indexing.
+     *
      * @var FileRepository
      */
     private readonly FileRepository $fileRepository;
 
     /**
-     * Constructor.
+     * Initializes the event listener with the file repository service.
      *
-     * @param FileRepository $fileRepository
+     * This constructor injects the TYPO3 FileRepository service that is used
+     * to retrieve file objects based on their UIDs. The file repository is
+     * essential for accessing the actual file data and content that needs to
+     * be added to the document, including file properties like extension,
+     * MIME type, name, size, and the file content itself for full-text indexing.
+     *
+     * @param FileRepository $fileRepository The TYPO3 file repository service
      */
     public function __construct(
         FileRepository $fileRepository,
@@ -46,9 +78,28 @@ class UpdateAssembledFileDocumentEventListener
     }
 
     /**
-     * Invoke the event listener.
+     * Processes the document assembled event and enhances file documents.
      *
-     * @param AfterDocumentAssembledEvent $event
+     * This method is automatically called by the event dispatcher when an
+     * AfterDocumentAssembledEvent is dispatched. It performs the following tasks:
+     *
+     * 1. Verifies that the event is for a file document (using instanceof FileIndexer)
+     * 2. Extracts the document and record data from the event
+     * 3. Retrieves the file object using the FileRepository
+     * 4. Adds various file-specific fields to the document:
+     *    - File extension (for filtering by file type)
+     *    - MIME type (for proper content handling)
+     *    - File name (for display in search results)
+     *    - File size (for informational purposes)
+     *    - Public URL (for linking to the file, with special handling for local files)
+     *    - File content (extracted from the file for full-text search)
+     *
+     * The file content extraction is delegated to the getFileContent method,
+     * which handles PDF parsing and text normalization for proper indexing.
+     *
+     * @param AfterDocumentAssembledEvent $event The document assembled event containing the document and record data
+     *
+     * @return void
      */
     public function __invoke(AfterDocumentAssembledEvent $event): void
     {
@@ -63,7 +114,7 @@ class UpdateAssembledFileDocumentEventListener
         /** @var FileInterface $file */
         $file = $this->fileRepository->findByUid($sysFileId);
 
-        // Add file related fields
+        // Add file-related fields
         $document->setField(
             'extension',
             $file->getExtension()
@@ -87,7 +138,7 @@ class UpdateAssembledFileDocumentEventListener
         if ($file instanceof FileInterface) {
             $publicUrl = $file->getPublicUrl();
 
-            // Remove left leading slash
+            // Remove the left leading slash
             if (
                 ($publicUrl !== null)
                 && str_starts_with($publicUrl, '/')
@@ -109,11 +160,28 @@ class UpdateAssembledFileDocumentEventListener
     }
 
     /**
-     * Returns the PDF file content as string.
+     * Extracts and processes the text content from a file for indexing.
      *
-     * @param FileInterface $file
+     * This helper method handles the extraction of text content from files
+     * for full-text indexing. Currently, it only supports PDF files, using
+     * the PdfParser library to extract text content. The method:
      *
-     * @return string|null
+     * 1. Checks if the file is a PDF (returns null for other file types)
+     * 2. Configures the PDF parser with appropriate settings:
+     *    - Disables image content retention to reduce memory usage
+     *    - Clears horizontal offset to improve text extraction
+     *    - Enables encryption ignoring to handle protected PDFs
+     * 3. Parses the PDF content and extracts the text
+     * 4. Cleans the extracted text using ContentExtractor to normalize it
+     * 5. Ensures proper UTF-8 encoding to prevent JSON encoding errors
+     *
+     * If any errors occur during parsing (e.g., corrupted PDF), the method
+     * returns null, allowing the indexing process to continue without the
+     * content rather than failing completely.
+     *
+     * @param FileInterface $file The file object to extract content from
+     *
+     * @return string|null The extracted and processed text content, or null if extraction failed or is not supported
      */
     private function getFileContent(FileInterface $file): ?string
     {

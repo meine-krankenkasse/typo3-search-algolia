@@ -17,7 +17,12 @@ use TYPO3\CMS\Core\Resource\FileReference;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 
 /**
- * The file data handler.
+ * Utility class for handling file-related operations in the search indexing process.
+ *
+ * This class provides methods for working with TYPO3 file objects, particularly
+ * for retrieving metadata information that is needed for indexing files in search
+ * engines. It handles different types of file objects (File, FileReference,
+ * ProcessedFile) and extracts the necessary data from them in a consistent way.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -26,7 +31,19 @@ use TYPO3\CMS\Core\Resource\ProcessedFile;
 class FileHandler
 {
     /**
-     * @return int<1, max>|false
+     * Retrieves the unique identifier (UID) of a file's metadata record.
+     *
+     * This method extracts the metadata UID from a file object, which is needed
+     * for indexing operations. The metadata UID is the primary key of the
+     * sys_file_metadata table entry associated with the file.
+     *
+     * The method handles different types of file objects by delegating to
+     * getMetadataFromFile() to retrieve the complete metadata array, then
+     * extracting and validating the UID value.
+     *
+     * @param FileInterface $file The file object to get metadata UID from
+     *
+     * @return int<1, max>|false The metadata UID as a positive integer, or false if no valid metadata UID exists
      */
     public function getMetadataUid(FileInterface $file): int|false
     {
@@ -44,11 +61,19 @@ class FileHandler
     }
 
     /**
-     * Returns the metadata record of the file.
+     * Retrieves the complete metadata record for a file.
      *
-     * @param FileInterface $file
+     * This method extracts metadata information from different types of file objects:
+     * - For regular File objects, it directly accesses the metadata
+     * - For FileReference and ProcessedFile objects, it retrieves metadata from the original file
+     * - For other file types, it returns an empty array
      *
-     * @return array<string, int|float|string|null>
+     * The metadata contains information like title, description, alternative text,
+     * and other properties that are useful for search indexing and display.
+     *
+     * @param FileInterface $file The file object to get metadata from
+     *
+     * @return array<string, int|float|string|null> The complete metadata array or an empty array if no metadata exists
      */
     public function getMetadataFromFile(FileInterface $file): array
     {

@@ -16,7 +16,16 @@ use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Core\Localization\LanguageService;
 
 /**
- * Class IndexerTypeInfoText.
+ * Field wizard for displaying additional information about indexer types.
+ *
+ * This class implements a TYPO3 form node that renders descriptive text
+ * for the selected indexer type in the backend interface. It enhances
+ * the user experience by providing context-specific information about
+ * the currently selected indexer type directly in the form.
+ *
+ * The wizard retrieves the appropriate label from the extension's language
+ * files based on the currently selected indexer type and displays it
+ * as formatted HTML below the selection field.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -25,7 +34,19 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 class IndexerTypeInfoText extends AbstractNode
 {
     /**
-     * @return array<string, mixed>
+     * Renders the indexer type information text as HTML.
+     *
+     * This method generates the HTML output for the field wizard that displays
+     * descriptive text about the selected indexer type. It:
+     *
+     * 1. Retrieves the language service for localization
+     * 2. Fetches the appropriate label from the language files based on the selected type
+     * 3. Wraps the label in HTML markup for proper display in the backend form
+     *
+     * The resulting HTML is returned as part of an array structure that TYPO3
+     * expects from form node renderers.
+     *
+     * @return array<string, mixed> The render array containing the HTML output
      */
     #[Override]
     public function render(): array
@@ -49,7 +70,14 @@ HTML,
     }
 
     /**
-     * @return LanguageService
+     * Returns the TYPO3 language service for localization.
+     *
+     * This helper method provides access to the global TYPO3 language service,
+     * which is used for translating labels and messages in the backend interface.
+     * The language service handles the retrieval of localized strings from
+     * language files based on the current backend user's language preference.
+     *
+     * @return LanguageService The TYPO3 language service instance
      */
     private function getLanguageService(): LanguageService
     {

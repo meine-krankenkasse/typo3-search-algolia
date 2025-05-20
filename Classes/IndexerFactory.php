@@ -16,7 +16,15 @@ use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Class IndexerFactory.
+ * Factory for creating indexer instances.
+ *
+ * This factory class is responsible for creating and managing instances of
+ * indexers that process different types of content for search indexing.
+ * It implements the singleton pattern to ensure only one instance exists
+ * per indexer type, improving performance and resource usage.
+ *
+ * The factory uses the IndexerRegistry to find the appropriate indexer class
+ * for a given content type and creates instances as needed.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -25,6 +33,12 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class IndexerFactory implements SingletonInterface
 {
     /**
+     * Cache of indexer instances.
+     *
+     * This property stores already created indexer instances indexed by their type
+     * to avoid creating multiple instances of the same indexer, implementing
+     * a simple caching mechanism for better performance.
+     *
      * @var array<string, IndexerInterface>
      */
     private array $instances = [];
@@ -32,9 +46,13 @@ class IndexerFactory implements SingletonInterface
     /**
      * Creates an indexer instance from the given class name.
      *
-     * @param class-string $className
+     * This private helper method uses TYPO3's GeneralUtility to instantiate
+     * an indexer class. It handles the actual object creation process and
+     * ensures that the created instance implements the IndexerInterface.
      *
-     * @return IndexerInterface
+     * @param class-string $className The fully qualified class name of the indexer to create
+     *
+     * @return IndexerInterface The created indexer instance
      */
     private function makeInstance(string $className): IndexerInterface
     {
@@ -45,12 +63,18 @@ class IndexerFactory implements SingletonInterface
     }
 
     /**
-     * Creates and returns a new instance of an indexer for the given type. Returns NULL if the
-     * specified type is not registered and therefore no instance could be created.
+     * Creates and returns an indexer instance for the given content type.
      *
-     * @param string $type The indexer type/table
+     * This method is the main entry point for obtaining indexer instances. It:
+     * 1. Checks if an instance for the requested type already exists in the cache
+     * 2. If not, searches the IndexerRegistry for a matching indexer configuration
+     * 3. Creates a new instance if a matching configuration is found
+     * 4. Stores the new instance in the cache for future use
+     * 5. Returns null if no matching indexer is registered for the given type
      *
-     * @return IndexerInterface|null
+     * @param string $type The indexer type/table name (e.g., 'pages', 'tt_content', 'tx_news_domain_model_news')
+     *
+     * @return IndexerInterface|null The indexer instance or null if no matching indexer is registered
      */
     public function makeInstanceByType(string $type): ?IndexerInterface
     {

@@ -18,7 +18,12 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
 
 /**
- * Class AlgoliaSearchEngine.
+ * Abstract base class for search engine implementations.
+ *
+ * This abstract class provides a foundation for implementing search engines
+ * by defining common functionality and enforcing the SearchEngineInterface.
+ * It handles basic operations like setting the index name and deleting records
+ * from the index, while leaving specific implementation details to child classes.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -27,25 +32,48 @@ use RuntimeException;
 abstract class AbstractSearchEngine implements SearchEngineInterface
 {
     /**
+     * Event dispatcher for handling events within the search engine.
+     *
+     * Used primarily for creating unique document IDs and other event-based operations.
+     *
      * @var EventDispatcherInterface
      */
     protected EventDispatcherInterface $eventDispatcher;
 
     /**
+     * The name of the currently active index.
+     *
+     * This property stores the name of the index that is currently being operated on.
+     * It is set when opening an index and cleared when closing it.
+     *
      * @var string|null
      */
     protected ?string $indexName = null;
 
     /**
-     * Constructor.
+     * Constructor for the abstract search engine.
      *
-     * @param EventDispatcherInterface $eventDispatcher
+     * Initializes the search engine with an event dispatcher that will be used
+     * for various operations like creating unique document IDs.
+     *
+     * @param EventDispatcherInterface $eventDispatcher The event dispatcher service
      */
     public function __construct(EventDispatcherInterface $eventDispatcher)
     {
         $this->eventDispatcher = $eventDispatcher;
     }
 
+    /**
+     * Creates a new instance of the search engine with the specified index name.
+     *
+     * This method implements the immutable pattern by creating a clone of the current
+     * search engine instance with a different index name. This allows for fluent
+     * method chaining without modifying the original instance.
+     *
+     * @param string $indexName The name of the index to use
+     *
+     * @return SearchEngineInterface A new instance with the specified index name
+     */
     #[Override]
     public function withIndexName(string $indexName): SearchEngineInterface
     {
@@ -55,6 +83,24 @@ abstract class AbstractSearchEngine implements SearchEngineInterface
         return $clone;
     }
 
+    /**
+     * Deletes a record from the search index.
+     *
+     * This method handles the complete process of removing a record from the search index:
+     *
+     * 1. Generates a unique document ID for the record using the event dispatcher
+     * 2. Opens the index
+     * 3. Deletes the document
+     * 4. Commits the changes
+     * 5. Closes the index
+     *
+     * @param string $tableName The database table name of the record
+     * @param int    $recordUid The unique identifier of the record
+     *
+     * @return void
+     *
+     * @throws RuntimeException If no index name is set
+     */
     #[Override]
     public function deleteFromIndex(string $tableName, int $recordUid): void
     {

@@ -21,7 +21,17 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Class DocumentBuilder.
+ * This class is responsible for transforming database records into document
+ * objects that can be indexed by search engines. It handles:
+ *
+ * - Creating document objects with appropriate metadata
+ * - Adding standard fields like uid, pid, type, and timestamps
+ * - Adding custom fields based on TypoScript configuration
+ * - Cleaning HTML content for better search results
+ * - Dispatching events to allow further document customization
+ *
+ * The builder follows the fluent interface pattern, allowing method chaining
+ * for convenient document creation and configuration.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -30,40 +40,59 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class DocumentBuilder
 {
     /**
+     * Used to dispatch events after document assembly, allowing other
+     * components to modify or extend the document before indexing.
+     *
      * @var EventDispatcherInterface
      */
     private readonly EventDispatcherInterface $eventDispatcher;
 
     /**
+     * This property holds the document instance that is being assembled
+     * with fields and metadata from the database record.
+     *
      * @var Document
      */
     private Document $document;
 
     /**
+     * Contains settings for how documents should be indexed, including
+     * which search engine to use and other indexing parameters.
+     *
      * @var IndexingService
      */
     private IndexingService $indexingService;
 
     /**
+     * Used to retrieve field mappings and other configuration values
+     * that control how database fields are mapped to document fields.
+     *
      * @var TypoScriptService
      */
     private readonly TypoScriptService $typoScriptService;
 
     /**
+     * Provides information about the table being indexed and other
+     * type-specific indexing behavior.
+     *
      * @var IndexerInterface|null
      */
     private ?IndexerInterface $indexer = null;
 
     /**
+     * Contains all fields and values from the database record that
+     * will be used to populate the document.
+     *
      * @var array<string, mixed>
      */
     private array $record = [];
 
     /**
-     * Constructor.
+     * Initializes the builder with required dependencies for event handling and TypoScript
+     * configuration access. These services are used during the document assembly process.
      *
-     * @param EventDispatcherInterface $eventDispatcher
-     * @param TypoScriptService        $typoScriptService
+     * @param EventDispatcherInterface $eventDispatcher   Event dispatcher for document-related events
+     * @param TypoScriptService        $typoScriptService Service for accessing TypoScript configuration
      */
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
@@ -74,9 +103,12 @@ class DocumentBuilder
     }
 
     /**
-     * @param IndexerInterface|null $indexer
+     * The indexer provides information about the table being indexed and
+     * type-specific indexing behavior.
      *
-     * @return DocumentBuilder
+     * @param IndexerInterface|null $indexer The indexer responsible for the current record type
+     *
+     * @return DocumentBuilder The current builder instance for method chaining
      */
     public function setIndexer(?IndexerInterface $indexer): DocumentBuilder
     {
@@ -86,9 +118,13 @@ class DocumentBuilder
     }
 
     /**
-     * @param array<string, mixed> $record
+     * This method stores the database record that will be used as the source
+     * for document fields and metadata. It follows the fluent interface
+     * pattern, allowing method chaining.
      *
-     * @return DocumentBuilder
+     * @param array<string, mixed> $record The database record with fields and values
+     *
+     * @return DocumentBuilder The current builder instance for method chaining
      */
     public function setRecord(array $record): DocumentBuilder
     {
@@ -98,9 +134,13 @@ class DocumentBuilder
     }
 
     /**
-     * @param IndexingService $indexingService
+     * The indexing service contains settings for how documents should be indexed,
+     * including which search engine to use and other indexing parameters.
+     * This method follows the fluent interface pattern, allowing method chaining.
      *
-     * @return DocumentBuilder
+     * @param IndexingService $indexingService The indexing service configuration
+     *
+     * @return DocumentBuilder The current builder instance for method chaining
      */
     public function setIndexingService(IndexingService $indexingService): DocumentBuilder
     {
@@ -110,9 +150,11 @@ class DocumentBuilder
     }
 
     /**
-     * Returns the assembled document.
+     * This method provides access to the document that has been built
+     * by the assemble() method. It should be called after assemble()
+     * to retrieve the final document for indexing.
      *
-     * @return Document
+     * @return Document The fully assembled document with all fields and metadata
      */
     public function getDocument(): Document
     {
@@ -120,9 +162,15 @@ class DocumentBuilder
     }
 
     /**
-     * Assembles the document.
+     * This is the main method of the builder that performs the document assembly process:
      *
-     * @return DocumentBuilder
+     * 1. Creates a new document instance
+     * 2. Adds standard fields (uid, pid, type, indexed timestamp)
+     * 3. Adds creation and modification timestamps if available
+     * 4. Adds custom fields based on TypoScript configuration
+     * 5. Dispatches an event to allow further document customization
+     *
+     * @return DocumentBuilder The current builder instance for method chaining
      */
     public function assemble(): DocumentBuilder
     {
@@ -186,8 +234,19 @@ class DocumentBuilder
     }
 
     /**
-     * Assigns to the document all fields that were configured within TypoScript s
-     * under "module.tx_typo3searchalgolia.index.<TYPE>".
+     * This method processes the database record and adds fields to the document
+     * based on the TypoScript configuration. It:
+     *
+     * 1. Retrieves the field mapping from TypoScript
+     * 2. Iterates through all fields in the record
+     * 3. Checks if each field is configured for indexing
+     * 4. Skips empty or null values
+     * 5. Cleans HTML content from field values
+     * 6. Adds the field to the document with the configured name
+     *
+     * The field mapping is defined in TypoScript under:
+     *
+     *   "module.tx_typo3searchalgolia.indexer.<TABLE_NAME>.fields.<FIELD_NAME>"
      *
      * @return void
      */

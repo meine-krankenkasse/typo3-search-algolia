@@ -12,7 +12,11 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia;
 
 /**
- * Constants.
+ * Constants for the TYPO3 Algolia Search extension.
+ *
+ * This class provides centralized storage for constant values used throughout
+ * the extension. It helps maintain consistency and makes it easier to update
+ * values in a single location rather than throughout the codebase.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -21,6 +25,12 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia;
 class Constants
 {
     /**
+     * The extension key used for configuration and identification.
+     *
+     * This constant defines the unique identifier for the extension within TYPO3.
+     * It is used for accessing extension configuration, registering services,
+     * and as a namespace for extension-specific settings in the TYPO3 configuration.
+     *
      * @var string
      */
     public const string EXTENSION_NAME = 'typo3_search_algolia';

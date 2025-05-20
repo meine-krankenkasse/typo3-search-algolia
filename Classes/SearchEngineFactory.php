@@ -17,7 +17,13 @@ use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Class SearchEngineFactory.
+ * This factory class is responsible for creating and managing instances of
+ * search engines that communicate with external search services (like Algolia).
+ * It implements the singleton pattern to ensure only one instance exists
+ * per search engine type, improving performance and resource usage.
+ *
+ * The factory uses the SearchEngineRegistry to find the appropriate search engine
+ * class for a given service subtype or domain model and creates instances as needed.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -26,6 +32,12 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class SearchEngineFactory implements SingletonInterface
 {
     /**
+     * Cache of search engine instances.
+     *
+     * This property stores already created search engine instances indexed by their
+     * service subtype to avoid creating multiple instances of the same search engine,
+     * implementing a simple caching mechanism for better performance.
+     *
      * @var array<string, SearchEngineInterface>
      */
     private array $instances = [];
@@ -33,9 +45,13 @@ class SearchEngineFactory implements SingletonInterface
     /**
      * Creates a search engine instance from the given class name.
      *
-     * @param class-string $className
+     * This private helper method uses TYPO3's GeneralUtility to instantiate
+     * a search engine class. It handles the actual object creation process and
+     * ensures that the created instance implements the SearchEngineInterface.
      *
-     * @return SearchEngineInterface
+     * @param class-string $className The fully qualified class name of the search engine to create
+     *
+     * @return SearchEngineInterface The created search engine instance
      */
     private function makeInstance(string $className): SearchEngineInterface
     {
@@ -48,9 +64,17 @@ class SearchEngineFactory implements SingletonInterface
     /**
      * Creates a search engine instance from the given service subtype.
      *
-     * @param string $subtype
+     * This method is one of the main entry points for obtaining search engine instances.
+     * It works by:
+     * 1. Checking if an instance for the requested subtype already exists in the cache
+     * 2. If not, searching the SearchEngineRegistry for a matching search engine configuration
+     * 3. Creating a new instance if a matching configuration is found
+     * 4. Storing the new instance in the cache for future use
+     * 5. Returning null if no matching search engine is registered for the given subtype
      *
-     * @return SearchEngineInterface|null
+     * @param string $subtype The search engine service subtype identifier (e.g., 'algolia')
+     *
+     * @return SearchEngineInterface|null The search engine instance or null if no matching engine is registered
      */
     public function makeInstanceByServiceSubtype(string $subtype): ?SearchEngineInterface
     {
@@ -77,9 +101,17 @@ class SearchEngineFactory implements SingletonInterface
     /**
      * Creates a search engine instance from the given search engine domain model.
      *
-     * @param SearchEngine $searchEngine A search engine domain model instance
+     * This method provides a convenient way to create search engine instances
+     * directly from domain model objects. It extracts the engine identifier
+     * from the domain model and delegates to makeInstanceByServiceSubtype()
+     * to create the actual instance.
      *
-     * @return SearchEngineInterface|null
+     * This approach allows for a more object-oriented interface when working
+     * with search engine configurations stored in the database.
+     *
+     * @param SearchEngine $searchEngine A search engine domain model instance containing configuration
+     *
+     * @return SearchEngineInterface|null The search engine instance or null if no matching engine is registered
      */
     public function makeInstanceBySearchEngineModel(SearchEngine $searchEngine): ?SearchEngineInterface
     {

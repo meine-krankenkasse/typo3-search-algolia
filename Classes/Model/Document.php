@@ -14,7 +14,18 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Model;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 
 /**
- * Class Document.
+ * Model representing a document to be indexed in the search engine.
+ *
+ * This class serves as a container for document data that will be sent to the search
+ * engine for indexing. It provides methods for:
+ * - Storing and retrieving document fields and their values
+ * - Accessing the original record data from the TYPO3 database
+ * - Referencing the indexer that created the document
+ *
+ * Documents are typically created by the DocumentBuilder during the indexing process
+ * and then passed to a search engine service for actual indexing. The document
+ * structure is flexible, allowing for different field sets based on the record type
+ * and indexing configuration.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -23,25 +34,54 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 class Document
 {
     /**
+     * The indexer that created this document.
+     *
+     * This property stores a reference to the indexer that was used to create
+     * this document. It provides context about the type of content being indexed
+     * (pages, content elements, files, etc.) and can be used to access indexer-specific
+     * configuration and methods.
+     *
      * @var IndexerInterface
      */
     private readonly IndexerInterface $indexer;
 
     /**
+     * The original database record data.
+     *
+     * This property stores the raw data from the TYPO3 database that was used to
+     * create this document. It contains all fields from the original record and
+     * can be accessed to retrieve additional information that might not be included
+     * in the document fields.
+     *
      * @var array<string, mixed>
      */
     private readonly array $record;
 
     /**
+     * The document fields and their values.
+     *
+     * This property stores the actual fields that will be sent to the search engine
+     * for indexing. Each field is represented as a key-value pair, where the key is
+     * the field name and the value is the field content. The fields are populated
+     * by the DocumentBuilder based on the record data and indexing configuration.
+     *
      * @var array<string, mixed>
      */
     private array $fields = [];
 
     /**
-     * Constructor.
+     * Initializes a new document instance with the indexer and record data.
      *
-     * @param IndexerInterface     $indexer
-     * @param array<string, mixed> $record
+     * This constructor creates a new document instance with the specified indexer
+     * and record data. The indexer provides context about the type of content being
+     * indexed, while the record data contains the raw information from the TYPO3
+     * database that will be used to populate the document fields.
+     *
+     * The document fields themselves are not populated by the constructor; this is
+     * typically done by the DocumentBuilder after creating the document instance.
+     *
+     * @param IndexerInterface     $indexer The indexer that created this document
+     * @param array<string, mixed> $record  The original database record data
      */
     public function __construct(IndexerInterface $indexer, array $record)
     {
@@ -50,7 +90,17 @@ class Document
     }
 
     /**
-     * @return IndexerInterface
+     * Returns the indexer that created this document.
+     *
+     * This method provides access to the indexer that was used to create this document.
+     * The indexer contains information about the type of content being indexed and
+     * can be used to access indexer-specific configuration and methods.
+     *
+     * This is particularly useful for event listeners and other components that need
+     * to know what type of content the document represents in order to process it
+     * appropriately.
+     *
+     * @return IndexerInterface The indexer that created this document
      */
     public function getIndexer(): IndexerInterface
     {
@@ -58,7 +108,17 @@ class Document
     }
 
     /**
-     * @return array<string, mixed>
+     * Returns the original database record data.
+     *
+     * This method provides access to the raw data from the TYPO3 database that was
+     * used to create this document. It contains all fields from the original record
+     * and can be used to retrieve additional information that might not be included
+     * in the document fields.
+     *
+     * This is particularly useful for event listeners that need to access specific
+     * record fields that weren't mapped to document fields by the DocumentBuilder.
+     *
+     * @return array<string, mixed> The original database record data
      */
     public function getRecord(): array
     {
@@ -66,7 +126,17 @@ class Document
     }
 
     /**
-     * @return array<string, mixed>
+     * Returns all document fields and their values.
+     *
+     * This method provides access to all fields that will be sent to the search engine
+     * for indexing. Each field is represented as a key-value pair, where the key is
+     * the field name and the value is the field content.
+     *
+     * The fields are typically populated by the DocumentBuilder based on the record
+     * data and indexing configuration, and may be further modified by event listeners
+     * before the document is sent to the search engine.
+     *
+     * @return array<string, mixed> All document fields and their values
      */
     public function getFields(): array
     {
@@ -74,12 +144,24 @@ class Document
     }
 
     /**
-     * Sets a field value.
+     * Sets a field value in the document.
      *
-     * @param string $name  The field name
-     * @param mixed  $value The value, if NULL, the field will be removed
+     * This method adds or updates a field in the document with the specified name
+     * and value. If the value is null, the field is removed from the document using
+     * the removeField() method.
      *
-     * @return Document
+     * The method follows the fluent interface pattern, returning the document instance
+     * to allow for method chaining, which makes it convenient to set multiple fields
+     * in a single statement.
+     *
+     * Fields set with this method will be included in the data sent to the search
+     * engine when the document is indexed, allowing for customized field mappings
+     * and additional metadata to be included in the search index.
+     *
+     * @param string $name  The field name to set
+     * @param mixed  $value The value to assign to the field, or NULL to remove the field
+     *
+     * @return Document The current document instance for method chaining
      */
     public function setField(string $name, mixed $value): Document
     {
@@ -93,11 +175,23 @@ class Document
     }
 
     /**
-     * Removes a field.
+     * Removes a field from the document.
      *
-     * @param string $name The field name
+     * This method removes the specified field from the document if it exists.
+     * If the field doesn't exist, the method has no effect.
      *
-     * @return Document
+     * The method follows the fluent interface pattern, returning the document instance
+     * to allow for method chaining, which makes it convenient to perform multiple
+     * operations on the document in a single statement.
+     *
+     * Removing fields can be useful when:
+     * - Cleaning up temporary fields that shouldn't be indexed
+     * - Selectively excluding certain fields based on conditions
+     * - Replacing a field with a different value by removing it first
+     *
+     * @param string $name The field name to remove
+     *
+     * @return Document The current document instance for method chaining
      */
     public function removeField(string $name): Document
     {

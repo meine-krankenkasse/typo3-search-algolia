@@ -28,7 +28,24 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use function is_array;
 
 /**
- * Class UpdateAssembledPageDocumentEventListener.
+ * Event listener for enhancing page documents with site-specific information and content.
+ *
+ * This listener responds to AfterDocumentAssembledEvent events that are dispatched
+ * after a page document has been assembled. It enhances the document by adding
+ * various page-specific fields:
+ * - Site domain (for identifying which site the page belongs to)
+ * - Last changed timestamp (for sorting and filtering by modification date)
+ * - Page URL (for linking to the page in search results)
+ * - Page content (optionally, by aggregating content from all content elements on the page)
+ *
+ * The content aggregation is particularly important for full-text search, as it allows
+ * users to find pages based on the text within their content elements, not just the
+ * page's own metadata. This content is only included if the indexing service is
+ * configured to include content elements (isIncludeContentElements() returns true).
+ *
+ * These enhancements make page search results more useful by providing both
+ * the necessary metadata for display and filtering, as well as the actual
+ * content for comprehensive full-text search capabilities.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -37,31 +54,73 @@ use function is_array;
 class UpdateAssembledPageDocumentEventListener
 {
     /**
+     * TYPO3 site finder service for retrieving site information.
+     *
+     * This property stores the SiteFinder service that is used to retrieve
+     * site information based on page IDs. It's essential for determining
+     * the site domain and generating URLs to pages, which are added to
+     * the document for proper linking in search results.
+     *
      * @var SiteFinder
      */
     private readonly SiteFinder $siteFinder;
 
     /**
+     * Repository for accessing content elements stored in the database.
+     *
+     * This property stores the ContentRepository service that is used to retrieve
+     * content elements on a page. It's essential for the content aggregation
+     * functionality that combines the content of all elements on a page into
+     * a single text field for full-text indexing, allowing users to search
+     * for text within any content element on the page.
+     *
      * @var ContentRepository
      */
     private readonly ContentRepository $contentRepository;
 
     /**
+     * Service for accessing TypoScript configuration values.
+     *
+     * This property stores the TypoScriptService that provides access to
+     * TypoScript configuration values. It's used to retrieve the configuration
+     * for content element fields that should be included in the page's content
+     * field for full-text indexing. This configuration determines which fields
+     * from content elements are extracted and combined into the page's searchable
+     * content.
+     *
      * @var TypoScriptService
      */
     private readonly TypoScriptService $typoScriptService;
 
     /**
+     * The current document assembled event being processed.
+     *
+     * This property stores the AfterDocumentAssembledEvent that is currently
+     * being processed by the listener. It's set in the __invoke method and
+     * used by other methods, particularly getPageContent(), to access event
+     * information like the indexing service configuration. This allows helper
+     * methods to retrieve configuration values without needing to pass the
+     * event as a parameter to each method.
+     *
      * @var AfterDocumentAssembledEvent
      */
     private AfterDocumentAssembledEvent $event;
 
     /**
-     * Constructor.
+     * Initializes the event listener with required dependencies.
      *
-     * @param SiteFinder        $siteFinder
-     * @param ContentRepository $contentRepository
-     * @param TypoScriptService $typoScriptService
+     * This constructor injects the services needed for enhancing page documents:
+     * - The SiteFinder service for retrieving site information and generating URLs
+     * - The ContentRepository for accessing content elements on pages
+     * - The TypoScriptService for retrieving configuration values
+     *
+     * These services work together to provide the necessary information for
+     * enhancing page documents with site-specific information and content,
+     * making search results more useful and comprehensive.
+     *
+     * @param SiteFinder        $siteFinder        The TYPO3 site finder service
+     * @param ContentRepository $contentRepository The repository for accessing content elements
+     * @param TypoScriptService $typoScriptService The service for accessing TypoScript configuration
      */
     public function __construct(
         SiteFinder $siteFinder,
@@ -74,9 +133,29 @@ class UpdateAssembledPageDocumentEventListener
     }
 
     /**
-     * Invoke the event listener.
+     * Processes the document assembled event and enhances page documents.
      *
-     * @param AfterDocumentAssembledEvent $event
+     * This method is automatically called by the event dispatcher when an
+     * AfterDocumentAssembledEvent is dispatched. It performs the following tasks:
+     *
+     * 1. Verifies that the event is for a page document (using instanceof PageIndexer)
+     * 2. Stores the event for later use by helper methods
+     * 3. Extracts the document, record data, and page ID from the event
+     * 4. Retrieves the site information for the page using the SiteFinder
+     * 5. Adds various page-specific fields to the document:
+     *    - Site domain (for identifying which site the page belongs to)
+     *    - Last changed timestamp (for sorting and filtering by modification date)
+     *    - Page URL (for linking to the page in search results)
+     * 6. If the indexing service is configured to include content elements,
+     *    adds the aggregated content from all content elements on the page
+     *
+     * These enhancements make page search results more useful by providing both
+     * the necessary metadata for display and filtering, as well as the actual
+     * content for comprehensive full-text search capabilities.
+     *
+     * @param AfterDocumentAssembledEvent $event The document assembled event containing the document and record data
+     *
+     * @return void
      */
     public function __invoke(AfterDocumentAssembledEvent $event): void
     {
@@ -123,11 +202,20 @@ class UpdateAssembledPageDocumentEventListener
     }
 
     /**
-     * Returns the site identified by the given page ID.
+     * Retrieves the site object for a specific page ID.
      *
-     * @param int $pageId
+     * This helper method uses the SiteFinder service to retrieve the Site object
+     * that corresponds to the given page ID. The Site object contains information
+     * about the site configuration, including the domain and routing settings,
+     * which are needed to generate proper URLs to pages.
      *
-     * @return SiteInterface
+     * If the page ID doesn't correspond to any known site (e.g., if the page
+     * doesn't exist or isn't part of a site configuration), a NullSite object
+     * is returned as a fallback to prevent errors.
+     *
+     * @param int $pageId The ID of the page to find the site for
+     *
+     * @return SiteInterface The site object for the page, or a NullSite if not found
      */
     private function getSite(int $pageId): SiteInterface
     {
@@ -139,11 +227,20 @@ class UpdateAssembledPageDocumentEventListener
     }
 
     /**
-     * Returns the domain of the site identified by the given page ID.
+     * Extracts the domain name from a site object.
      *
-     * @param SiteInterface $site
+     * This helper method retrieves the domain name (host) from the base URL
+     * of the provided site object. The domain name is used to populate the
+     * 'site' field in the document, which helps identify which site the
+     * page belongs to in search results.
      *
-     * @return string
+     * This information is particularly useful in multi-site installations
+     * where the same page ID might exist on different sites, ensuring that
+     * search results link to the correct site.
+     *
+     * @param SiteInterface $site The site object to extract the domain from
+     *
+     * @return string The domain name of the site
      */
     private function getSiteDomain(SiteInterface $site): string
     {
@@ -151,12 +248,21 @@ class UpdateAssembledPageDocumentEventListener
     }
 
     /**
-     * Returns the page URL.
+     * Generates a URL to a specific page.
      *
-     * @param Site $site
-     * @param int  $pageId
+     * This helper method creates a complete URL that points to a page in the TYPO3
+     * site. It uses the site's router to generate the URL, which ensures that the
+     * URL is properly formatted according to the site's configuration, including
+     * any language or routing settings.
      *
-     * @return string
+     * The generated URL is used to populate the 'url' field in the document,
+     * which allows search results to link directly to the page, providing a
+     * seamless user experience when navigating from search results to content.
+     *
+     * @param Site $site   The site object containing routing information
+     * @param int  $pageId The ID of the page to generate a URL for
+     *
+     * @return string The complete URL to the page
      */
     private function getPageUrl(Site $site, int $pageId): string
     {
@@ -166,13 +272,27 @@ class UpdateAssembledPageDocumentEventListener
     }
 
     /**
-     * Returns the page content or NULL if content is empty.
+     * Aggregates and processes the content from all content elements on a page.
      *
-     * @param int $pageId The UID of the page to be processed
+     * This helper method retrieves all content elements on the specified page,
+     * extracts their content, and combines it into a single text string for
+     * full-text indexing. The process involves:
      *
-     * @return string|null
+     * 1. Retrieving content elements from the database using the ContentRepository
+     * 2. Filtering elements based on content element types if configured in the indexing service
+     * 3. Extracting content from specific fields of each content element based on TypoScript configuration
+     * 4. Cleaning and normalizing the content using ContentExtractor
+     * 5. Combining all content into a single string with proper spacing between elements
      *
-     * @throws Exception
+     * This aggregated content is essential for comprehensive full-text search,
+     * allowing users to find pages based on the text within any content element
+     * on the page, not just the page's own metadata.
+     *
+     * @param int $pageId The ID of the page to extract content from
+     *
+     * @return string|null The combined and processed content from all content elements, or null if empty
+     *
+     * @throws Exception If a database error occurs during content retrieval
      */
     private function getPageContent(int $pageId): ?string
     {

@@ -142,9 +142,19 @@ abstract class AbstractBaseModuleController extends ActionController
     }
 
     /**
-     * Returns TRUE if the required database tables are available.
+     * Checks if all required database tables for the extension are available.
      *
-     * @return bool
+     * This method verifies that the essential database tables needed by the
+     * extension are present in the database. It's used to determine if the
+     * extension has been properly installed and set up before attempting
+     * operations that depend on these tables.
+     *
+     * The method checks for the existence of:
+     * - Indexing service configuration table
+     * - Queue item table
+     * - Search engine configuration table
+     *
+     * @return bool TRUE if all required tables exist, FALSE otherwise
      */
     protected function checkDatabaseAvailability(): bool
     {
@@ -159,9 +169,17 @@ abstract class AbstractBaseModuleController extends ActionController
     }
 
     /**
-     * Returns the page ID extracted from the given request object.
+     * Extracts the page ID from the current request.
      *
-     * @return int
+     * This method attempts to find the page ID in the following order:
+     * 1. From the parsed body of the request (POST parameters)
+     * 2. From the query parameters of the request (GET parameters)
+     * 3. Defaults to 0 if no page ID is found
+     *
+     * The page ID is essential for determining the context of backend module
+     * operations and for permission checks.
+     *
+     * @return int The extracted page ID or 0 if none is found
      */
     private function getPageId(): int
     {
@@ -175,7 +193,18 @@ abstract class AbstractBaseModuleController extends ActionController
     }
 
     /**
-     * @return ModuleTemplate
+     * Creates and configures a module template for the current request.
+     *
+     * This method builds a fully configured module template that:
+     * 1. Has the correct package name for template resolution
+     * 2. Includes page metadata if a valid page is selected
+     * 3. Contains the flash message queue for displaying notifications
+     * 4. Has the proper module identifier and CSS class for styling
+     *
+     * The module template is the foundation for rendering the backend module
+     * interface in a consistent way that matches TYPO3's design guidelines.
+     *
+     * @return ModuleTemplate The configured module template instance
      */
     private function getModuleTemplate(): ModuleTemplate
     {
@@ -205,8 +234,15 @@ abstract class AbstractBaseModuleController extends ActionController
     }
 
     /**
-     * Updates the package name of the current route to provide the correct templates
-     * for third party extensions.
+     * Updates the package name of the current route to provide the correct templates.
+     *
+     * This method ensures that the TYPO3 template resolution system can find
+     * the correct Fluid templates for this extension by setting the package name
+     * on the current route. Without this, TYPO3 might not be able to locate
+     * the extension's template files correctly.
+     *
+     * The package name is set to the extension's composer name, which allows
+     * the template paths to be resolved according to TYPO3's conventions.
      *
      * @return void
      *
@@ -225,7 +261,16 @@ abstract class AbstractBaseModuleController extends ActionController
     }
 
     /**
-     * @return BackendUserAuthentication
+     * Provides access to the current backend user object.
+     *
+     * This method returns the global backend user object, which contains
+     * information about the currently logged-in administrator, including
+     * their permissions, preferences, and session data.
+     *
+     * The backend user object is used throughout the controller for permission
+     * checks and to provide user-specific functionality.
+     *
+     * @return BackendUserAuthentication The current backend user object
      */
     protected function getBackendUserAuthentication(): BackendUserAuthentication
     {
@@ -233,12 +278,21 @@ abstract class AbstractBaseModuleController extends ActionController
     }
 
     /**
-     * Returns the translated language label for the given identifier.
+     * Translates a language key into the current backend user's language.
      *
-     * @param string                       $key
-     * @param array<int|float|string>|null $arguments
+     * This utility method provides a convenient way to access translated strings
+     * from the extension's language files. It:
      *
-     * @return string
+     * 1. Looks up the provided key in the extension's language files
+     * 2. Substitutes any placeholders with the provided arguments
+     * 3. Returns the translated string or an empty string if no translation is found
+     *
+     * Using this method ensures consistent translation handling throughout the module.
+     *
+     * @param string                       $key       The language key to translate
+     * @param array<int|float|string>|null $arguments Optional arguments for placeholder substitution
+     *
+     * @return string The translated string or an empty string if no translation exists
      */
     protected function translate(string $key, ?array $arguments = null): string
     {

@@ -19,8 +19,23 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 /**
- * The record update event listener. This event listener is called when
- * a new record is created or an existing record is changed.
+ * Event listener for handling record creation and update operations in the search indexing system.
+ *
+ * This listener responds to DataHandlerRecordUpdateEvent events that are dispatched
+ * when records are created or modified in the TYPO3 backend or through the DataHandler API.
+ * It ensures that the search index is updated to reflect the changes to the record.
+ *
+ * The listener performs the following tasks:
+ * - Determines the root page ID for the updated record to establish the correct indexing context
+ * - Checks if the record is enabled (not hidden or deleted) to decide whether to index it
+ * - Updates the record in the indexing queue to ensure it will be re-indexed
+ * - For content elements, also processes the page that contains the element
+ *   to ensure that page's index entry is updated to reflect the changes to the content
+ * - For pages, also processes all content elements on the page and all subpages
+ *   to ensure that the entire page tree is properly indexed
+ *
+ * This listener is essential for maintaining the integrity of the search index
+ * when content is created or modified in the TYPO3 system.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -29,31 +44,71 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 class RecordUpdateEventListener
 {
     /**
+     * Handler for database record operations in the search indexing system.
+     *
+     * This property stores the RecordHandler service that provides methods for
+     * working with database records in the context of search indexing. It is used
+     * to determine root page IDs, update records in the indexing queue, and process
+     * related records that might be affected by the update operation.
+     *
      * @var RecordHandler
      */
     private readonly RecordHandler $recordHandler;
 
     /**
+     * Repository for accessing generic database records across different tables.
+     *
+     * This property stores the RecordRepository service that provides methods for
+     * retrieving information about database records regardless of their specific table.
+     * It is primarily used to find the parent page ID (pid) of content elements,
+     * which is needed to update the page's search index entry when a content element
+     * is modified.
+     *
      * @var RecordRepository
      */
     private readonly RecordRepository $recordRepository;
 
     /**
+     * Repository for page-related operations.
+     *
+     * This property stores the PageRepository service that provides methods for
+     * retrieving page information and navigating page hierarchies. It is used to
+     * find subpages of a modified page, which is necessary for updating the entire
+     * page tree in the search index when a page is modified.
+     *
      * @var PageRepository
      */
     private readonly PageRepository $pageRepository;
 
     /**
+     * The current record update event being processed.
+     *
+     * This property stores the DataHandlerRecordUpdateEvent that triggered this listener.
+     * It provides access to information about the created or modified record, including
+     * the table name, record UID, and changed fields. This information is used to determine
+     * what actions need to be taken to update the search index.
+     *
      * @var DataHandlerRecordUpdateEvent
      */
     private DataHandlerRecordUpdateEvent $event;
 
     /**
-     * Constructor.
+     * Initializes the event listener with required dependencies.
      *
-     * @param RecordHandler    $recordHandler
-     * @param RecordRepository $recordRepository
-     * @param PageRepository   $pageRepository
+     * This constructor injects the services needed for handling record update operations:
+     * - The RecordHandler service provides methods for working with database records
+     *   in the context of search indexing, including determining root page IDs,
+     *   updating records in the queue and index, and processing related records.
+     * - The RecordRepository service provides methods for retrieving information
+     *   about database records, particularly for finding the parent page ID of
+     *   content elements that are being modified.
+     * - The PageRepository service provides methods for retrieving page information
+     *   and navigating page hierarchies, which is necessary for updating the entire
+     *   page tree when a page is modified.
+     *
+     * @param RecordHandler    $recordHandler    The record handler service for database operations
+     * @param RecordRepository $recordRepository The repository for accessing generic database records
+     * @param PageRepository   $pageRepository   The repository for page-related operations
      */
     public function __construct(
         RecordHandler $recordHandler,
@@ -66,9 +121,28 @@ class RecordUpdateEventListener
     }
 
     /**
-     * Invoke the event listener.
+     * Processes the record update event and updates the search index accordingly.
      *
-     * @param DataHandlerRecordUpdateEvent $event
+     * This method is automatically called by the event dispatcher when a DataHandlerRecordUpdateEvent
+     * is dispatched. It performs the following tasks:
+     *
+     * 1. Stores the event for later reference
+     * 2. Determines the root page ID for the updated record to establish the correct indexing context
+     * 3. Checks if the record is enabled (not hidden or deleted) to decide whether to index it
+     * 4. Updates the record in the indexing queue to ensure it will be re-indexed with its new content
+     * 5. For content elements, also processes the page that contains the element
+     *    to ensure that page's index entry is updated to reflect the changes to the content
+     * 6. For pages, also processes all content elements on the page and all subpages
+     *    to ensure that the entire page tree is properly indexed
+     *
+     * The method handles different types of records differently:
+     * - Regular records are simply updated in the queue and index
+     * - Content elements trigger an update of their parent page's index entry
+     * - Pages trigger updates of all their content elements and subpages
+     *
+     * @param DataHandlerRecordUpdateEvent $event The record update event containing information about the created or modified record
+     *
+     * @return void
      */
     public function __invoke(DataHandlerRecordUpdateEvent $event): void
     {
@@ -156,11 +230,27 @@ class RecordUpdateEventListener
     }
 
     /**
-     * Updates the event record at the queue item table and the search engine index.
+     * Updates a single record in the indexing queue and search engine index.
      *
-     * @param int  $rootPageId      The root page UID
-     * @param int  $recordUid       The record UID
-     * @param bool $isRecordEnabled TRUE if the processed record is enabled or not
+     * This method handles the core functionality of updating a record in the search system.
+     * It performs two main operations based on whether the record is enabled:
+     *
+     * 1. Always removes the record from the current search index to prevent stale data
+     * 2. If the record is enabled (not hidden or deleted):
+     *    - Adds it back to the indexing queue for re-indexing with its updated content
+     * 3. If the record is disabled:
+     *    - Leaves it out of the queue, effectively removing it from search results
+     *
+     * The method uses the createIndexerGenerator method from RecordHandler to find all
+     * indexing services that are configured for the record's table and root page.
+     * This ensures that the record is updated in all relevant search indices, even if
+     * multiple indexing services are configured for the same table.
+     *
+     * @param int  $rootPageId      The root page UID to establish the correct indexing context
+     * @param int  $recordUid       The unique identifier of the record to update
+     * @param bool $isRecordEnabled TRUE if the record is enabled and should be indexed, FALSE if it should be removed from the index
+     *
+     * @return void
      */
     private function processRecordUpdate(int $rootPageId, int $recordUid, bool $isRecordEnabled): void
     {
@@ -189,11 +279,27 @@ class RecordUpdateEventListener
     }
 
     /**
-     * Updates the event record at the queue item table and the search engine index.
+     * Updates multiple records in the indexing queue and search engine index.
      *
-     * @param int   $rootPageId      The root page UID
-     * @param int[] $recordUids      The record UIDs
-     * @param bool  $isRecordEnabled TRUE if the processed record is enabled or not
+     * This method is the batch version of processRecordUpdate(), handling multiple records
+     * at once for better performance. It performs the same operations as processRecordUpdate()
+     * but for an array of record UIDs:
+     *
+     * 1. Always removes the records from the current search index to prevent stale data
+     * 2. If the records are enabled (not hidden or deleted):
+     *    - Adds them back to the indexing queue for re-indexing with their updated content
+     * 3. If the records are disabled:
+     *    - Leaves them out of the queue, effectively removing them from search results
+     *
+     * Processing multiple records in a single operation is more efficient than
+     * calling processRecordUpdate() repeatedly, especially for the queue operations.
+     * This is particularly useful when updating a page tree with many subpages.
+     *
+     * @param int   $rootPageId      The root page UID to establish the correct indexing context
+     * @param int[] $recordUids      Array of unique identifiers for the records to update
+     * @param bool  $isRecordEnabled TRUE if the records are enabled and should be indexed, FALSE if they should be removed from the index
+     *
+     * @return void
      */
     private function processRecordUpdates(int $rootPageId, array $recordUids, bool $isRecordEnabled): void
     {
@@ -222,12 +328,23 @@ class RecordUpdateEventListener
     }
 
     /**
-     * Returns TRUE if the record is enabled otherwise FALSE.
+     * Determines if a record is enabled and should be included in the search index.
      *
-     * @param string $tableName
-     * @param int    $recordUid
+     * This method checks various conditions to determine if a record should be indexed:
+     * 1. Verifies that the record exists in the database
+     * 2. Checks if the record is hidden (using the table's 'disabled' field if defined in TCA)
+     * 3. Checks if the record is deleted (using the table's 'delete' field if defined in TCA)
+     * 4. For pages and file metadata, checks if the 'no_search' flag is set
      *
-     * @return bool
+     * A record is considered enabled only if it exists, is not hidden, is not deleted,
+     * and is not excluded from search. This ensures that only valid, visible content
+     * is included in the search index, maintaining consistency with what users can
+     * see in the frontend.
+     *
+     * @param string $tableName The database table name of the record to check
+     * @param int    $recordUid The unique identifier of the record to check
+     *
+     * @return bool TRUE if the record is enabled and should be indexed, FALSE otherwise
      */
     private function isRecordEnabled(string $tableName, int $recordUid): bool
     {
@@ -246,9 +363,17 @@ class RecordUpdateEventListener
     }
 
     /**
-     * Returns TRUE if a content element update is performed.
+     * Determines if the updated record is a content element.
      *
-     * @return bool
+     * This helper method checks if the table name of the updated record is 'tt_content',
+     * which indicates that the record is a content element. Content elements require
+     * special handling when updated, as the page that contains the element needs to
+     * be updated in the search index to reflect the changes to the content.
+     *
+     * This method is used in the __invoke method to determine whether additional
+     * processing is needed for the page that contains the updated content element.
+     *
+     * @return bool TRUE if the updated record is a content element, FALSE otherwise
      */
     private function isContentElementUpdate(): bool
     {
@@ -256,9 +381,19 @@ class RecordUpdateEventListener
     }
 
     /**
-     * Returns TRUE if a page update is performed.
+     * Determines if the updated record is a page.
      *
-     * @return bool
+     * This helper method checks if the table name of the updated record is 'pages',
+     * which indicates that the record is a page. Pages require special handling when
+     * updated, as all content elements on the page and all subpages need to be
+     * processed to ensure that the entire page tree is properly indexed.
+     *
+     * This method is used in the __invoke method to determine whether additional
+     * processing is needed for content elements and subpages when a page is updated.
+     * This is particularly important for maintaining the integrity of the search index
+     * when page properties that affect visibility or access are changed.
+     *
+     * @return bool TRUE if the updated record is a page, FALSE otherwise
      */
     private function isPageUpdate(): bool
     {

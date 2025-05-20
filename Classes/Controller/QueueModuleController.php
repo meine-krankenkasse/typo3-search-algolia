@@ -28,7 +28,18 @@ use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * QueueModuleController.
+ * This controller handles the indexing queue management module in the TYPO3 backend.
+ *
+ * The queue module provides a backend interface for managing the indexing queue:
+ *
+ * - Viewing statistics about items currently in the queue
+ * - Adding new items to the queue based on selected indexing services
+ * - Removing items from the queue
+ * - Creating new indexing service configurations
+ *
+ * This controller coordinates the interaction between the user interface and
+ * the underlying indexing system, allowing administrators to control what
+ * content gets indexed and when.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -37,34 +48,60 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class QueueModuleController extends AbstractBaseModuleController
 {
     /**
+     * Factory for creating indexer instances.
+     *
+     * This factory is used to create instances of indexers based on their type
+     * (e.g., page indexer, content indexer, file indexer). These indexers handle
+     * the actual process of adding items to the indexing queue.
+     *
      * @var IndexerFactory
      */
     private readonly IndexerFactory $indexerFactory;
 
     /**
+     * Repository for accessing indexing service configurations.
+     *
+     * This repository provides access to the indexing service configurations stored
+     * in the database, which define what content should be indexed and how.
+     *
      * @var IndexingServiceRepository
      */
     private readonly IndexingServiceRepository $indexingServiceRepository;
 
     /**
+     * Repository for managing queue items.
+     *
+     * This repository provides methods for adding, removing, and querying items
+     * in the indexing queue, as well as generating statistics about the queue.
+     *
      * @var QueueItemRepository
      */
     private readonly QueueItemRepository $queueItemRepository;
 
     /**
+     * Service for tracking indexing execution status.
+     *
+     * This service provides methods for retrieving information about when
+     * indexing operations were last executed, which is displayed in the
+     * queue module interface.
+     *
      * @var QueueStatusService
      */
     private readonly QueueStatusService $queueStatusService;
 
     /**
-     * Constructor.
+     * Initializes the controller with required dependencies.
      *
-     * @param ModuleTemplateFactory     $moduleTemplateFactory
-     * @param IconFactory               $iconFactory
-     * @param IndexerFactory            $indexerFactory
-     * @param IndexingServiceRepository $indexingServiceRepository
-     * @param QueueItemRepository       $queueItemRepository
-     * @param QueueStatusService        $queueStatusService
+     * This constructor injects the necessary services for creating and configuring
+     * the backend module interface, as well as the indexing-specific services
+     * needed for queue management operations.
+     *
+     * @param ModuleTemplateFactory     $moduleTemplateFactory     Factory for creating module template instances
+     * @param IconFactory               $iconFactory               Factory for creating icon instances
+     * @param IndexerFactory            $indexerFactory            Factory for creating indexer instances
+     * @param IndexingServiceRepository $indexingServiceRepository Repository for accessing indexing service configurations
+     * @param QueueItemRepository       $queueItemRepository       Repository for managing queue items
+     * @param QueueStatusService        $queueStatusService        Service for tracking indexing execution status
      */
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
@@ -86,7 +123,14 @@ class QueueModuleController extends AbstractBaseModuleController
     }
 
     /**
-     * @return UriBuilder
+     * Creates and returns an instance of the TYPO3 backend URI builder.
+     *
+     * This helper method provides access to the URI builder service, which is used
+     * to generate URLs for backend routes. It's particularly useful for creating
+     * action links in the queue module interface, such as links to create new
+     * indexing service records.
+     *
+     * @return UriBuilder The TYPO3 backend URI builder instance
      */
     private function getBackendUriBuilder(): UriBuilder
     {
@@ -94,7 +138,17 @@ class QueueModuleController extends AbstractBaseModuleController
     }
 
     /**
-     * Adds the new record button to the document header.
+     * Adds a "New Indexing Service" button to the document header.
+     *
+     * This method enhances the module's user interface by adding a button
+     * to the document header that allows administrators to create new
+     * indexing service configurations directly from the queue module.
+     *
+     * The button is configured with:
+     * - A translated title
+     * - A visible label text
+     * - A "plus" icon to indicate the creation action
+     * - A link to the record creation form
      *
      * @return void
      */
@@ -119,9 +173,17 @@ class QueueModuleController extends AbstractBaseModuleController
     }
 
     /**
-     * Returns the URL to create a new indexing service record.
+     * Generates the URL for creating a new indexing service record.
      *
-     * @return string
+     * This helper method builds a URL that points to TYPO3's record editing
+     * form, pre-configured to create a new indexing service record on the
+     * current page. The URL includes:
+     *
+     * - The target table (indexing service)
+     * - The page ID where the record should be created
+     * - A return URL to redirect back to the queue module after saving
+     *
+     * @return string The fully constructed URL for the record creation form
      */
     private function getCreateNewRecordUrl(): string
     {
@@ -140,11 +202,29 @@ class QueueModuleController extends AbstractBaseModuleController
     }
 
     /**
-     * The default action to call.
+     * Displays the main queue management interface and processes queue operations.
      *
-     * @param QueueDemand|null $queueDemand
+     * This action serves as the entry point for the queue module and performs several tasks:
+     * 1. Verifies that the required database tables are available
+     * 2. Adds the "New Indexing Service" button to the document header
+     * 3. Processes deletion requests for queue items if present in the request
+     * 4. Handles the queue demand object that controls filtering and selection
+     * 5. If indexing services are selected:
+     *    - Retrieves the corresponding indexing service configurations
+     *    - Creates appropriate indexer instances for each service
+     *    - Refreshes the queue by removing and re-adding items
+     *    - Displays success or error messages based on the operation results
+     * 6. Assigns data to the view for rendering:
+     *    - Available indexing services for selection
+     *    - Queue statistics (counts by table, etc.)
+     *    - Last execution time of the indexing process
      *
-     * @return ResponseInterface
+     * This comprehensive action handles both the display and processing aspects
+     * of the queue management interface.
+     *
+     * @param QueueDemand|null $queueDemand Filter and selection criteria for queue operations
+     *
+     * @return ResponseInterface The rendered queue module interface
      */
     public function indexAction(?QueueDemand $queueDemand = null): ResponseInterface
     {

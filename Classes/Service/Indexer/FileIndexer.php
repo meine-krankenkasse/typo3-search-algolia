@@ -29,7 +29,17 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use function in_array;
 
 /**
- * Class FileIndexer.
+ * Indexer for TYPO3 files and their metadata.
+ *
+ * This indexer is responsible for retrieving and processing files
+ * from TYPO3 file collections for indexing in search engines. It handles:
+ * - Filtering files by extension
+ * - Checking if files are marked for indexing
+ * - Processing file metadata
+ * - Creating searchable documents from file records
+ *
+ * Files are important content assets in TYPO3 websites, including documents,
+ * images, and other media that users may want to find through search.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -37,35 +47,60 @@ use function in_array;
  */
 class FileIndexer extends AbstractIndexer
 {
+    /**
+     * The database table name for file metadata.
+     *
+     * This constant defines the TYPO3 database table that stores file metadata.
+     * It is used throughout the indexer to identify which table to query.
+     */
     public const string TABLE = 'sys_file_metadata';
 
     /**
+     * Repository for file collection operations.
+     *
+     * This repository is used to retrieve file collections and their contents
+     * based on the configuration in the indexing service.
+     *
      * @var FileCollectionRepository
      */
     private readonly FileCollectionRepository $fileCollectionRepository;
 
     /**
+     * Handler for file operations.
+     *
+     * This service provides methods for working with files, including
+     * retrieving metadata UIDs and other file-specific operations.
+     *
      * @var FileHandler
      */
     private readonly FileHandler $fileHandler;
 
     /**
+     * Service for TypoScript configuration access.
+     *
+     * This service provides access to TypoScript configuration values,
+     * particularly for retrieving allowed file extensions for indexing.
+     *
      * @var TypoScriptService
      */
     private readonly TypoScriptService $typoScriptService;
 
     /**
-     * Constructor.
+     * Constructor for the file indexer.
      *
-     * @param ConnectionPool           $connectionPool
-     * @param SiteFinder               $siteFinder
-     * @param PageRepository           $pageRepository
-     * @param SearchEngineFactory      $searchEngineFactory
-     * @param QueueItemRepository      $queueItemRepository
-     * @param DocumentBuilder          $documentBuilder
-     * @param FileCollectionRepository $fileCollectionRepository
-     * @param FileHandler              $fileHandler
-     * @param TypoScriptService        $typoScriptService
+     * Initializes the indexer with all required dependencies for database access,
+     * site handling, page operations, search engine creation, queue management,
+     * document building, file collection handling, file operations, and TypoScript access.
+     *
+     * @param ConnectionPool           $connectionPool           Database connection pool for executing queries
+     * @param SiteFinder               $siteFinder               Service for finding and handling TYPO3 sites
+     * @param PageRepository           $pageRepository           Repository for page-related operations
+     * @param SearchEngineFactory      $searchEngineFactory      Factory for creating search engine instances
+     * @param QueueItemRepository      $queueItemRepository      Repository for managing indexing queue items
+     * @param DocumentBuilder          $documentBuilder          Builder for creating document objects
+     * @param FileCollectionRepository $fileCollectionRepository Repository for file collection operations
+     * @param FileHandler              $fileHandler              Handler for file operations
+     * @param TypoScriptService        $typoScriptService        Service for TypoScript configuration access
      */
     public function __construct(
         ConnectionPool $connectionPool,
@@ -92,6 +127,15 @@ class FileIndexer extends AbstractIndexer
         $this->typoScriptService        = $typoScriptService;
     }
 
+    /**
+     * Returns the database table name that this indexer is responsible for.
+     *
+     * This method implements the abstract method from AbstractIndexer and
+     * returns the sys_file_metadata table name, which is where TYPO3 stores
+     * metadata for files.
+     *
+     * @return string The database table name (sys_file_metadata)
+     */
     #[Override]
     public function getTable(): string
     {
@@ -101,9 +145,13 @@ class FileIndexer extends AbstractIndexer
     /**
      * Returns the constraints used to query pages.
      *
-     * @param QueryBuilder $queryBuilder
+     * This method overrides the parent implementation to return an empty array
+     * because file indexing is not based on pages but on file collections.
+     * Therefore, no page constraints are needed for this indexer.
      *
-     * @return string[]
+     * @param QueryBuilder $queryBuilder The query builder to use for creating expressions
+     *
+     * @return string[] An empty array as no page constraints are needed
      */
     #[Override]
     protected function getPagesQueryConstraint(QueryBuilder $queryBuilder): array
@@ -112,11 +160,16 @@ class FileIndexer extends AbstractIndexer
     }
 
     /**
-     * Returns records from the current indexer table matching certain constraints.
+     * Prepares file records for addition to the indexing queue.
      *
-     * @param int[] $pageIds
+     * This method overrides the parent implementation to handle the specific
+     * requirements of file indexing. Instead of querying a database table directly,
+     * it retrieves files from file collections, filters them by extension and
+     * indexability, and prepares them for indexing.
      *
-     * @return array<array-key, array<string, int|string>>
+     * @param int[] $pageIds Unused parameter, kept for compatibility with parent method
+     *
+     * @return array<array-key, array<string, int|string>> Array of prepared file records
      */
     #[Override]
     protected function initQueueItemRecords(array $pageIds = []): array
@@ -178,12 +231,17 @@ class FileIndexer extends AbstractIndexer
     }
 
     /**
-     * Returns TRUE if the file extension of the specified file belongs to the list of allowed file extensions.
+     * Determines if a file's extension is allowed for indexing.
      *
-     * @param FileInterface $file
-     * @param string[]      $fileExtensions
+     * This method checks if the file's extension is in the list of allowed
+     * file extensions configured in TypoScript. Only files with allowed
+     * extensions will be considered for indexing, which helps filter out
+     * file types that are not suitable for search (e.g., system files).
      *
-     * @return bool
+     * @param FileInterface $file           The file to check
+     * @param string[]      $fileExtensions Array of allowed file extensions
+     *
+     * @return bool True if the file extension is allowed, false otherwise
      */
     private function isExtensionAllowed(FileInterface $file, array $fileExtensions): bool
     {
@@ -191,11 +249,16 @@ class FileIndexer extends AbstractIndexer
     }
 
     /**
-     * Returns TRUE if the file is not excluded from indexing.
+     * Determines if a file should be included in the search index.
      *
-     * @param FileInterface $file
+     * This method checks if the file has the 'no_search' property set to 0,
+     * which indicates that the file should be included in search results.
+     * Files can be excluded from search by setting this property to 1 in
+     * the file metadata record.
      *
-     * @return bool
+     * @param FileInterface $file The file to check
+     *
+     * @return bool True if the file should be indexed, false otherwise
      */
     private function isIndexable(FileInterface $file): bool
     {

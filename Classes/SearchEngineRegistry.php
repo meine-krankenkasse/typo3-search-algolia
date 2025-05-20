@@ -14,7 +14,16 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia;
 use function is_array;
 
 /**
- * Class SearchEngineRegistry.
+ * Registry for accessing search engine configurations.
+ *
+ * This class provides access to the search engine configurations registered
+ * in the TYPO3 service system. Unlike the IndexerRegistry which actively
+ * manages registrations, this class primarily serves as a reader for
+ * configurations that are registered through the TYPO3 service system.
+ *
+ * The registry allows the SearchEngineFactory to discover available search
+ * engine implementations and create appropriate instances based on their
+ * configuration.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -25,7 +34,14 @@ class SearchEngineRegistry
     /**
      * Returns the list of all registered search engines.
      *
-     * @return array<string, mixed>
+     * This method retrieves all search engine configurations that have been
+     * registered in the TYPO3 service system under the 'mkk_search_engine' key.
+     * These configurations contain information about available search engine
+     * implementations, including their class names and service subtypes.
+     *
+     * If no search engines have been registered, an empty array is returned.
+     *
+     * @return array<string, mixed> Array of search engine configurations indexed by service keys
      */
     public static function getRegisteredSearchEngines(): array
     {

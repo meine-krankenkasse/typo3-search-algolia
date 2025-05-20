@@ -15,7 +15,15 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use TYPO3\CMS\Core\Registry;
 
 /**
- * Class QueueStatusService.
+ * This service provides methods for tracking when indexing operations
+ * were last executed. It stores and retrieves timestamps in the TYPO3
+ * registry to maintain state between indexing runs.
+ *
+ * The queue status information is used to:
+ *
+ * - Determine when the last indexing run occurred
+ * - Calculate time-based metrics for indexing operations
+ * - Support scheduling decisions for future indexing runs
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -24,14 +32,17 @@ use TYPO3\CMS\Core\Registry;
 readonly class QueueStatusService
 {
     /**
+     * Used to store and retrieve execution timestamps across requests
+     * and CLI executions.
+     *
      * @var Registry
      */
     private Registry $registry;
 
     /**
-     * Constructor.
+     * Initializes the service with the TYPO3 registry for persistent storage.
      *
-     * @param Registry $registry
+     * @param Registry $registry The TYPO3 registry service
      */
     public function __construct(Registry $registry)
     {
@@ -39,9 +50,12 @@ readonly class QueueStatusService
     }
 
     /**
-     * Sets the timestamp at which indexing last ran through the queue.
+     * This method stores the execution time in the TYPO3 registry under
+     * the extension namespace. This timestamp can be used to determine
+     * when content was last indexed and to make decisions about when
+     * to run indexing operations again.
      *
-     * @param int $lastExecutionTime
+     * @param int $lastExecutionTime Unix timestamp of when indexing was last executed
      *
      * @return void
      */
@@ -55,9 +69,11 @@ readonly class QueueStatusService
     }
 
     /**
-     * Returns the timestamp of the last indexing run.
+     * This method retrieves the stored execution time from the TYPO3 registry.
+     * If no timestamp has been stored yet, it returns 0, indicating that
+     * indexing has never been run.
      *
-     * @return int
+     * @return int Unix timestamp of when indexing was last executed, or 0 if never run
      */
     public function getLastExecutionTime(): int
     {

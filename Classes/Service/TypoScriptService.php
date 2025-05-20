@@ -19,7 +19,17 @@ use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use function is_string;
 
 /**
- * Class TypoScriptService.
+ * Service for accessing TypoScript configuration values.
+ *
+ * This service provides methods for retrieving and processing TypoScript
+ * configuration values specific to the search extension. It handles:
+ * - Accessing the extension's TypoScript configuration
+ * - Retrieving specific configuration values like allowed file extensions
+ * - Processing raw configuration values into usable formats
+ *
+ * The TypoScript configuration controls various aspects of the search
+ * functionality, including which file types can be indexed and other
+ * indexing-related settings.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -28,14 +38,22 @@ use function is_string;
 readonly class TypoScriptService
 {
     /**
+     * TYPO3 configuration manager for accessing TypoScript settings.
+     *
+     * Used to retrieve the extension's TypoScript configuration from
+     * the TYPO3 configuration system.
+     *
      * @var ConfigurationManagerInterface
      */
     private ConfigurationManagerInterface $configurationManager;
 
     /**
-     * Constructor.
+     * Constructor for the TypoScript service.
      *
-     * @param ConfigurationManagerInterface $configurationManager
+     * Initializes the service with the TYPO3 configuration manager
+     * for accessing TypoScript settings.
+     *
+     * @param ConfigurationManagerInterface $configurationManager The TYPO3 configuration manager
      */
     public function __construct(ConfigurationManagerInterface $configurationManager)
     {
@@ -43,9 +61,13 @@ readonly class TypoScriptService
     }
 
     /**
-     * Returns the TypoScript configuration of the extension.
+     * Returns the complete TypoScript configuration of the extension.
      *
-     * @return array<string, array<string, array<string, string|array<string, string>>>>
+     * This method retrieves the full TypoScript configuration for the extension
+     * and processes it into a usable array format by removing the TypoScript dots.
+     * The configuration contains all settings defined in the extension's TypoScript.
+     *
+     * @return array<string, array<string, array<string, string|array<string, string>>>> The processed TypoScript configuration
      */
     public function getTypoScriptConfiguration(): array
     {
@@ -59,9 +81,14 @@ readonly class TypoScriptService
     }
 
     /**
-     * Returns the configured file extensions.
+     * Returns the file extensions allowed for indexing.
      *
-     * @return string[]
+     * This method retrieves the list of file extensions that are configured
+     * to be indexed by the file indexer. Only files with these extensions
+     * will be considered for indexing, which helps filter out file types
+     * that are not suitable for search (e.g., system files).
+     *
+     * @return string[] Array of allowed file extensions (e.g., ['pdf', 'doc', 'docx'])
      */
     public function getAllowedFileExtensions(): array
     {

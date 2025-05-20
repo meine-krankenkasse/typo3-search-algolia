@@ -26,16 +26,43 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use function in_array;
 
 /**
- * Provides click menu items for files and folders.
+ * This class provides context menu items for files in the TYPO3 backend.
+ *
+ * It extends the TYPO3 AbstractProvider to add custom context menu options
+ * specifically for the Algolia search indexing functionality. The provider
+ * adds an option to enqueue individual files for indexing directly from
+ * the file list view, making it easier for editors to update search indexes
+ * for specific files without having to use the full indexing interface.
+ *
+ * The provider checks file permissions, file types, and user access rights
+ * to determine whether the indexing options should be displayed for a
+ * particular file.
+ *
+ * @author  Rico Sonntag <rico.sonntag@netresearch.de>
+ * @license Netresearch https://www.netresearch.de
+ * @link    https://www.netresearch.de
  */
 class QueueProvider extends AbstractProvider
 {
     /**
+     * The current file or folder object being processed.
+     *
+     * This property stores the file or folder object that the context menu
+     * is being generated for. It's initialized in the initialize() method
+     * and used throughout the class to determine what actions are available.
+     *
      * @var File|Folder|null
      */
     private Folder|File|null $record = null;
 
     /**
+     * Configuration for the context menu items provided by this class.
+     *
+     * This array defines the structure and behavior of the context menu items
+     * that this provider adds to the TYPO3 backend. Each item has a type,
+     * label, icon, and callback action that determines what happens when
+     * the item is clicked.
+     *
      * @var array<string, array<string, string>>
      */
     protected $itemsConfiguration = [
@@ -50,7 +77,14 @@ class QueueProvider extends AbstractProvider
     ];
 
     /**
-     * @return bool
+     * Determines if this provider can handle the current context menu request.
+     *
+     * This method checks if the current table is 'sys_file', which indicates
+     * that the context menu is being generated for a file in the file list.
+     * Only if this condition is met will this provider add its custom items
+     * to the context menu.
+     *
+     * @return bool True if this provider can handle the current context menu request, false otherwise
      */
     #[Override]
     public function canHandle(): bool
@@ -59,7 +93,15 @@ class QueueProvider extends AbstractProvider
     }
 
     /**
-     * Initialize file object.
+     * Initializes the file or folder object for the current context menu item.
+     *
+     * This method retrieves the file or folder object that corresponds to the
+     * identifier provided in the context menu request. It uses TYPO3's ResourceFactory
+     * to convert the identifier into a proper File or Folder object that can be
+     * used to determine available actions and permissions.
+     *
+     * If the file or folder cannot be found (e.g., if it has been deleted),
+     * the record property is set to null to prevent errors.
      */
     #[Override]
     protected function initialize(): void
@@ -75,10 +117,17 @@ class QueueProvider extends AbstractProvider
     }
 
     /**
-     * Returns the provider priority which is used for determining the order in which providers are adding items
-     * to the result array. Highest priority means provider is evaluated first.
+     * Returns the priority of this provider in the context menu system.
      *
-     * @return int
+     * This method defines the order in which this provider is evaluated relative
+     * to other context menu providers. Providers with higher priority values are
+     * evaluated first, which affects the order of items in the resulting context menu.
+     *
+     * The value of 50 places this provider at a medium priority level, allowing
+     * it to be overridden by core providers but taking precedence over lower-priority
+     * custom providers.
+     *
+     * @return int The priority value (50) for this provider
      */
     #[Override]
     public function getPriority(): int
@@ -87,12 +136,19 @@ class QueueProvider extends AbstractProvider
     }
 
     /**
-     * Checks whether certain item can be rendered (e.g. check for disabled items or permissions).
+     * Determines whether a specific context menu item should be rendered.
      *
-     * @param string $itemName
-     * @param string $type
+     * This method checks various conditions to decide if a particular item
+     * should appear in the context menu:
+     * - Dividers and submenus are always rendered
+     * - Items in the disabledItems list are never rendered
+     * - The 'algolia_enqueue_one' item is only rendered if the file can be enqueued
+     *   for indexing (as determined by the canBeEnqueued method)
      *
-     * @return bool
+     * @param string $itemName The identifier of the menu item to check
+     * @param string $type     The type of the menu item (e.g., 'divider', 'submenu', 'item')
+     *
+     * @return bool True if the item should be rendered, false otherwise
      */
     #[Override]
     protected function canRender(string $itemName, string $type): bool
@@ -113,7 +169,22 @@ class QueueProvider extends AbstractProvider
     }
 
     /**
-     * @return bool
+     * Checks if the current file can be enqueued for indexing.
+     *
+     * This method performs multiple checks to determine if a file is eligible
+     * for indexing in the search engine:
+     * - The record must be a File object (not a Folder)
+     * - The file must be indexed in TYPO3's file system
+     * - The file extension must be in the list of allowed extensions
+     * - The user must have permission to edit metadata
+     * - The file must have metadata with a UID
+     * - The user must have permission to modify the sys_file_metadata table
+     * - The user must have access to the default language
+     *
+     * Only if all these conditions are met will the "Enqueue for indexing" option
+     * be displayed in the context menu.
+     *
+     * @return bool True if the file can be enqueued for indexing, false otherwise
      */
     private function canBeEnqueued(): bool
     {
@@ -129,7 +200,13 @@ class QueueProvider extends AbstractProvider
     }
 
     /**
-     * @return TypoScriptService
+     * Creates and returns an instance of the TypoScriptService.
+     *
+     * This helper method uses TYPO3's GeneralUtility to create an instance
+     * of the TypoScriptService, which provides access to TypoScript configuration
+     * values, particularly the list of allowed file extensions for indexing.
+     *
+     * @return TypoScriptService The TypoScript service instance
      */
     private function getTypoScriptService(): TypoScriptService
     {
@@ -137,12 +214,16 @@ class QueueProvider extends AbstractProvider
     }
 
     /**
-     * Returns TRUE if the file extension of the specified file belongs to the list of allowed file extensions.
+     * Checks if a file's extension is in the list of allowed extensions.
      *
-     * @param FileInterface $file
-     * @param string[]      $fileExtensions
+     * This method determines if a file can be indexed based on its extension.
+     * Only files with extensions that are explicitly configured as allowed
+     * in the TypoScript configuration will be considered for indexing.
      *
-     * @return bool
+     * @param FileInterface $file           The file to check
+     * @param string[]      $fileExtensions Array of allowed file extensions
+     *
+     * @return bool True if the file extension is allowed, false otherwise
      */
     private function isExtensionAllowed(FileInterface $file, array $fileExtensions): bool
     {
@@ -150,11 +231,19 @@ class QueueProvider extends AbstractProvider
     }
 
     /**
-     * @param string $itemName
+     * Provides additional HTML attributes for context menu items.
      *
-     * @return string[]
+     * This method adds custom data attributes to the context menu items that
+     * are used by the JavaScript handlers to perform the appropriate actions
+     * when the item is clicked. For the Algolia indexing items, it adds:
+     * - The JavaScript module that handles the action
+     * - The backend route URL that the action should call
      *
-     * @throws RouteNotFoundException
+     * @param string $itemName The identifier of the menu item
+     *
+     * @return string[] Array of HTML attributes to add to the menu item
+     *
+     * @throws RouteNotFoundException If the specified route cannot be found
      */
     #[Override]
     protected function getAdditionalAttributes(string $itemName): array

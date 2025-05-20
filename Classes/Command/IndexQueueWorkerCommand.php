@@ -34,7 +34,21 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 
 /**
- * Class IndexQueueWorkerCommand.
+ * Command for processing the search indexing queue.
+ *
+ * This command is responsible for processing items in the indexing queue and sending
+ * them to the search engine for indexing. It can be run from the command line or
+ * scheduled as a recurring task in the TYPO3 scheduler.
+ *
+ * The command:
+ * - Retrieves queue items that need to be indexed
+ * - Processes them in batches for better performance
+ * - Handles errors and exceptions during indexing
+ * - Updates the queue status after processing
+ * - Provides progress information for the scheduler interface
+ *
+ * It implements ProgressProviderCommandInterface to report progress to the scheduler
+ * and LoggerAwareInterface to log indexing operations and errors.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -45,49 +59,95 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     use LoggerAwareTrait;
 
     /**
+     * Symfony I/O helper for console output formatting.
+     *
+     * This property provides methods for formatted console output, including
+     * tables, progress bars, and styled messages. It's initialized in the
+     * execute() method with the input and output interfaces.
+     *
      * @var SymfonyStyle
      */
     private SymfonyStyle $io;
 
     /**
+     * TYPO3 persistence manager for database operations.
+     *
+     * Used to persist changes to database entities, particularly when updating
+     * queue items after processing them. It ensures that all changes are
+     * properly saved to the database.
+     *
      * @var PersistenceManagerInterface
      */
     private PersistenceManagerInterface $persistenceManager;
 
     /**
+     * TYPO3 registry for persistent storage.
+     *
+     * Used to store and retrieve persistent values across executions,
+     * particularly for tracking indexing progress and status information.
+     *
      * @var Registry
      */
     private Registry $registry;
 
     /**
+     * TYPO3 database connection pool.
+     *
+     * Provides access to database connections for direct database queries
+     * when repository methods are insufficient or when performance
+     * optimizations are needed.
+     *
      * @var ConnectionPool
      */
     private ConnectionPool $connectionPool;
 
     /**
+     * Repository for queue item operations.
+     *
+     * Provides methods for retrieving, updating, and deleting queue items
+     * that represent records waiting to be indexed. Used to fetch the next
+     * batch of items for processing and to update their status after indexing.
+     *
      * @var QueueItemRepository
      */
     private QueueItemRepository $queueItemRepository;
 
     /**
+     * Repository for indexing service operations.
+     *
+     * Provides methods for retrieving indexing service configurations that
+     * define how different types of content should be indexed. Used to get
+     * the appropriate indexing service for each queue item.
+     *
      * @var IndexingServiceRepository
      */
     private IndexingServiceRepository $indexingServiceRepository;
 
     /**
+     * Service for managing queue execution status.
+     *
+     * Provides methods for tracking when indexing operations were last executed
+     * and updating this information after each run. Used to maintain state
+     * between indexing runs and for reporting purposes.
+     *
      * @var QueueStatusService
      */
     private QueueStatusService $queueStatusService;
 
     /**
-     * Constructor.
+     * Initializes the command with required dependencies.
      *
-     * @param PersistenceManagerInterface $persistenceManager
-     * @param Registry                    $registry
-     * @param ConnectionPool              $connectionPool
-     * @param QueueItemRepository         $queueItemRepository
-     * @param IndexingServiceRepository   $indexingServiceRepository
-     * @param QueueStatusService          $queueStatusService
+     * This constructor injects all the services and repositories needed for the
+     * command to process indexing queue items. It follows TYPO3's dependency
+     * injection pattern to ensure the command has access to all required
+     * functionality without creating tight coupling.
+     *
+     * @param PersistenceManagerInterface $persistenceManager        TYPO3 persistence manager for database operations
+     * @param Registry                    $registry                  TYPO3 registry for persistent storage
+     * @param ConnectionPool              $connectionPool            Database connection pool for direct queries
+     * @param QueueItemRepository         $queueItemRepository       Repository for queue item operations
+     * @param IndexingServiceRepository   $indexingServiceRepository Repository for indexing service configurations
+     * @param QueueStatusService          $queueStatusService        Service for tracking indexing execution status
      */
     public function __construct(
         PersistenceManagerInterface $persistenceManager,
@@ -108,7 +168,16 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     }
 
     /**
-     * Configures the command.
+     * Configures the command with its name, description, and options.
+     *
+     * This method sets up the command configuration including:
+     * - A descriptive text explaining the command's purpose
+     * - Command-line options that control the command's behavior
+     *
+     * The 'documentsToIndex' option allows users to specify how many documents
+     * should be processed in a single execution, with a default of 100. This
+     * helps control resource usage and execution time, especially important
+     * for scheduled tasks.
      *
      * @return void
      */
@@ -130,12 +199,22 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     }
 
     /**
-     * Executes the current command.
+     * Executes the indexing process for queue items.
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
+     * This method is the main entry point for the command execution. It:
+     * 1. Sets up the Symfony I/O helper for formatted console output
+     * 2. Displays the command title for better user experience
+     * 3. Retrieves the number of documents to index from command options
+     * 4. Calls the indexItems() method to process the specified number of queue items
+     * 5. Returns a success status code upon completion
      *
-     * @return int
+     * The method handles the high-level execution flow while delegating the actual
+     * indexing work to the indexItems() method.
+     *
+     * @param InputInterface  $input  The command input containing options and arguments
+     * @param OutputInterface $output The command output for displaying messages and progress
+     *
+     * @return int Command exit code (0 for success, non-zero for failure)
      */
     #[Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -151,7 +230,25 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     }
 
     /**
-     * @param int $documentsToIndex
+     * Processes and indexes a batch of queue items.
+     *
+     * This method performs the core indexing functionality of the command:
+     * 1. Retrieves a limited number of queue items from the repository
+     * 2. Creates a progress bar for visual feedback during processing
+     * 3. For each queue item:
+     *    - Fetches the corresponding record from the database
+     *    - Creates an appropriate indexer instance for the record type
+     *    - Retrieves the indexing service configuration
+     *    - Indexes the record using the indexer and service configuration
+     *    - Removes the processed item from the queue
+     *    - Updates the progress bar and registry
+     * 4. Updates the last execution time in the queue status service
+     * 5. Displays a success message upon completion
+     *
+     * The method handles error cases gracefully, particularly for records that
+     * exceed size limits in the search engine.
+     *
+     * @param int $documentsToIndex The maximum number of documents to process in this batch
      *
      * @return void
      */
@@ -226,11 +323,22 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     }
 
     /**
-     * Queries a record from the table the item belongs to.
+     * Retrieves the database record corresponding to a queue item.
      *
-     * @param QueueItem $item
+     * This method performs a database query to fetch the complete record that
+     * is referenced by a queue item. It:
+     * 1. Gets a query builder for the appropriate database table
+     * 2. Builds a query to select all fields from the record with the specified UID
+     * 3. Executes the query and returns the record as an associative array
+     * 4. Catches any exceptions that might occur during the database operation
      *
-     * @return array<string, mixed>|false
+     * The method is designed to be fault-tolerant, returning false if any errors
+     * occur during the database operation rather than allowing exceptions to
+     * propagate and potentially disrupt the entire indexing process.
+     *
+     * @param QueueItem $item The queue item containing table name and record UID information
+     *
+     * @return array<string, mixed>|false The record as an associative array or false if not found or on error
      */
     private function fetchRecord(QueueItem $item): array|bool
     {
@@ -255,7 +363,19 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
     }
 
     /**
-     * @return float
+     * Returns the current progress percentage of the indexing process.
+     *
+     * This method implements the ProgressProviderCommandInterface by retrieving
+     * the current progress from the TYPO3 registry. The progress is stored in the
+     * registry during the indexing process by the indexItems() method, allowing
+     * the scheduler to display accurate progress information.
+     *
+     * The progress value is stored in the registry as a decimal between 0 and 1,
+     * but is returned as a percentage between 0 and 100 to conform to the
+     * interface requirements. If no progress value is found in the registry
+     * (e.g., if the command hasn't started yet), it returns 0.
+     *
+     * @return float The progress percentage as a value between 0 and 100
      */
     #[Override]
     public function getProgress(): float

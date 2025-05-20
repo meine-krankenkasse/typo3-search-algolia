@@ -14,7 +14,16 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia;
 use function is_array;
 
 /**
- * Class IndexerRegistry.
+ * Registry for managing indexer configurations.
+ *
+ * This class provides a central registry for all indexers in the system.
+ * It allows for:
+ * - Registering new indexers with their associated table names and metadata
+ * - Retrieving the list of all registered indexers
+ * - Looking up indexer-specific information like icons
+ *
+ * The registry stores indexer configurations in the TYPO3 global configuration
+ * array, making them accessible throughout the system.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -23,12 +32,20 @@ use function is_array;
 class IndexerRegistry
 {
     /**
-     * Registers a new indexer.
+     * Registers a new indexer in the system.
      *
-     * @param class-string $className The class name of the actual indexer
-     * @param string       $tableName The name of the table to which the indexer refers (must be unique among all indexers)
-     * @param string       $title     The title of the indexer (used inside TCA selectors)
-     * @param string|null  $icon      The icon of the indexer (used inside TCA selectors)
+     * This method adds a new indexer configuration to the global registry.
+     * Each indexer is associated with a specific database table and includes
+     * metadata like a title and icon for use in the TYPO3 backend interface.
+     *
+     * The registration process stores the indexer configuration in the TYPO3
+     * global configuration array, making it available for the IndexerFactory
+     * to create instances when needed.
+     *
+     * @param class-string $className The fully qualified class name of the indexer implementation
+     * @param string       $tableName The database table name this indexer processes (must be unique among all indexers)
+     * @param string       $title     The human-readable title of the indexer (used in backend interfaces)
+     * @param string|null  $icon      The icon identifier for the indexer (used in backend interfaces)
      */
     public static function register(
         string $className,
@@ -47,7 +64,13 @@ class IndexerRegistry
     /**
      * Returns the list of all registered indexers.
      *
-     * @return array<int, array{className: class-string, tableName: string, title: string, icon: string|null}>
+     * This method retrieves all indexer configurations that have been registered
+     * in the system. It accesses the TYPO3 global configuration array to fetch
+     * the complete list of indexers with their associated metadata.
+     *
+     * If no indexers have been registered, an empty array is returned.
+     *
+     * @return array<int, array{className: class-string, tableName: string, title: string, icon: string|null}> Array of indexer configurations, each containing className, tableName, title, and icon
      */
     public static function getRegisteredIndexers(): array
     {
@@ -61,11 +84,18 @@ class IndexerRegistry
     }
 
     /**
-     * Returns the icon of the indexer.
+     * Returns the icon identifier for a specific indexer.
      *
-     * @param string $tableName
+     * This method looks up the icon associated with an indexer based on its
+     * table name. It iterates through all registered indexers to find the
+     * matching one and returns its icon identifier.
      *
-     * @return string
+     * If no matching indexer is found or if the indexer doesn't have an icon
+     * configured, an empty string is returned.
+     *
+     * @param string $tableName The database table name of the indexer to look up
+     *
+     * @return string The icon identifier for the indexer or an empty string if not found
      */
     public static function getIndexerIcon(string $tableName): string
     {

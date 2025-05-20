@@ -27,7 +27,18 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 /**
- * The record data handler.
+ * Core handler for database record operations in the search indexing process.
+ *
+ * This class manages the lifecycle of records in the search indexing system:
+ * - Adding records to the indexing queue
+ * - Removing records from the queue
+ * - Updating records in the queue when content changes
+ * - Deleting records from search indices
+ * - Managing relationships between records (e.g., content elements on pages)
+ *
+ * It serves as a central coordination point between the TYPO3 DataHandler hooks,
+ * the indexing queue, and the search engine services, ensuring that database
+ * records are properly synchronized with search indices.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -36,38 +47,72 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 class RecordHandler
 {
     /**
+     * Factory for creating search engine service instances.
+     *
+     * This factory is used to create instances of search engine services based on
+     * their type (e.g., Algolia). These services provide the actual implementation
+     * for communicating with the search engine APIs.
+     *
      * @var SearchEngineFactory
      */
     private readonly SearchEngineFactory $searchEngineFactory;
 
     /**
+     * Factory for creating indexer instances.
+     *
+     * This factory is used to create instances of indexers based on their type
+     * (e.g., page indexer, content indexer, file indexer). These indexers handle
+     * the actual process of adding items to the indexing queue.
+     *
      * @var IndexerFactory
      */
     private readonly IndexerFactory $indexerFactory;
 
     /**
+     * Repository for page-related operations.
+     *
+     * This repository provides methods for retrieving page information,
+     * particularly for determining root page IDs and page hierarchies
+     * that are essential for proper indexing context.
+     *
      * @var PageRepository
      */
     private readonly PageRepository $pageRepository;
 
     /**
+     * Repository for accessing indexing service configurations.
+     *
+     * This repository provides access to the indexing service configurations stored
+     * in the database, which define what content should be indexed and how.
+     *
      * @var IndexingServiceRepository
      */
     private readonly IndexingServiceRepository $indexingServiceRepository;
 
     /**
+     * Repository for content element operations.
+     *
+     * This repository provides methods for retrieving content elements,
+     * particularly for finding all content elements on a specific page
+     * that need to be indexed or removed from the index.
+     *
      * @var ContentRepository
      */
     private readonly ContentRepository $contentRepository;
 
     /**
-     * Constructor.
+     * Initializes the record handler with required dependencies.
      *
-     * @param SearchEngineFactory       $searchEngineFactory
-     * @param IndexerFactory            $indexerFactory
-     * @param PageRepository            $pageRepository
-     * @param IndexingServiceRepository $indexingServiceRepository
-     * @param ContentRepository         $contentRepository
+     * This constructor injects all the services and repositories needed for the
+     * record handler to manage database records in the search indexing system.
+     * It follows TYPO3's dependency injection pattern to ensure the handler
+     * has access to all required functionality.
+     *
+     * @param SearchEngineFactory       $searchEngineFactory       Factory for creating search engine service instances
+     * @param IndexerFactory            $indexerFactory            Factory for creating indexer instances
+     * @param PageRepository            $pageRepository            Repository for page-related operations
+     * @param IndexingServiceRepository $indexingServiceRepository Repository for accessing indexing service configurations
+     * @param ContentRepository         $contentRepository         Repository for content element operations
      */
     public function __construct(
         SearchEngineFactory $searchEngineFactory,
@@ -84,12 +129,21 @@ class RecordHandler
     }
 
     /**
-     * Create a generator to return the indexing service and the associated indexer instance.
+     * Creates a generator that yields indexing service and indexer instance pairs.
      *
-     * @param int    $rootPageId The root page UID
-     * @param string $tableName  The name of the table to be processed
+     * This method finds all indexing services configured for a specific table name
+     * and creates the appropriate indexer instances for each service. It returns
+     * a generator that yields pairs of indexing service and indexer instance,
+     * allowing for efficient iteration over all applicable indexers without
+     * loading them all into memory at once.
      *
-     * @return Generator
+     * The method also filters indexers based on the root page ID to ensure that
+     * only indexers relevant to the current page tree are included.
+     *
+     * @param int    $rootPageId The root page UID to filter indexing services by page tree
+     * @param string $tableName  The name of the database table to find indexing services for
+     *
+     * @return Generator A generator yielding pairs of IndexingService => IndexerInterface
      */
     public function createIndexerGenerator(int $rootPageId, string $tableName): Generator
     {
@@ -112,15 +166,25 @@ class RecordHandler
     }
 
     /**
-     * Removes the given record from the queue table if it exists and adds it again.
+     * Updates a record in the indexing queue by removing and re-adding it.
      *
-     * @param int    $rootPageId The root page UID
-     * @param string $tableName  The name of the table to be processed
-     * @param int    $recordUid  The UID of the record to be processed
+     * This method is called when a record has been modified and needs to be
+     * re-indexed. It:
+     * 1. Finds all applicable indexing services for the record's table
+     * 2. For each service, creates the appropriate indexer instance
+     * 3. Removes the record from the queue (dequeueOne)
+     * 4. Immediately adds it back to the queue (enqueueOne)
+     *
+     * This process ensures that the record will be re-indexed with its latest
+     * content during the next indexing run.
+     *
+     * @param int    $rootPageId The root page UID to filter indexing services by page tree
+     * @param string $tableName  The name of the database table containing the record
+     * @param int    $recordUid  The unique identifier of the record to update in the queue
      *
      * @return void
      *
-     * @throws Exception
+     * @throws Exception If a database error occurs during the queue operations
      */
     public function updateRecordInQueue(int $rootPageId, string $tableName, int $recordUid): void
     {
@@ -136,15 +200,27 @@ class RecordHandler
     }
 
     /**
-     * Processes the page of a content element and removes and re-adds it to the queue item table
-     * if the page stores the content of content elements along with the page properties.
+     * Updates a page in the indexing queue when one of its content elements changes.
      *
-     * @param int $rootPageId The root page UID
-     * @param int $pageId     The UID of the page to be processed
+     * This method is called when a content element has been modified, and the
+     * containing page needs to be re-indexed as a result. It only takes action
+     * if the page indexer is configured to include content elements in the page
+     * index record (isIncludeContentElements() returns true).
+     *
+     * The method:
+     * 1. Finds all page indexers applicable to the page's root page
+     * 2. Checks if each indexer is configured to include content elements
+     * 3. For those that do, removes the page from the queue and re-adds it
+     *
+     * This ensures that when content elements change, the page index is updated
+     * to reflect those changes during the next indexing run.
+     *
+     * @param int $rootPageId The root page UID to filter indexing services by page tree
+     * @param int $pageId     The unique identifier of the page containing the modified content element
      *
      * @return void
      *
-     * @throws Exception
+     * @throws Exception If a database error occurs during the queue operations
      */
     public function processPageOfContentElement(int $rootPageId, int $pageId): void
     {
@@ -173,12 +249,28 @@ class RecordHandler
     }
 
     /**
-     * Processes all content elements related to the page. Removes or adds elements from the queue and index.
+     * Manages the indexing status of all content elements on a specific page.
      *
-     * @param int  $pageId                    The UID of the page to be processed
-     * @param bool $removePageContentElements TRUE to remove elements from queue and index
+     * This method is typically called when a page is being processed (e.g., moved,
+     * deleted, or hidden) and its content elements need to be updated accordingly
+     * in the indexing queue and search indices.
      *
-     * @throws Exception
+     * The method:
+     * 1. Finds all content element indexer services
+     * 2. Retrieves all content elements on the specified page
+     * 3. Based on the $removePageContentElements parameter:
+     *    - If true: Removes all content elements from both the queue and search indices
+     *    - If false: Adds all content elements to the queue for indexing
+     *
+     * This ensures that content elements are properly synchronized with their
+     * parent page's status in the search system.
+     *
+     * @param int  $pageId                    The unique identifier of the page containing the content elements
+     * @param bool $removePageContentElements Whether to remove elements from queue and index (true) or add them to the queue (false)
+     *
+     * @return void
+     *
+     * @throws Exception If a database error occurs during the queue or index operations
      */
     public function processContentElementsOfPage(int $pageId, bool $removePageContentElements): void
     {
@@ -227,12 +319,22 @@ class RecordHandler
     }
 
     /**
-     * Returns the root page ID for the specified table and record UID.
+     * Determines the root page ID for any record in the TYPO3 page tree.
      *
-     * @param string $tableName The table name used for the query
-     * @param int    $recordUid The UID of the data record to be queried
+     * This method finds the root page (the top-level page in a site) that contains
+     * a given record. For page records, it directly determines the root page.
+     * For other record types, it first finds the page containing the record,
+     * then determines the root page for that page.
      *
-     * @return int
+     * The root page ID is essential for:
+     * - Determining which indexing services apply to a record
+     * - Ensuring records are indexed in the correct site context
+     * - Maintaining proper page tree hierarchies in search results
+     *
+     * @param string $tableName The database table name of the record
+     * @param int    $recordUid The unique identifier of the record
+     *
+     * @return int The root page ID for the record, or 0 if no valid root page is found
      */
     public function getRecordRootPageId(string $tableName, int $recordUid): int
     {
@@ -246,12 +348,19 @@ class RecordHandler
     }
 
     /**
-     * Returns the ID of the page where the record is stored or 0 if no valid record was found.
+     * Retrieves the parent page ID for any non-page record in TYPO3.
      *
-     * @param string $tableName The table name from which the record is retrieved
-     * @param int    $recordUid The UID of the data record to be retrieved
+     * This helper method finds the page that contains a given record by looking up
+     * the 'pid' field of the record. In TYPO3, most records have a 'pid' field that
+     * indicates which page they belong to.
      *
-     * @return int
+     * The method uses TYPO3's BackendUtility::getRecord() to efficiently retrieve
+     * just the 'pid' field without loading the entire record.
+     *
+     * @param string $tableName The database table name of the record
+     * @param int    $recordUid The unique identifier of the record
+     *
+     * @return int The parent page ID for the record, or 0 if the record doesn't exist or has no valid pid
      */
     private function getRecordPageId(string $tableName, int $recordUid): int
     {
@@ -265,13 +374,25 @@ class RecordHandler
     }
 
     /**
-     * Returns the indexer instance to the given indexing service belonging to the same page tree
-     * as the given root page ID.
+     * Finds the appropriate indexer instance for a given indexing service and page tree.
      *
-     * @param IndexingService $indexingService
-     * @param int             $rootPageId
+     * This method determines if an indexing service is applicable to a specific
+     * page tree (identified by its root page ID) and creates the corresponding
+     * indexer instance if it is. The method:
      *
-     * @return IndexerInterface|null
+     * 1. For non-file records, checks if the indexing service belongs to the same
+     *    page tree as the specified root page ID
+     * 2. For file metadata records (sys_file_metadata), skips the page tree check
+     *    since files can be used across multiple page trees
+     * 3. Creates and returns the appropriate indexer instance if the service is applicable
+     *
+     * This filtering ensures that records are only indexed by services that are
+     * configured for their specific site/page tree context.
+     *
+     * @param IndexingService $indexingService The indexing service configuration to check
+     * @param int             $rootPageId      The root page ID to check against
+     *
+     * @return IndexerInterface|null The configured indexer instance or null if not applicable
      */
     private function getResponsibleRecordIndexer(
         IndexingService $indexingService,
@@ -297,13 +418,26 @@ class RecordHandler
     }
 
     /**
-     * Removes a record from the queue item table and the search engine index if requested.
+     * Removes a single record from the indexing queue and optionally from the search index.
      *
-     * @param IndexingService  $indexingService
-     * @param IndexerInterface $indexerInstance
-     * @param string           $tableName
-     * @param int              $recordUid
-     * @param bool             $isRemoveFromIndex
+     * This method is called when a record needs to be removed from the search system,
+     * typically because it has been deleted, hidden, or otherwise made unavailable.
+     * It performs two separate but related operations:
+     *
+     * 1. Always removes the record from the indexing queue to prevent it from being
+     *    indexed in future indexing runs
+     * 2. Optionally removes the record from the actual search engine index based on
+     *    the $isRemoveFromIndex parameter
+     *
+     * This two-step approach allows for flexible handling of different scenarios,
+     * such as temporarily removing items from the queue without affecting the
+     * search index, or completely purging items from both systems.
+     *
+     * @param IndexingService  $indexingService   The indexing service configuration to use
+     * @param IndexerInterface $indexerInstance   The indexer instance for the record's type
+     * @param string           $tableName         The database table name of the record
+     * @param int              $recordUid         The unique identifier of the record
+     * @param bool             $isRemoveFromIndex Whether to also remove the record from the search engine index
      *
      * @return void
      */
@@ -329,13 +463,27 @@ class RecordHandler
     }
 
     /**
-     * Removes a record from the queue item table and the search engine index if requested.
+     * Removes multiple records from the indexing queue and optionally from the search index.
      *
-     * @param IndexingService  $indexingService
-     * @param IndexerInterface $indexerInstance
-     * @param string           $tableName
-     * @param int[]            $recordUids
-     * @param bool             $isRemoveFromIndex
+     * This method is the batch version of deleteRecord(), handling multiple records
+     * at once for better performance. It's typically called when a group of related
+     * records needs to be removed from the search system, such as when:
+     * - A page with multiple content elements is deleted
+     * - A category with multiple items is hidden
+     * - A bulk operation affects multiple records
+     *
+     * Like deleteRecord(), it performs two operations:
+     * 1. Always removes the records from the indexing queue
+     * 2. Optionally removes the records from the search engine index
+     *
+     * Processing multiple records in a single operation is more efficient than
+     * calling deleteRecord() repeatedly, especially for the queue operations.
+     *
+     * @param IndexingService  $indexingService   The indexing service configuration to use
+     * @param IndexerInterface $indexerInstance   The indexer instance for the records' type
+     * @param string           $tableName         The database table name of the records
+     * @param int[]            $recordUids        Array of unique identifiers for the records to delete
+     * @param bool             $isRemoveFromIndex Whether to also remove the records from the search engine index
      *
      * @return void
      */
@@ -361,11 +509,23 @@ class RecordHandler
     }
 
     /**
-     * Removes a record from the search engine index.
+     * Removes a single record from the search engine index.
      *
-     * @param SearchEngine $searchEngine
-     * @param string       $tableName
-     * @param int          $recordUid
+     * This helper method handles the actual communication with the search engine
+     * to remove a record from the search index. It:
+     *
+     * 1. Creates the appropriate search engine service instance based on the
+     *    search engine configuration (e.g., Algolia)
+     * 2. Configures the service with the correct index name
+     * 3. Calls the deleteFromIndex method to remove the record from the index
+     *
+     * The method silently returns if the search engine service cannot be created,
+     * which might happen if the search engine configuration is invalid or if
+     * the search engine type is not supported.
+     *
+     * @param SearchEngine $searchEngine The search engine configuration to use
+     * @param string       $tableName    The database table name of the record
+     * @param int          $recordUid    The unique identifier of the record to delete
      *
      * @return void
      */
@@ -391,11 +551,24 @@ class RecordHandler
     }
 
     /**
-     * Removes a record from the search engine index.
+     * Removes multiple records from the search engine index.
      *
-     * @param SearchEngine $searchEngine
-     * @param string       $tableName
-     * @param int[]        $recordUids
+     * This helper method handles the actual communication with the search engine
+     * to remove multiple records from the search index. Unlike deleteRecordFromSearchEngine,
+     * this method processes an array of record UIDs, but it does so by iterating through
+     * them and calling deleteFromIndex individually for each record.
+     *
+     * The method:
+     * 1. Creates the appropriate search engine service instance
+     * 2. Configures the service with the correct index name
+     * 3. Iterates through each record UID and calls deleteFromIndex for each one
+     *
+     * This approach ensures that each record is properly removed from the index,
+     * even if some records might fail (the operation continues with the next record).
+     *
+     * @param SearchEngine $searchEngine The search engine configuration to use
+     * @param string       $tableName    The database table name of the records
+     * @param int[]        $recordUids   Array of unique identifiers for the records to delete
      *
      * @return void
      */
