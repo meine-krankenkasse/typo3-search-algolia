@@ -34,7 +34,8 @@
         "phpstan/phpstan": "^1.0",
         "phpstan/phpstan-strict-rules": "^1.0",
         "phpstan/phpstan-deprecation-rules": "^1.0",
-        "ssch/typo3-rector": "^2.0"
+        "ssch/typo3-rector": "^2.0",
+        "a9f/typo3-fractor": "^0.5"
     },
     "config": {
         "bin-dir": ".build/bin",
@@ -45,7 +46,8 @@
         "platform-check": false,
         "allow-plugins": {
             "typo3/class-alias-loader": true,
-            "typo3/cms-composer-installers": true
+            "typo3/cms-composer-installers": true,
+            "a9f/fractor-extension-installer": true
         }
     },
     "extra": {
@@ -69,6 +71,9 @@
         "ci:rector": [
             "rector process --config Build/rector.php"
         ],
+        "ci:fractor": [
+            "fractor process --config Build/fractor.php"
+        ],
         "ci:test:php:cgl": [
             "@ci:cgl --dry-run"
         ],
@@ -84,10 +89,14 @@
         "ci:test:php:rector": [
             "@ci:rector --dry-run"
         ],
+        "ci:test:php:fractor": [
+            "@ci:fractor --dry-run"
+        ],
         "ci:test": [
             "@ci:test:php:lint",
             "@ci:test:php:phpstan",
             "@ci:test:php:rector",
+            "@ci:test:php:fractor",
             "@ci:test:php:cgl"
         ]
     }
