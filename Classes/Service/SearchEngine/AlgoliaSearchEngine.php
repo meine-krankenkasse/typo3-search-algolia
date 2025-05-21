@@ -134,12 +134,17 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
      */
     public function init(): bool
     {
-        $this->client = SearchClient::create(
-            $this->appId,
-            $this->apiKey
-        );
+        try {
+            $this->client = SearchClient::create(
+                $this->appId,
+                $this->apiKey
+            );
 
-        return true;
+            return true;
+        } catch (Throwable) {
+            // Log the error or handle it appropriately
+            return false;
+        }
     }
 
     /**

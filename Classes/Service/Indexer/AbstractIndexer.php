@@ -480,10 +480,12 @@ abstract class AbstractIndexer implements IndexerInterface
             $this->getAdditionalQueryConstraints($queryBuilder)
         );
 
-        $constraints[] = $queryBuilder->expr()->in(
-            'uid',
-            $recordUids,
-        );
+        if ($recordUids !== []) {
+            $constraints[] = $queryBuilder->expr()->in(
+                'uid',
+                $recordUids,
+            );
+        }
 
         return $this
             ->fetchRecords($queryBuilder, $constraints)

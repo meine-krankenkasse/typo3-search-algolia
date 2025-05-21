@@ -111,8 +111,15 @@ class UpdateAssembledFileDocumentEventListener
         $record    = $event->getRecord();
         $sysFileId = $record['file'];
 
-        /** @var FileInterface $file */
-        $file = $this->fileRepository->findByUid($sysFileId);
+        try {
+            $file = $this->fileRepository->findByUid($sysFileId);
+        } catch (Exception) {
+            $file = null;
+        }
+
+        if ($file === null) {
+            return;
+        }
 
         // Add file-related fields
         $document->setField(
@@ -216,6 +223,6 @@ class UpdateAssembledFileDocumentEventListener
             );
         }
 
-        return $content !== '' ? $content : null;
+        return ($content !== false) && ($content !== '') ? $content : null;
     }
 }

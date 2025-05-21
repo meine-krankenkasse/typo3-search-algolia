@@ -194,10 +194,16 @@ class UpdateAssembledPageDocumentEventListener
         }
 
         if ($event->getIndexingService()->isIncludeContentElements()) {
-            $document->setField(
-                'content',
-                $this->getPageContent($pageId)
-            );
+            try {
+                $document->setField(
+                    'content',
+                    $this->getPageContent($pageId)
+                );
+            } catch (Exception) {
+                // Silently continue without content if an exception occurs
+
+                // TODO Track indexing errors and display failed records in backend
+            }
         }
     }
 
