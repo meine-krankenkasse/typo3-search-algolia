@@ -1,5 +1,7 @@
 # Indexers
 
+Indexers are the core components of the TYPO3 Search Algolia extension that extract and process data from various TYPO3 content types for search indexing. They serve as the bridge between your TYPO3 content and the Algolia search service, ensuring that your content is properly structured and optimized for search.
+
 ## General
 
 An indexer provides the necessary knowledge for processing the associated data, i.e., it knows exactly which data needs
@@ -13,7 +15,7 @@ To add additional indexers, see: [Custom Indexer](CustomIndexer.md)
 
 ## Available Indexers
 The following indexers are already implemented: 
- 
+
 - [Content Element Indexer](ContentElementIndexer.md)
 - [File Indexer](FileIndexer.md)
 - [News Indexer](NewsIndexer.md)

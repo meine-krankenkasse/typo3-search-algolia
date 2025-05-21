@@ -48,7 +48,7 @@ Create a new record of type "Search Engine".
 
 Add a title, an optional description to the new record, and select the search engine service to use (the default
 available one is "Algolia Search Service"). To create a custom search engine service, refer
-to: [Cstom Search Engine](CustomSearchEngine.md)
+to: [Custom Search Engine](CustomSearchEngine.md)
 
 Add a search engine dependent configuration into the "index_name" field. In the case of Algolia searches, this is the
 name of an index within Algolia in which the indexed data will ultimately be stored.
