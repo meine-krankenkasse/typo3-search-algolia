@@ -14,6 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\CategoryRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
@@ -77,6 +78,16 @@ class UpdateAssembledPageDocumentEventListener
     private readonly ContentRepository $contentRepository;
 
     /**
+     * Repository for accessing system categories stored in the database.
+     *
+     * This property stores the CategoryRepository service that is used to retrieve
+     * system categories assigned to a page.
+     *
+     * @var CategoryRepository
+     */
+    private readonly CategoryRepository $categoryRepository;
+
+    /**
      * Service for accessing TypoScript configuration values.
      *
      * This property stores the TypoScriptService that provides access to
@@ -116,18 +127,21 @@ class UpdateAssembledPageDocumentEventListener
      * enhancing page documents with site-specific information and content,
      * making search results more useful and comprehensive.
      *
-     * @param SiteFinder        $siteFinder        The TYPO3 site finder service
-     * @param ContentRepository $contentRepository The repository for accessing content elements
-     * @param TypoScriptService $typoScriptService The service for accessing TypoScript configuration
+     * @param SiteFinder         $siteFinder         The TYPO3 site finder service
+     * @param ContentRepository  $contentRepository  The repository for accessing content elements
+     * @param CategoryRepository $categoryRepository The repository for accessing system categories
+     * @param TypoScriptService  $typoScriptService  The service for accessing TypoScript configuration
      */
     public function __construct(
         SiteFinder $siteFinder,
         ContentRepository $contentRepository,
+        CategoryRepository $categoryRepository,
         TypoScriptService $typoScriptService,
     ) {
-        $this->siteFinder        = $siteFinder;
-        $this->contentRepository = $contentRepository;
-        $this->typoScriptService = $typoScriptService;
+        $this->siteFinder         = $siteFinder;
+        $this->contentRepository  = $contentRepository;
+        $this->categoryRepository = $categoryRepository;
+        $this->typoScriptService  = $typoScriptService;
     }
 
     /**
@@ -168,10 +182,24 @@ class UpdateAssembledPageDocumentEventListener
         $pageId   = $record['uid'];
         $site     = $this->getSite($pageId);
 
-        // Set page related fields
+        // Set page-related fields
         $document->setField(
             'site',
             $this->getSiteDomain($site)
+        );
+
+        // Add categories
+        // TODO Add categories as default to each document?
+        $document->setField(
+            'categories',
+            array_unique(
+                array_values(
+                    $this->categoryRepository->findAssignedToRecord(
+                        $this->event->getIndexer()->getTable(),
+                        $pageId
+                    )
+                )
+            )
         );
 
         if ($record['SYS_LASTCHANGED'] !== 0) {

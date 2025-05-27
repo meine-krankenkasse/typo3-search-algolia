@@ -26,16 +26,6 @@ services:
     MeineKrankenkasse\Typo3SearchAlgolia\Hook\DataHandlerHook:
         public: true
 
-#    # Indexers
-#    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer:
-#        public: true
-#
-#    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer:
-#        public: true
-#
-#    MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer:
-#        public: true
-
     # Event listeners
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\CreateDefaultDocumentIdEventListener:
         tags:
