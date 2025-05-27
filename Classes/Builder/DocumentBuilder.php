@@ -256,15 +256,14 @@ class DocumentBuilder
             return;
         }
 
-        $indexerType             = $this->indexer->getTable();
-        $typoscriptConfiguration = $this->typoScriptService->getTypoScriptConfiguration();
+        $indexerType  = $this->indexer->getTable();
+        $fieldMapping = $this->typoScriptService->getFieldMappingByType($indexerType);
 
         foreach ($this->record as $recordFieldName => $recordValue) {
-            if (!isset($typoscriptConfiguration['indexer'][$indexerType]['fields'][$recordFieldName])) {
+            if (!isset($fieldMapping[$recordFieldName])) {
                 continue;
             }
 
-            $fieldName  = $typoscriptConfiguration['indexer'][$indexerType]['fields'][$recordFieldName];
             $fieldValue = $recordValue;
 
             // Ignore empty field values
@@ -281,7 +280,7 @@ class DocumentBuilder
             }
 
             $this->document->setField(
-                $fieldName,
+                $fieldMapping[$recordFieldName],
                 ContentExtractor::cleanHtml($fieldValue)
             );
         }

@@ -190,6 +190,7 @@ return [
                 ],
                 'minitems'    => 1,
                 'maxitems'    => 1,
+                'default'     => 'pages',
                 'fieldWizard' => [
                     'typeInformation' => [
                         'renderType' => 'IndexerTypeInfoText',

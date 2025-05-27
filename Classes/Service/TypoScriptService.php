@@ -16,6 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
+use function is_array;
 use function is_string;
 
 /**
@@ -78,6 +79,35 @@ readonly class TypoScriptService
             );
 
         return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'];
+    }
+
+    /**
+     * Returns the field mapping for a specific indexer type.
+     *
+     * This method retrieves the field mapping for a specific indexer type
+     * from the extension's TypoScript configuration. The field mapping
+     * defines which fields should be indexed for a specific content type.
+     *
+     * The field mapping is an array of field names, where each field name
+     * corresponds to a field in the content record. The field mapping is
+     * used by the indexer to determine which fields should be indexed for
+     * a specific content type.
+     *
+     * @param string $indexerType
+     *
+     * @return string[]
+     */
+    public function getFieldMappingByType(string $indexerType): array
+    {
+        $typoscriptConfiguration = $this->getTypoScriptConfiguration();
+
+        if (isset($typoscriptConfiguration['indexer'][$indexerType]['fields'])
+            && is_array($typoscriptConfiguration['indexer'][$indexerType]['fields'])
+        ) {
+            return $typoscriptConfiguration['indexer'][$indexerType]['fields'];
+        }
+
+        return [];
     }
 
     /**

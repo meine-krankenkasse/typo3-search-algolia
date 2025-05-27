@@ -25,8 +25,6 @@ use TYPO3\CMS\Core\Site\Entity\SiteInterface;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-use function is_array;
-
 /**
  * Event listener for enhancing page documents with site-specific information and content.
  *
@@ -302,11 +300,11 @@ class UpdateAssembledPageDocumentEventListener
      */
     private function getPageContent(int $pageId): ?string
     {
-        // Get configured fields
-        $typoscriptConfiguration = $this->typoScriptService->getTypoScriptConfiguration();
-        $contentElementFields    = $typoscriptConfiguration['indexer'][ContentIndexer::TABLE]['fields'];
+        // Get the default configured mapping fields
+        $contentElementFields = $this->typoScriptService
+            ->getFieldMappingByType(ContentIndexer::TABLE);
 
-        if (!is_array($contentElementFields)) {
+        if ($contentElementFields === []) {
             return null;
         }
 
