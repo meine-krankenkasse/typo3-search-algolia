@@ -264,8 +264,8 @@ class DocumentBuilder
                 continue;
             }
 
-            // Only allow scalars or classes with __toString() method.
-            if (!is_scalar($recordValue) && !($recordValue instanceof \Stringable)) {
+            // Only allow scalars.
+            if (!is_scalar($recordValue)) {
                 continue;
             }
 
