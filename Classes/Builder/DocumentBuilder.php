@@ -264,24 +264,22 @@ class DocumentBuilder
                 continue;
             }
 
-            $fieldValue = $recordValue;
-
-            // Ignore empty field values
-            if ($fieldValue === null) {
+            // Only allow scalars.
+            if (!is_scalar($recordValue)) {
                 continue;
             }
 
-            if ($fieldValue === '') {
-                continue;
-            }
+            // Force the value to a string for consistency. $recordValue should never be boolean.
+            $stringValue = (string) $recordValue;
 
-            if ($fieldValue === []) {
+            // Skip empty strings.
+            if ($stringValue === '') {
                 continue;
             }
 
             $this->document->setField(
                 $fieldMapping[$recordFieldName],
-                ContentExtractor::cleanHtml($fieldValue)
+                ContentExtractor::cleanHtml($stringValue)
             );
         }
     }
