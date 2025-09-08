@@ -1,3 +1,14 @@
+# 1.0.1
+
+## MISC
+
+- 436635a Add identifiers to each event listener
+- e3873c4 Update CategoryRepository to return whole record instead of just uid and title
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.0.0
 
 ## MISC
