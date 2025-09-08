@@ -30,66 +30,79 @@ services:
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\CreateDefaultDocumentIdEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/create-default-document-id-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledContentElementDocumentEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/update-assembled-content-element-document-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledFileDocumentEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/update-assembled-file-document-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledPageDocumentEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/update-assembled-page-document-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent
 
     # Record event listeners
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\RecordUpdateEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/record-update-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\RecordMoveEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/record-move-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\RecordDeleteEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/record-delete-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent
 
     # Resource event listeners
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileAddedEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/resource-after-file-added-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileAddedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileDeletedEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/resource-after-file-deleted-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileDeletedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileCopiedEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/resource-after-file-copied-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileCopiedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileMovedEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/resource-after-file-moved-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileMovedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileRenamedEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/resource-after-file-renamed-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileRenamedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileReplacedEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/resource-after-file-replaced-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileReplacedEvent
