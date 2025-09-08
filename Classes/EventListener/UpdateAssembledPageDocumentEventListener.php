@@ -188,15 +188,22 @@ class UpdateAssembledPageDocumentEventListener
             $this->getSiteDomain($site)
         );
 
+        // Get all assigned categories
+        $categories = $this->categoryRepository->findAssignedToRecord(
+            $this->event->getIndexer()->getTable(),
+            $pageId
+        );
+
         // Add categories
         // TODO Add categories as default to each document?
         $document->setField(
             'categories',
             array_unique(
                 array_values(
-                    $this->categoryRepository->findAssignedToRecord(
-                        $this->event->getIndexer()->getTable(),
-                        $pageId
+                    array_column(
+                        $categories,
+                        'title',
+                        'uid'
                     )
                 )
             )

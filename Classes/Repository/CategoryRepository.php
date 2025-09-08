@@ -65,7 +65,7 @@ readonly class CategoryRepository
             ->getQueryBuilderForTable($tableName);
 
         return $queryBuilder
-            ->select('sc.uid', 'sc.title')
+            ->select('sc.*')
             ->from('sys_category', 'sc')
             ->leftJoin('sc', 'sys_category_record_mm', 'mm', 'mm.uid_local = sc.uid')
             ->where(
@@ -84,6 +84,6 @@ readonly class CategoryRepository
             )
             ->orderBy('sc.title')
             ->executeQuery()
-            ->fetchAllKeyValue();
+            ->fetchAllAssociative();
     }
 }
