@@ -268,7 +268,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
 
         /** @var QueueItem $item */
         foreach ($queueItems as $item) {
-            // Get underlying record
+            // Get the underlying record
             $record = $this->fetchRecord($item);
 
             if ($record === false) {
