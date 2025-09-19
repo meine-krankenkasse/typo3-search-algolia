@@ -1,3 +1,14 @@
+# 1.0.2
+
+## MISC
+
+- 1e33ca7 Remove deprecated variable "PHP_CS_FIXER_IGNORE_ENV"
+- 8512977 Fix typo
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.0.1
 
 ## MISC
