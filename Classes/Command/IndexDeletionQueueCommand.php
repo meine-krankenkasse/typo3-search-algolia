@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Command;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\DeletionDetectionService;
 use Override;
 use Psr\Log\LoggerAwareInterface;
@@ -265,8 +265,8 @@ class IndexDeletionQueueCommand extends Command implements LoggerAwareInterface
      * RecordHandler.
      *
      * @param IndexingService $indexingService The indexing service configuration
-     * @param string                                                             $tableName       The database table name of the record
-     * @param int                                                                $recordUid       The unique identifier of the record
+     * @param string          $tableName       The database table name of the record
+     * @param int             $recordUid       The unique identifier of the record
      *
      * @return void
      */
