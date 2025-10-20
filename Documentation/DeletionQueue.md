@@ -57,7 +57,7 @@ The command can be scheduled in the TYPO3 Scheduler for automatic execution:
 
 1. Go to **System > Scheduler** in the TYPO3 Backend
 2. Create a new task of type "Execute console commands (scheduler)"
-3. Select the command `mkv:queue:index:deletion`
+3. Select the command `mkk:queue:index:deletion`
 4. Configure the frequency (recommended: daily or weekly)
 5. Optionally add the `--dry-run` flag for testing
 
@@ -193,11 +193,11 @@ The deletion queue system respects all indexing service configurations:
 
 ```bash
 # Run in dry-run mode to see what would be affected
-typo3 mkv:queue:index:deletion --dry-run
+typo3 mkk:queue:index:deletion --dry-run
 
 # Check indexing service configurations
 typo3 backend:user list
 
 # Verify queue status
-typo3 mkv:queue:index:worker --documentsToIndex=0
+typo3 mkk:queue:index:worker --documentsToIndex=0
 ```
