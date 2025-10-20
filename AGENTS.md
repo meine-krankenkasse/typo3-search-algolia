@@ -17,7 +17,7 @@ This extension provides seamless Algolia integration for TYPO3 CMS with configur
 
 **Installation:**
 ```bash
-nrdev composer require meine-krankenkasse/typo3-search-algolia
+composer require meine-krankenkasse/typo3-search-algolia
 ```
 
 **Configuration:**
@@ -29,22 +29,22 @@ nrdev composer require meine-krankenkasse/typo3-search-algolia
 
 **Install dependencies:**
 ```bash
-nrdev composer install
+composer install
 ```
 
 **Code quality checks:**
 ```bash
-nrdev composer ci:test           # Run all tests
-nrdev composer ci:test:php:lint  # PHP lint
-nrdev composer ci:test:php:phpstan # Static analysis
-nrdev composer ci:test:php:cgl   # Code style check
+composer ci:test           # Run all tests
+composer ci:test:php:lint  # PHP lint
+composer ci:test:php:phpstan # Static analysis
+composer ci:test:php:cgl   # Code style check
 ```
 
 **Code formatting:**
 ```bash
-nrdev composer ci:cgl            # Fix code style
-nrdev composer ci:rector         # Apply Rector fixes
-nrdev composer ci:fractor        # Apply Fractor fixes
+composer ci:cgl            # Fix code style
+composer ci:rector         # Apply Rector fixes
+composer ci:fractor        # Apply Fractor fixes
 ```
 
 ## Code Style
@@ -64,8 +64,8 @@ nrdev composer ci:fractor        # Apply Fractor fixes
 ## PR/Commit Checklist
 
 - [ ] **Conventional Commits** format
-- [ ] All tests pass (`nrdev composer ci:test`)
-- [ ] Code style fixed (`nrdev composer ci:cgl`)
+- [ ] All tests pass (`composer ci:test`)
+- [ ] Code style fixed (`composer ci:cgl`)
 - [ ] PHPStan analysis clean
 - [ ] Documentation updated if needed
 - [ ] CHANGELOG.md updated for user-facing changes

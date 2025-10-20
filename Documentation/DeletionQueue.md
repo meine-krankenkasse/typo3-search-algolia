@@ -45,10 +45,10 @@ The deletion queue command can be run manually or scheduled as a recurring task.
 
 ```bash
 # Run the deletion queue command
-nrdev typo3 mkk:queue:index:deletion
+typo3 mkk:queue:index:deletion
 
 # Run in dry-run mode to see what would be deleted without actually deleting
-nrdev typo3 mkk:queue:index:deletion --dry-run
+typo3 mkk:queue:index:deletion --dry-run
 ```
 
 #### Scheduled Execution
@@ -193,11 +193,11 @@ The deletion queue system respects all indexing service configurations:
 
 ```bash
 # Run in dry-run mode to see what would be affected
-nrdev typo3 mkv:queue:index:deletion --dry-run
+typo3 mkv:queue:index:deletion --dry-run
 
 # Check indexing service configurations
-nrdev typo3 backend:user list
+typo3 backend:user list
 
 # Verify queue status
-nrdev typo3 mkv:queue:index:worker --documentsToIndex=0
+typo3 mkv:queue:index:worker --documentsToIndex=0
 ```
