@@ -216,6 +216,7 @@ class UpdateAssembledFileDocumentEventListener
 
         // Prevent "json_encode error: Malformed UTF-8 characters, possibly incorrectly encoded"
         if (mb_detect_encoding($content) !== false) {
+            /** @var string|false $content */
             $content = mb_convert_encoding(
                 $content,
                 mb_detect_encoding($content),

@@ -520,7 +520,8 @@ abstract class AbstractIndexer implements IndexerInterface
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DefaultRestrictionContainer::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class))
+        ;
 
         // Get the field statement for determining when a record was last changed
         $changedFieldStatement = $this->getChangedFieldStatement();

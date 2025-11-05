@@ -15,8 +15,12 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use TYPO3\CMS\Core\Versioning\VersionState;
 
 use function is_int;
 
@@ -134,7 +138,10 @@ class DataHandlerHook
             return;
         }
 
-        // TODO Handle workspaces?
+        // Skip draft records (workspace versions)
+        if ($this->isRecordDraft($table, $recordUid)) {
+            return;
+        }
 
         $this->eventDispatcher
             ->dispatch(
@@ -172,6 +179,10 @@ class DataHandlerHook
         array|string $commandValue,
         DataHandler $dataHandler,
     ): void {
+        if ($this->getBackendUser()->workspace !== 0) {
+            return;
+        }
+
         if ($command === 'delete') {
             $this->eventDispatcher
                 ->dispatch(
@@ -211,10 +222,17 @@ class DataHandlerHook
         array|string $commandValue,
         DataHandler $dataHandler,
     ): void {
-        // TODO Handle workspaces?
         // TODO Handle copying of records
 
-        if ($command === 'move') {
+        // Skip draft records (workspace versions)
+        if ($this->isRecordDraft($table, $recordUid)) {
+            return;
+        }
+
+        if (
+            ($command === 'move')
+            && ($this->getBackendUser()->workspace === 0)
+        ) {
             $event = new DataHandlerRecordMoveEvent(
                 $table,
                 $recordUid,
@@ -276,5 +294,57 @@ class DataHandlerHook
             // Track the movement of record <TARGET PID> = <SOURCE PID>
             $this->recordMovements[$table][$destPid] = (int) $moveRec['pid'];
         }
+    }
+
+    /**
+     * Retrieves the currently authenticated backend user.
+     *
+     * This method provides access to the global backend user authentication object.
+     * The object contains user-specific data and permissions, enabling interaction
+     * with the current backend user session.
+     *
+     * @return BackendUserAuthentication the backend user authentication object representing the current user
+     */
+    private function getBackendUser(): BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * Determines whether a record is a draft version in a workspace.
+     *
+     * This method checks if a record from the specified table and UID is a draft
+     * version by evaluating workspace-specific properties such as `t3ver_state` and `t3ver_oid`.
+     * It ensures that the record belongs to a workspace-enabled table and checks
+     * the corresponding version state.
+     *
+     * @param string $tableName the name of the database table to retrieve the record from
+     * @param int    $recordUid the unique identifier (UID) of the record to evaluate
+     *
+     * @return bool returns true if the record is a draft associated with a workspace; false otherwise
+     */
+    private function isRecordDraft(string $tableName, int $recordUid): bool
+    {
+        if (
+            !ExtensionManagementUtility::isLoaded('workspaces')
+            || !BackendUtility::isTableWorkspaceEnabled($tableName)
+        ) {
+            return false;
+        }
+
+        $record = BackendUtility::getRecord(
+            $tableName,
+            $recordUid,
+            't3ver_state, t3ver_oid'
+        ) ?? [];
+
+        if (
+            isset($record['t3ver_state'])
+            && ($record['t3ver_state'] !== VersionState::DEFAULT_STATE)
+        ) {
+            return true;
+        }
+
+        return isset($record['t3ver_oid']) && ($record['t3ver_oid'] !== 0);
     }
 }

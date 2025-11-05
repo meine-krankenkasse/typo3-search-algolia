@@ -174,17 +174,19 @@ class DocumentBuilder
      */
     public function assemble(): DocumentBuilder
     {
-        if (!($this->indexer instanceof IndexerInterface)) {
+        $indexer = $this->indexer;
+
+        if (!($indexer instanceof IndexerInterface)) {
             return $this;
         }
 
         $this->document = GeneralUtility::makeInstance(
             Document::class,
-            $this->indexer,
+            $indexer,
             $this->record
         );
 
-        $tableName = $this->indexer->getTable();
+        $tableName = $indexer->getTable();
 
         // Set common fields
         $this->document
@@ -224,7 +226,7 @@ class DocumentBuilder
             ->dispatch(
                 new AfterDocumentAssembledEvent(
                     $this->document,
-                    $this->indexer,
+                    $indexer,
                     $this->indexingService,
                     $this->record
                 )
