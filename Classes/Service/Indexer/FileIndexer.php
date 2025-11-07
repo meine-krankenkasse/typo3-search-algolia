@@ -167,12 +167,12 @@ class FileIndexer extends AbstractIndexer
      * it retrieves files from file collections, filters them by extension and
      * indexability, and prepares them for indexing.
      *
-     * @param int[] $pageIds Unused parameter, kept for compatibility with parent method
+     * @param int[] $recordUids Unused parameter, kept for compatibility with parent method
      *
      * @return array<array-key, array<string, int|string>> Array of prepared file records
      */
     #[Override]
-    protected function initQueueItemRecords(array $pageIds = []): array
+    protected function initQueueItemRecords(array $recordUids = []): array
     {
         $collectionIds = GeneralUtility::intExplode(
             ',',

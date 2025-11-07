@@ -30,7 +30,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class RecordRepository
+readonly class RecordRepository
 {
     /**
      * TYPO3 database connection pool for direct database operations.
@@ -42,7 +42,7 @@ class RecordRepository
      *
      * @var ConnectionPool
      */
-    private readonly ConnectionPool $connectionPool;
+    private ConnectionPool $connectionPool;
 
     /**
      * Initializes the repository with the database connection pool.

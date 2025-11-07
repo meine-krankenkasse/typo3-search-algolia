@@ -13,6 +13,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 
@@ -55,6 +56,18 @@ class RecordDeleteEventListener
     private readonly RecordHandler $recordHandler;
 
     /**
+     * Repository for page-related operations.
+     *
+     * This property stores the PageRepository service that provides methods for
+     * retrieving page information and navigating page hierarchies. It is used to
+     * find subpages of a modified page, which is necessary for updating the entire
+     * page tree in the search index when a page is modified.
+     *
+     * @var PageRepository
+     */
+    private readonly PageRepository $pageRepository;
+
+    /**
      * Repository for accessing generic database records across different tables.
      *
      * This property stores the RecordRepository service that provides methods for
@@ -80,25 +93,22 @@ class RecordDeleteEventListener
     private DataHandlerRecordDeleteEvent $event;
 
     /**
-     * Initializes the event listener with required dependencies.
+     * Constructor method for initializing the class dependencies.
      *
-     * This constructor injects the services needed for handling record deletion operations:
-     * - The RecordHandler service provides methods for working with database records
-     *   in the context of search indexing, including determining root page IDs,
-     *   removing records from the queue and index, and processing related records.
-     * - The RecordRepository service provides methods for retrieving information
-     *   about database records, particularly for finding the parent page ID of
-     *   content elements that are being deleted.
+     * @param RecordHandler    $recordHandler    Instance of RecordHandler to manage records.
+     * @param RecordRepository $recordRepository Instance of RecordRepository for data storage operations related to records.
+     * @param PageRepository   $pageRepository   Instance of PageRepository for handling pages.
      *
-     * @param RecordHandler    $recordHandler    The record handler service for database operations
-     * @param RecordRepository $recordRepository The repository for accessing generic database records
+     * @return void
      */
     public function __construct(
         RecordHandler $recordHandler,
         RecordRepository $recordRepository,
+        PageRepository $pageRepository,
     ) {
         $this->recordHandler    = $recordHandler;
         $this->recordRepository = $recordRepository;
+        $this->pageRepository   = $pageRepository;
     }
 
     /**
@@ -128,9 +138,16 @@ class RecordDeleteEventListener
     {
         $this->event = $event;
 
+        $pageRecord = $this->pageRepository
+            ->getPageRecord(
+                $this->event->getTable(),
+                $this->event->getRecordUid()
+            );
+
         // Determine the root page ID for the event record
         $rootPageId = $this->recordHandler
             ->getRecordRootPageId(
+                $pageRecord,
                 $this->event->getTable(),
                 $this->event->getRecordUid()
             );
@@ -148,7 +165,8 @@ class RecordDeleteEventListener
 
             // Process page update
             if ($pageId !== false) {
-                $this->recordHandler->processPageOfContentElement($rootPageId, $pageId);
+                $this->recordHandler
+                    ->processPageOfContentElement($rootPageId, $pageId);
             }
         }
 

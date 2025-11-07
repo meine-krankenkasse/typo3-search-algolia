@@ -20,6 +20,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use function is_scalar;
+
 /**
  * This class is responsible for transforming database records into document
  * objects that can be indexed by search engines. It handles:

@@ -16,7 +16,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 /**
  * Event listener for handling record creation and update operations in the search indexing system.
@@ -148,16 +147,23 @@ class RecordUpdateEventListener
     {
         $this->event = $event;
 
+        $pageRecord = $this->pageRepository
+            ->getPageRecord(
+                $this->event->getTable(),
+                $this->event->getRecordUid()
+            );
+
         // Determine the root page ID for the event record
         $rootPageId = $this->recordHandler
             ->getRecordRootPageId(
+                $pageRecord,
                 $this->event->getTable(),
                 $this->event->getRecordUid()
             );
 
         $isRecordEnabled = $this->isRecordEnabled(
+            $pageRecord,
             $this->event->getTable(),
-            $this->event->getRecordUid()
         );
 
         // Update record at queue and index
@@ -167,7 +173,7 @@ class RecordUpdateEventListener
             $isRecordEnabled
         );
 
-        // Update page if required
+        // Update the page if required
         if ($this->isContentElementUpdate()) {
             // TODO Updating the page can be neglected if the changed content element is not taken
             //      into account in the page indexing service.
@@ -179,7 +185,8 @@ class RecordUpdateEventListener
 
             // Process page update
             if ($pageId !== false) {
-                $this->recordHandler->processPageOfContentElement($rootPageId, $pageId);
+                $this->recordHandler
+                    ->processPageOfContentElement($rootPageId, $pageId);
             }
         }
 
@@ -192,41 +199,97 @@ class RecordUpdateEventListener
                     !$isRecordEnabled
                 );
 
-            // Get all subpages of the current processed page
-            $subPageIds = $this->pageRepository
-                ->getPageIdsRecursive(
-                    [
-                        $this->event->getRecordUid(),
-                    ],
-                    99,
-                    false,
-                    true
-                );
+            $isSubpageRecordEnabled = $this->isSubpageUpdateRequired(
+                $this->event->getTable(),
+                $this->event->getRecordUid(),
+                $this->event->getFields()
+            );
 
-            // TODO Updates to subpages may only need to be made when visibility has changed and not with every update.
-            if ($subPageIds !== []) {
-                $this->processRecordUpdates(
-                    $rootPageId,
-                    $subPageIds,
-                    $isRecordEnabled
-                );
+            if ($isSubpageRecordEnabled) {
+                // Get all subpages of the current processed page
+                $subPageIds = $this->pageRepository
+                    ->getPageIdsRecursive(
+                        [
+                            $this->event->getRecordUid(),
+                        ],
+                        99,
+                        false,
+                        true
+                    );
 
-                foreach ($subPageIds as $subPageId) {
-                    // Subpage record is only enabled if the parent page record is also enabled
-                    $isSubpageRecordEnabled = $isRecordEnabled
-                        && $this->isRecordEnabled(
-                            $this->event->getTable(),
-                            $subPageId
-                        );
+                if ($subPageIds !== []) {
+                    $this->processRecordUpdates(
+                        $rootPageId,
+                        $subPageIds,
+                        $isRecordEnabled
+                    );
 
-                    $this->recordHandler
-                        ->processContentElementsOfPage(
-                            $subPageId,
-                            !$isSubpageRecordEnabled
-                        );
+                    foreach ($subPageIds as $subPageId) {
+                        $subpageRecord = $this->pageRepository
+                            ->getPageRecord(
+                                $this->event->getTable(),
+                                $subPageId
+                            );
+
+                        // Subpage record is only enabled if the parent page record is also enabled
+                        $isSubpageRecordEnabled = $isRecordEnabled
+                            && $this->isRecordEnabled(
+                                $subpageRecord,
+                                $this->event->getTable(),
+                            );
+
+                        $this->recordHandler
+                            ->processContentElementsOfPage(
+                                $subPageId,
+                                !$isSubpageRecordEnabled
+                            );
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * Determines whether an update is required for subpages based on changes in specific fields.
+     *
+     * @param string                    $tableName     The name of the database table containing the record.
+     * @param int                       $recordUid     The unique identifier of the record.
+     * @param array<string, int|string> $updatedFields An associative array of fields that were updated, with their new values.
+     *
+     * @return bool True if an update for subpages is required, false otherwise.
+     */
+    private function isSubpageUpdateRequired(string $tableName, int $recordUid, array $updatedFields = []): bool
+    {
+        $record = $this->pageRepository
+            ->getPageRecord(
+                $tableName,
+                $recordUid,
+                'hidden, extendToSubpages',
+                false,
+            );
+
+        // Fields "hidden" changes from 1 => 0 and "extendToSubpages" from 1 => 0
+        if (
+            isset($updatedFields['hidden'], $updatedFields['extendToSubpages'])
+            && (((int) $updatedFields['hidden']) === 0)
+            && (((int) $updatedFields['extendToSubpages']) === 0)
+        ) {
+            return true;
+        }
+
+        // Page has "extendToSubpages" enabled, Field "hidden" changed: 1 => 0,
+        if (
+            isset($record['extendToSubpages'], $updatedFields['hidden'])
+            && ($record['extendToSubpages'] === 1)
+            && (((int) $updatedFields['hidden']) === 0)
+        ) {
+            return true;
+        }
+
+        // Page has "hidden" enabled, Field "extendToSubpages" changed: 1 => 0,
+        return isset($record['hidden'], $updatedFields['extendToSubpages'])
+            && ($record['hidden'] === 1)
+            && (((int) $updatedFields['extendToSubpages']) === 0);
     }
 
     /**
@@ -328,35 +391,22 @@ class RecordUpdateEventListener
     }
 
     /**
-     * Determines if a record is enabled and should be included in the search index.
+     * Determines if a record is enabled based on specific conditions.
      *
-     * This method checks various conditions to determine if a record should be indexed:
-     * 1. Verifies that the record exists in the database
-     * 2. Checks if the record is hidden (using the table's 'disabled' field if defined in TCA)
-     * 3. Checks if the record is deleted (using the table's 'delete' field if defined in TCA)
-     * 4. For pages and file metadata, checks if the 'no_search' flag is set
+     * @param array<string, int|string|null> $record    The record data to evaluate.
+     * @param string                         $tableName The name of the database table the record belongs to.
      *
-     * A record is considered enabled only if it exists, is not hidden, is not deleted,
-     * and is not excluded from search. This ensures that only valid, visible content
-     * is included in the search index, maintaining consistency with what users can
-     * see in the frontend.
-     *
-     * @param string $tableName The database table name of the record to check
-     * @param int    $recordUid The unique identifier of the record to check
-     *
-     * @return bool TRUE if the record is enabled and should be indexed, FALSE otherwise
+     * @return bool True if the record is enabled, false otherwise.
      */
-    private function isRecordEnabled(string $tableName, int $recordUid): bool
+    private function isRecordEnabled(array $record, string $tableName): bool
     {
-        $record = BackendUtility::getRecord($tableName, $recordUid) ?? [];
-
         return !(
             ($record === [])
             || (isset($GLOBALS['TCA'][$tableName]['ctrl']['enablecolumns']['disabled'])
                 && ($record[$GLOBALS['TCA'][$tableName]['ctrl']['enablecolumns']['disabled']] !== 0))
             || (isset($GLOBALS['TCA'][$tableName]['ctrl']['delete'])
                 && ($record[$GLOBALS['TCA'][$tableName]['ctrl']['delete']] !== 0))
-            // Record is excluded from search
+            // Record is excluded from the search
             || ((($tableName === 'pages') || ($tableName === 'sys_file_metadata'))
                 && ($record['no_search'] !== 0))
         );

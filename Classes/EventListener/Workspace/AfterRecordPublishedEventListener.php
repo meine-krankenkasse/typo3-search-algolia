@@ -33,7 +33,7 @@ use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class AfterRecordPublishedEventListener
+readonly class AfterRecordPublishedEventListener
 {
     /**
      * Event dispatcher for triggering search-related events.
@@ -45,7 +45,7 @@ class AfterRecordPublishedEventListener
      *
      * @var EventDispatcherInterface
      */
-    protected readonly EventDispatcherInterface $eventDispatcher;
+    protected EventDispatcherInterface $eventDispatcher;
 
     /**
      * Constructor method for initializing the class.

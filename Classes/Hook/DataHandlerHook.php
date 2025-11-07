@@ -14,6 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Hook;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -62,6 +63,18 @@ class DataHandlerHook
     private readonly EventDispatcherInterface $eventDispatcher;
 
     /**
+     * Repository for page-related operations.
+     *
+     * This property stores the PageRepository service that provides methods for
+     * retrieving page information and navigating page hierarchies. It is used to
+     * find subpages of a modified page, which is necessary for updating the entire
+     * page tree in the search index when a page is modified.
+     *
+     * @var PageRepository
+     */
+    private readonly PageRepository $pageRepository;
+
+    /**
      * Tracks record movements during DataHandler operations.
      *
      * This property stores information about record movements, mapping target PIDs
@@ -81,19 +94,23 @@ class DataHandlerHook
     private array $recordMovements = [];
 
     /**
-     * Initializes the DataHandler hook with required dependencies.
+     * Constructor for initializing the service with its dependencies.
      *
-     * This constructor injects the event dispatcher service that is used
-     * throughout the hook methods to dispatch events when record operations
-     * occur. These events notify the search indexing system about changes
-     * to records that need to be reflected in the search index.
+     * This method sets up the required dependencies for the service,
+     * such as the event dispatcher and page repository. These dependencies
+     * enable the service to handle events and manage page-related data effectively.
      *
-     * @param EventDispatcherInterface $eventDispatcher The event dispatcher service for dispatching search-related events
+     * @param EventDispatcherInterface $eventDispatcher The event dispatcher to dispatch events to listeners
+     * @param PageRepository           $pageRepository  The repository for fetching and managing page records
+     *
+     * @return void
      */
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
+        PageRepository $pageRepository,
     ) {
         $this->eventDispatcher = $eventDispatcher;
+        $this->pageRepository  = $pageRepository;
     }
 
     /**
@@ -303,7 +320,7 @@ class DataHandlerHook
      * The object contains user-specific data and permissions, enabling interaction
      * with the current backend user session.
      *
-     * @return BackendUserAuthentication the backend user authentication object representing the current user
+     * @return BackendUserAuthentication The backend user authentication object representing the current user.
      */
     private function getBackendUser(): BackendUserAuthentication
     {
@@ -318,10 +335,10 @@ class DataHandlerHook
      * It ensures that the record belongs to a workspace-enabled table and checks
      * the corresponding version state.
      *
-     * @param string $tableName the name of the database table to retrieve the record from
-     * @param int    $recordUid the unique identifier (UID) of the record to evaluate
+     * @param string $tableName The name of the database table to retrieve the record from.
+     * @param int    $recordUid The unique identifier (UID) of the record to evaluate.
      *
-     * @return bool returns true if the record is a draft associated with a workspace; false otherwise
+     * @return bool Returns true if the record is a draft associated with a workspace; false otherwise.
      */
     private function isRecordDraft(string $tableName, int $recordUid): bool
     {
@@ -332,11 +349,8 @@ class DataHandlerHook
             return false;
         }
 
-        $record = BackendUtility::getRecord(
-            $tableName,
-            $recordUid,
-            't3ver_state, t3ver_oid'
-        ) ?? [];
+        $record = $this->pageRepository
+            ->getPageRecord($tableName, $recordUid, 't3ver_state, t3ver_oid');
 
         if (
             isset($record['t3ver_state'])
