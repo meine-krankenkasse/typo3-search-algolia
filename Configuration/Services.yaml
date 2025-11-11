@@ -106,3 +106,10 @@ services:
             -   name: event.listener
                 identifier: 'typo3-search-algolia/resource-after-file-replaced-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileReplacedEvent
+
+    # Workspace event listeners (optional - requires typo3/cms-workspaces)
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Workspace\AfterRecordPublishedEventListener:
+        tags:
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/workspace-after-record-published-event-listener'
+                event: TYPO3\CMS\Workspaces\Event\AfterRecordPublishedEvent

@@ -13,6 +13,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 
 /**
  * Event listener for handling record move operations in the search indexing system.
@@ -50,6 +51,18 @@ class RecordMoveEventListener
     private readonly RecordHandler $recordHandler;
 
     /**
+     * Repository for page-related operations.
+     *
+     * This property stores the PageRepository service that provides methods for
+     * retrieving page information and navigating page hierarchies. It is used to
+     * find subpages of a modified page, which is necessary for updating the entire
+     * page tree in the search index when a page is modified.
+     *
+     * @var PageRepository
+     */
+    private readonly PageRepository $pageRepository;
+
+    /**
      * The current record move event being processed.
      *
      * This property stores the DataHandlerRecordMoveEvent that triggered this listener.
@@ -62,18 +75,19 @@ class RecordMoveEventListener
     private DataHandlerRecordMoveEvent $event;
 
     /**
-     * Initializes the event listener with required dependencies.
+     * Constructor method for initializing dependencies.
      *
-     * This constructor injects the RecordHandler service that provides methods for
-     * working with database records in the context of search indexing. The RecordHandler
-     * is essential for determining root page IDs, updating records in the indexing queue,
-     * and processing related records that might be affected by the move operation.
+     * @param RecordHandler  $recordHandler  The handler for managing records.
+     * @param PageRepository $pageRepository The repository for managing page data.
      *
-     * @param RecordHandler $recordHandler The record handler service for database operations
+     * @return void
      */
-    public function __construct(RecordHandler $recordHandler)
-    {
-        $this->recordHandler = $recordHandler;
+    public function __construct(
+        RecordHandler $recordHandler,
+        PageRepository $pageRepository,
+    ) {
+        $this->recordHandler  = $recordHandler;
+        $this->pageRepository = $pageRepository;
     }
 
     /**
@@ -108,9 +122,16 @@ class RecordMoveEventListener
 
         // TODO Check if record is enabled before adding to queue and index
 
+        $pageRecord = $this->pageRepository
+            ->getPageRecord(
+                $this->event->getTable(),
+                $this->event->getRecordUid()
+            );
+
         // Determine the root page ID for the event record
         $rootPageId = $this->recordHandler
             ->getRecordRootPageId(
+                $pageRecord,
                 $this->event->getTable(),
                 $this->event->getRecordUid()
             );

@@ -37,6 +37,9 @@
         "ssch/typo3-rector": "^2.0",
         "a9f/typo3-fractor": "^0.5"
     },
+    "suggest": {
+        "typo3/cms-workspaces": "Required for workspace support and automatic reindexing when publishing workspace records"
+    },
     "config": {
         "bin-dir": ".build/bin",
         "vendor-dir": ".build/vendor",

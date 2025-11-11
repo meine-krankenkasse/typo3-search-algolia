@@ -35,7 +35,7 @@ use function is_array;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class EnqueueOneController
+readonly class EnqueueOneController
 {
     /**
      * Event dispatcher for triggering indexing events.
@@ -45,7 +45,7 @@ class EnqueueOneController
      *
      * @var EventDispatcherInterface
      */
-    private readonly EventDispatcherInterface $eventDispatcher;
+    private EventDispatcherInterface $eventDispatcher;
 
     /**
      * Factory for creating module template instances.
@@ -55,7 +55,7 @@ class EnqueueOneController
      *
      * @var ModuleTemplateFactory
      */
-    private readonly ModuleTemplateFactory $moduleTemplateFactory;
+    private ModuleTemplateFactory $moduleTemplateFactory;
 
     /**
      * Factory for retrieving file objects.
@@ -65,7 +65,7 @@ class EnqueueOneController
      *
      * @var ResourceFactory
      */
-    private readonly ResourceFactory $resourceFactory;
+    private ResourceFactory $resourceFactory;
 
     /**
      * Factory for creating HTTP responses.
@@ -75,7 +75,7 @@ class EnqueueOneController
      *
      * @var ResponseFactory
      */
-    private readonly ResponseFactory $responseFactory;
+    private ResponseFactory $responseFactory;
 
     /**
      * Handler for file-specific operations.
@@ -85,7 +85,7 @@ class EnqueueOneController
      *
      * @var FileHandler
      */
-    private readonly FileHandler $fileHandler;
+    private FileHandler $fileHandler;
 
     /**
      * Constructor.

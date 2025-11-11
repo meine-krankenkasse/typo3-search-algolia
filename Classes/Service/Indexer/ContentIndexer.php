@@ -72,7 +72,7 @@ class ContentIndexer extends AbstractIndexer
     #[Override]
     protected function getAdditionalQueryConstraints(QueryBuilder $queryBuilder): array
     {
-        $constraints = [];
+        $constraints = parent::getAdditionalQueryConstraints($queryBuilder);
 
         // Get content element types from indexing service configuration
         $contentElementTypes = GeneralUtility::trimExplode(

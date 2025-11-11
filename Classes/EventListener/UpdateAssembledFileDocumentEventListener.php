@@ -45,7 +45,7 @@ use TYPO3\CMS\Core\Resource\FileRepository;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class UpdateAssembledFileDocumentEventListener
+readonly class UpdateAssembledFileDocumentEventListener
 {
     /**
      * TYPO3 file repository for retrieving file objects.
@@ -58,7 +58,7 @@ class UpdateAssembledFileDocumentEventListener
      *
      * @var FileRepository
      */
-    private readonly FileRepository $fileRepository;
+    private FileRepository $fileRepository;
 
     /**
      * Initializes the event listener with the file repository service.
@@ -216,6 +216,7 @@ class UpdateAssembledFileDocumentEventListener
 
         // Prevent "json_encode error: Malformed UTF-8 characters, possibly incorrectly encoded"
         if (mb_detect_encoding($content) !== false) {
+            /** @var string|false $content */
             $content = mb_convert_encoding(
                 $content,
                 mb_detect_encoding($content),

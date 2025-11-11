@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
 use Doctrine\DBAL\Exception;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -62,6 +63,35 @@ readonly class PageRepository
     public function __construct(ConnectionPool $connectionPool)
     {
         $this->connectionPool = $connectionPool;
+    }
+
+    /**
+     * Retrieves a database record for a given table and record UID.
+     *
+     * This method fetches the data for a specific record from the specified table.
+     * It allows selecting specific fields, applying a delete clause, and ensures
+     * that the retrieved data is returned as an array.
+     *
+     * @param string $tableName       The name of the database table to fetch the record from
+     * @param int    $recordUid       The UID of the record to retrieve
+     * @param string $fields          The fields to select in the query, defaults to '*'
+     * @param bool   $useDeleteClause Whether to include a clause for filtering deleted records, defaults to true
+     *
+     * @return array<string, int|string|null> An associative array containing the record data, or an empty array if the record is not found
+     */
+    public function getPageRecord(
+        string $tableName,
+        int $recordUid,
+        string $fields = '*',
+        bool $useDeleteClause = true,
+    ): array {
+        return BackendUtility::getRecord(
+            $tableName,
+            $recordUid,
+            $fields,
+            '',
+            $useDeleteClause
+        ) ?? [];
     }
 
     /**

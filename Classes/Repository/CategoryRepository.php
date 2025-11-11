@@ -55,7 +55,7 @@ readonly class CategoryRepository
      * @param string $tableName
      * @param int    $uid
      *
-     * @return array<array-key, string>
+     * @return array<array-key, array<string, int|string|null>>
      *
      * @throws Exception
      */

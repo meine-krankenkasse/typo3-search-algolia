@@ -24,7 +24,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 /**
  * Core handler for database record operations in the search indexing process.
@@ -44,7 +43,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class RecordHandler
+readonly class RecordHandler
 {
     /**
      * Factory for creating search engine service instances.
@@ -55,7 +54,7 @@ class RecordHandler
      *
      * @var SearchEngineFactory
      */
-    private readonly SearchEngineFactory $searchEngineFactory;
+    private SearchEngineFactory $searchEngineFactory;
 
     /**
      * Factory for creating indexer instances.
@@ -66,7 +65,7 @@ class RecordHandler
      *
      * @var IndexerFactory
      */
-    private readonly IndexerFactory $indexerFactory;
+    private IndexerFactory $indexerFactory;
 
     /**
      * Repository for page-related operations.
@@ -77,7 +76,7 @@ class RecordHandler
      *
      * @var PageRepository
      */
-    private readonly PageRepository $pageRepository;
+    private PageRepository $pageRepository;
 
     /**
      * Repository for accessing indexing service configurations.
@@ -87,7 +86,7 @@ class RecordHandler
      *
      * @var IndexingServiceRepository
      */
-    private readonly IndexingServiceRepository $indexingServiceRepository;
+    private IndexingServiceRepository $indexingServiceRepository;
 
     /**
      * Repository for content element operations.
@@ -98,7 +97,7 @@ class RecordHandler
      *
      * @var ContentRepository
      */
-    private readonly ContentRepository $contentRepository;
+    private ContentRepository $contentRepository;
 
     /**
      * Initializes the record handler with required dependencies.
@@ -319,58 +318,43 @@ class RecordHandler
     }
 
     /**
-     * Determines the root page ID for any record in the TYPO3 page tree.
+     * Retrieves the root page ID for a given record.
      *
-     * This method finds the root page (the top-level page in a site) that contains
-     * a given record. For page records, it directly determines the root page.
-     * For other record types, it first finds the page containing the record,
-     * then determines the root page for that page.
+     * This method determines the root page ID associated with a record. If the
+     * table name is not 'pages', it calculates the page ID via the associated
+     * record. Otherwise, the provided record UID is used. The root page ID
+     * is then resolved through the page repository.
      *
-     * The root page ID is essential for:
-     * - Determining which indexing services apply to a record
-     * - Ensuring records are indexed in the correct site context
-     * - Maintaining proper page tree hierarchies in search results
+     * @param array<string, int|string|null> $pageRecord The record data used for determining the page ID
+     * @param string                         $tableName  The name of the table that the record belongs to
+     * @param int                            $recordUid  The unique identifier of the record
      *
-     * @param string $tableName The database table name of the record
-     * @param int    $recordUid The unique identifier of the record
-     *
-     * @return int The root page ID for the record, or 0 if no valid root page is found
+     * @return int The resolved root page ID
      */
-    public function getRecordRootPageId(string $tableName, int $recordUid): int
+    public function getRecordRootPageId(array $pageRecord, string $tableName, int $recordUid): int
     {
         $recordPageId = $recordUid;
 
         if ($tableName !== 'pages') {
-            $recordPageId = $this->getRecordPageId($tableName, $recordUid);
+            $recordPageId = $this->getRecordPageId($pageRecord);
         }
 
         return $this->pageRepository->getRootPageId($recordPageId);
     }
 
     /**
-     * Retrieves the parent page ID for any non-page record in TYPO3.
+     * Retrieves the page ID from the given page record.
      *
-     * This helper method finds the page that contains a given record by looking up
-     * the 'pid' field of the record. In TYPO3, most records have a 'pid' field that
-     * indicates which page they belong to.
+     * This method extracts the 'pid' field from the provided page record array
+     * and returns it as an integer. If the 'pid' field is not set, it defaults to 0.
      *
-     * The method uses TYPO3's BackendUtility::getRecord() to efficiently retrieve
-     * just the 'pid' field without loading the entire record.
+     * @param array<string, int|string|null> $pageRecord Associative array representing a page record, typically containing a 'pid' field
      *
-     * @param string $tableName The database table name of the record
-     * @param int    $recordUid The unique identifier of the record
-     *
-     * @return int The parent page ID for the record, or 0 if the record doesn't exist or has no valid pid
+     * @return int The page ID extracted from the record, or 0 if 'pid' is not set
      */
-    private function getRecordPageId(string $tableName, int $recordUid): int
+    private function getRecordPageId(array $pageRecord): int
     {
-        $record = BackendUtility::getRecord($tableName, $recordUid, 'pid');
-
-        if ($record === null) {
-            return 0;
-        }
-
-        return (int) ($record['pid'] ?? 0);
+        return (int) ($pageRecord['pid'] ?? 0);
     }
 
     /**
@@ -399,8 +383,15 @@ class RecordHandler
         int $rootPageId,
     ): ?IndexerInterface {
         if ($indexingService->getType() !== 'sys_file_metadata') {
+            $pageRecord = $this->pageRepository
+                ->getPageRecord(
+                    'tx_typo3searchalgolia_domain_model_indexingservice',
+                    (int) $indexingService->getUid()
+                );
+
             // Determine the root page ID for the indexing service
             $indexingServiceRootPageId = $this->getRecordRootPageId(
+                $pageRecord,
                 'tx_typo3searchalgolia_domain_model_indexingservice',
                 (int) $indexingService->getUid()
             );

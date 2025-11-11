@@ -40,3 +40,14 @@ relevant search results.
   - [Content Element Indexer](Documentation/ContentElementIndexer.md)
   - [News Indexer](Documentation/NewsIndexer.md)
   - [File Indexer](Documentation/FileIndexer.md)
+
+## Optional Features
+
+### Workspace Support
+To enable automatic reindexing when publishing workspace records, install the workspaces extension:
+
+```bash
+composer require typo3/cms-workspaces
+```
+
+Without this extension, the search indexer will still work but won't automatically queue records when publishing from workspaces.

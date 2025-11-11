@@ -91,13 +91,16 @@ class PageIndexer extends AbstractIndexer
     #[Override]
     protected function getAdditionalQueryConstraints(QueryBuilder $queryBuilder): array
     {
-        $constraints = [
-            // Include only pages which are not explicitly excluded from search
-            $queryBuilder->expr()->eq(
-                'no_search',
-                0
-            ),
-        ];
+        $constraints = array_merge(
+            parent::getAdditionalQueryConstraints($queryBuilder),
+            [
+                // Include only pages which are not explicitly excluded from search
+                $queryBuilder->expr()->eq(
+                    'no_search',
+                    0
+                ),
+            ]
+        );
 
         // Get page types from indexing service configuration
         $pageTypes = GeneralUtility::intExplode(
