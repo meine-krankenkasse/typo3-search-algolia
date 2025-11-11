@@ -1,3 +1,14 @@
+# 1.1.0
+
+## MISC
+
+- a9e256c WEB-1366: Update subpages only if parent pages gets hidden and child pages should be processed "extendToSubpages"
+- 4ddce00 WEB-1366: Add workspace handling
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.0.2
 
 ## MISC
