@@ -11,11 +11,16 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\ContextMenu\ItemProviders;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileCollectionRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
 use TYPO3\CMS\Backend\ContextMenu\ItemProviders\AbstractProvider;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Resource\Collection\FolderBasedFileCollection;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -77,6 +82,22 @@ class QueueProvider extends AbstractProvider
     ];
 
     /**
+     * Constructor.
+     *
+     * @param FileCollectionRepository  $fileCollectionRepository
+     * @param IndexingServiceRepository $indexingServiceRepository
+     */
+    public function __construct(
+        private ResourceFactory $resourceFactory,
+        private TypoScriptService $typoScriptService,
+        private UriBuilder $uriBuilder,
+        private FileCollectionRepository $fileCollectionRepository,
+        private IndexingServiceRepository $indexingServiceRepository,
+    ) {
+        parent::__construct();
+    }
+
+    /**
      * Determines if this provider can handle the current context menu request.
      *
      * This method checks if the current table is 'sys_file', which indicates
@@ -109,7 +130,7 @@ class QueueProvider extends AbstractProvider
         parent::initialize();
 
         try {
-            $this->record = GeneralUtility::makeInstance(ResourceFactory::class)
+            $this->record = $this->resourceFactory
                 ->retrieveFileOrFolderObject($this->identifier);
         } catch (ResourceDoesNotExistException) {
             $this->record = null;
@@ -180,6 +201,7 @@ class QueueProvider extends AbstractProvider
      * - The file must have metadata with a UID
      * - The user must have permission to modify the sys_file_metadata table
      * - The user must have access to the default language
+     * - The file must be part of a file collection that is configured for indexing
      *
      * Only if all these conditions are met will the "Enqueue for indexing" option
      * be displayed in the context menu.
@@ -188,29 +210,49 @@ class QueueProvider extends AbstractProvider
      */
     private function canBeEnqueued(): bool
     {
-        $allowedFileExtensions = $this->getTypoScriptService()->getAllowedFileExtensions();
+        $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
 
-        return ($this->record instanceof File)
+        $canBeEnqueued = ($this->record instanceof File)
             && ($this->record->isIndexed() === true)
             && $this->isExtensionAllowed($this->record, $allowedFileExtensions)
             && $this->record->checkActionPermission('editMeta')
             && $this->record->getMetaData()->offsetExists('uid')
             && $this->backendUser->check('tables_modify', 'sys_file_metadata')
             && $this->backendUser->checkLanguageAccess(0);
-    }
 
-    /**
-     * Creates and returns an instance of the TypoScriptService.
-     *
-     * This helper method uses TYPO3's GeneralUtility to create an instance
-     * of the TypoScriptService, which provides access to TypoScript configuration
-     * values, particularly the list of allowed file extensions for indexing.
-     *
-     * @return TypoScriptService The TypoScript service instance
-     */
-    private function getTypoScriptService(): TypoScriptService
-    {
-        return GeneralUtility::makeInstance(TypoScriptService::class);
+        if ($canBeEnqueued === false) {
+            return false;
+        }
+
+        // Get all file indexing services
+        $indexingServices = $this->indexingServiceRepository
+            ->findAllByTableName(FileIndexer::TABLE);
+
+        /** @var IndexingService $indexingService */
+        foreach ($indexingServices as $indexingService) {
+            $collectionIds = GeneralUtility::intExplode(
+                ',',
+                $indexingService?->getFileCollections() ?? '',
+                true
+            );
+
+            $collections = $this
+                ->fileCollectionRepository
+                ->findAllByCollections($collectionIds);
+
+            foreach ($collections as $collection) {
+                if (!($collection instanceof FolderBasedFileCollection)) {
+                    continue;
+                }
+
+                // Check if the file record identifier starts with the collection's identifier
+                if (str_starts_with($this->record->getCombinedIdentifier(), $collection->getItemsCriteria())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -248,11 +290,9 @@ class QueueProvider extends AbstractProvider
     #[Override]
     protected function getAdditionalAttributes(string $itemName): array
     {
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-
         return [
             'data-callback-module' => '@meine-krankenkasse/typo3-search-algolia/context-menu-actions',
-            'data-action-url'      => (string) $uriBuilder->buildUriFromRoute('algolia_enqueue_one'),
+            'data-action-url'      => (string) $this->uriBuilder->buildUriFromRoute('algolia_enqueue_one'),
         ];
     }
 }
