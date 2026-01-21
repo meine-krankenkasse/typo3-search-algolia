@@ -11,11 +11,9 @@ declare(strict_types=1);
 
 use Rector\CodingStyle\Rector\Catch_\CatchExceptionNameMatchingTypeRector;
 use Rector\Config\RectorConfig;
-use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
-use Rector\DeadCode\Rector\Property\RemoveUselessVarTagRector;
-use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
+use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
 use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
 use Ssch\TYPO3Rector\Set\Typo3LevelSetList;
@@ -37,6 +35,7 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->importNames();
     $rectorConfig->removeUnusedImports();
     $rectorConfig->disableParallel();
+    $rectorConfig->phpVersion(80300);
 
     // Define what rule sets will be applied
     $rectorConfig->sets([
@@ -48,7 +47,6 @@ return static function (RectorConfig $rectorConfig): void {
         SetList::PRIVATIZATION,
         SetList::STRICT_BOOLEANS,
         SetList::TYPE_DECLARATION,
-
         LevelSetList::UP_TO_PHP_83,
         Typo3LevelSetList::UP_TO_TYPO3_12,
     ]);
@@ -56,10 +54,8 @@ return static function (RectorConfig $rectorConfig): void {
     // Skip some rules
     $rectorConfig->skip([
         CatchExceptionNameMatchingTypeRector::class,
-        ClassPropertyAssignToConstructorPromotionRector::class,
+        RemoveUnreachableStatementRector::class,
         RemoveUselessParamTagRector::class,
         RemoveUselessReturnTagRector::class,
-        RemoveUselessVarTagRector::class,
-        RemoveUnusedPrivateMethodParameterRector::class,
     ]);
 };
