@@ -66,6 +66,40 @@ readonly class PageRepository
     }
 
     /**
+     * Retrieves the title of a specific page.
+     *
+     * This method fetches the 'title' field of a page record identified by its UID.
+     * It is used for displaying human-readable page titles in various backend
+     * modules and during indexing processes.
+     *
+     * @param int $uid The unique identifier of the page record
+     *
+     * @return string The title of the page, or an empty string if the page doesn't exist
+     */
+    public function findTitle(int $uid): string
+    {
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable('pages');
+
+        $page = $queryBuilder
+            ->select('title')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter(
+                        $uid,
+                        Connection::PARAM_INT
+                    )
+                )
+            )
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return (string)($page['title'] ?? '');
+    }
+
+    /**
      * Retrieves a database record for a given table and record UID.
      *
      * This method fetches the data for a specific record from the specified table.

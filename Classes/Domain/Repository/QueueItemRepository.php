@@ -15,6 +15,9 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -61,6 +64,21 @@ class QueueItemRepository extends Repository
     private readonly ConnectionPool $connectionPool;
 
     /**
+     * @var ContentRepository The content element repository
+     */
+    private readonly ContentRepository $contentRepository;
+
+    /**
+     * @var PageRepository The page repository
+     */
+    private readonly PageRepository $pageRepository;
+
+    /**
+     * @var FileRepository The file repository
+     */
+    private readonly FileRepository $fileRepository;
+
+    /**
      * Initializes the repository with required dependencies.
      *
      * This constructor injects the TYPO3 connection pool that is used for direct
@@ -69,14 +87,23 @@ class QueueItemRepository extends Repository
      * when needed for performance reasons, particularly for bulk operations
      * and statistics gathering.
      *
-     * @param ConnectionPool $connectionPool The TYPO3 database connection pool
+     * @param ConnectionPool    $connectionPool    The TYPO3 database connection pool
+     * @param ContentRepository $contentRepository The content repository
+     * @param PageRepository    $pageRepository    The page repository
+     * @param FileRepository    $fileRepository    The file repository
      */
     public function __construct(
         ConnectionPool $connectionPool,
+        ContentRepository $contentRepository,
+        PageRepository $pageRepository,
+        FileRepository $fileRepository,
     ) {
         parent::__construct();
 
-        $this->connectionPool = $connectionPool;
+        $this->connectionPool    = $connectionPool;
+        $this->contentRepository = $contentRepository;
+        $this->pageRepository    = $pageRepository;
+        $this->fileRepository    = $fileRepository;
     }
 
     /**
@@ -143,7 +170,7 @@ class QueueItemRepository extends Repository
      * The method uses a direct database query for optimal performance when
      * dealing with potentially large numbers of queue items.
      *
-     * @return array<int, array<string, int|string>> Array of statistics records, each containing 'table_name' and 'count' values
+     * @return array<int, array<string, int|string|array>> Array of statistics records, each containing 'table_name', 'count' and 'items' values
      *
      * @throws Exception If a database error occurs during the query
      */
@@ -152,13 +179,78 @@ class QueueItemRepository extends Repository
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable(self::TABLE_NAME);
 
-        return $queryBuilder
+        $statistics = $queryBuilder
             ->select('table_name')
             ->addSelectLiteral('COUNT(*) AS count')
             ->from(self::TABLE_NAME)
             ->groupBy('table_name')
             ->executeQuery()
             ->fetchAllAssociative();
+
+        foreach ($statistics as &$statistic) {
+            $statistic['items'] = $this->findAllByTableName((string)$statistic['table_name']);
+        }
+
+        return $statistics;
+    }
+
+    /**
+     * Retrieves all queue items for a specific database table, enriched with details.
+     *
+     * This method fetches all records from the indexing queue that belong to the
+     * specified table name. Depending on the table type, it automatically enriches
+     * the results with additional information from specialized repositories:
+     * - 'sys_file_metadata': Adds file info (name, path, type) and content element usages
+     * - 'pages': Adds the page title
+     * - 'tt_content': Adds content element info (header and parent page UID)
+     *
+     * The results are ordered by the record UID in ascending order to provide
+     * a consistent view in the backend module's statistics.
+     *
+     * @param string $tableName The database table name to filter queue items by
+     *
+     * @return array<int, array<string, mixed>> A list of queue item records with additional metadata
+     *
+     * @throws Exception If a database error occurs during the query
+     */
+    public function findAllByTableName(string $tableName): array
+    {
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable(self::TABLE_NAME);
+
+        $items = $queryBuilder
+            ->select('record_uid')
+            ->from(self::TABLE_NAME)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'table_name',
+                    $queryBuilder->createNamedParameter($tableName)
+                )
+            )
+            ->orderBy('record_uid', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        if ($tableName === 'sys_file_metadata') {
+            foreach ($items as &$item) {
+                $item['file_info'] = $this->fileRepository->findInfo((int)$item['record_uid']);
+                $item['usages']    = $this->fileRepository->findUsages((int)$item['record_uid']);
+            }
+        }
+
+        if ($tableName === 'pages') {
+            foreach ($items as &$item) {
+                $item['page_title'] = $this->pageRepository->findTitle((int)$item['record_uid']);
+            }
+        }
+
+        if ($tableName === 'tt_content') {
+            foreach ($items as &$item) {
+                $item['content_info'] = $this->contentRepository->findInfo((int)$item['record_uid']);
+            }
+        }
+
+        return $items;
     }
 
     /**

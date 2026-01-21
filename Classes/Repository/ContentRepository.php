@@ -58,6 +58,53 @@ readonly class ContentRepository
     }
 
     /**
+     * Retrieves the header and parent page UID of a content element.
+     *
+     * This method fetches specific metadata for a content element (tt_content record)
+     * by its UID. It returns the content element's header text and the UID of the
+     * page it is located on.
+     *
+     * This information is used for displaying content element details in the
+     * backend module's indexing queue statistics.
+     *
+     * @param int $uid The unique identifier of the content element record
+     *
+     * @return array<string, int|string> An associative array containing 'header' and 'page_uid'
+     */
+    public function findInfo(int $uid): array
+    {
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable('tt_content');
+
+        $content = $queryBuilder
+            ->select(
+                'c.header',
+                'c.pid AS page_uid'
+            )
+            ->from('tt_content', 'c')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'c.uid',
+                    $queryBuilder->createNamedParameter(
+                        $uid,
+                        Connection::PARAM_INT
+                    )
+                )
+            )
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if (!$content) {
+            return [];
+        }
+
+        return [
+            'header'   => (string)$content['header'],
+            'page_uid' => (int)$content['page_uid'],
+        ];
+    }
+
+    /**
      * Retrieves all content elements from a specific page with optional filtering.
      *
      * This method fetches content elements (tt_content records) that are located

@@ -9,7 +9,7 @@
 
             <!-- Context menu -->
             <trans-unit id="context-menu.enqueueOne">
-                <source>Enqueue</source>
+                <source>Add to the Algolia search queue</source>
             </trans-unit>
 
             <!-- TCA -->
@@ -195,6 +195,30 @@
             </trans-unit>
             <trans-unit id="index_queue.statistics.column.count">
                 <source>Count</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.column.details">
+                <source>Show details</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.record_uid">
+                <source>UID</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.record_title">
+                <source>Title</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.file_name">
+                <source>File name</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.file_path">
+                <source>Path</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.file_type">
+                <source>Type</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.content_element">
+                <source>Content element</source>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.page">
+                <source>Page</source>
             </trans-unit>
             <trans-unit id="index_queue.table.overview">
                 <source>Available indexing services</source>

@@ -9,7 +9,7 @@
 
             <!-- Context menu -->
             <trans-unit id="context-menu.enqueueOne">
-                <target>In die Warteschlange stellen</target>
+                <target>Zur Algolia-Suchwarteschlange hinzufügen</target>
             </trans-unit>
 
             <!-- TCA -->
@@ -195,6 +195,30 @@
             </trans-unit>
             <trans-unit id="index_queue.statistics.column.count">
                 <target>Anzahl</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.column.details">
+                <target>Details anzeigen</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.record_uid">
+                <target>UID</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.record_title">
+                <target>Titel</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.file_name">
+                <target>Dateiname</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.file_path">
+                <target>Pfad</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.file_type">
+                <target>Dateityp</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.content_element">
+                <target>Inhaltselement</target>
+            </trans-unit>
+            <trans-unit id="index_queue.statistics.details.page">
+                <target>Seite</target>
             </trans-unit>
             <trans-unit id="index_queue.table.overview">
                 <target>Verfügbare Indexdienste</target>
