@@ -68,7 +68,7 @@ call_user_func(static function (): void {
         FileIndexer::class,
         FileIndexer::TABLE,
         'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.sys_file_metadata.title',
-        'mimetypes-pdf',
+        'apps-filetree-folder-media',
     );
 
     if (ExtensionManagementUtility::isLoaded('news')) {
