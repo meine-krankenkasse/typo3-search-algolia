@@ -35,44 +35,6 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Event;
 final readonly class DataHandlerRecordUpdateEvent
 {
     /**
-     * The database table name of the created or updated record.
-     *
-     * This property contains the name of the database table that the record belongs to
-     * (e.g., "pages", "tt_content", "sys_file_metadata"). It is used to identify the
-     * type of content that was created or updated and is essential for locating the
-     * corresponding document in search indices.
-     *
-     * @var string
-     */
-    private string $table;
-
-    /**
-     * The unique identifier of the created or updated record.
-     *
-     * This property contains the UID of the database record that was created or updated.
-     * It uniquely identifies the record within its table and is essential for locating
-     * the corresponding document in search indices for updating.
-     *
-     * @var int<1, max>
-     */
-    private int $recordUid;
-
-    /**
-     * The updated field values of the record.
-     *
-     * This property contains an associative array of field names and their new values
-     * for the fields that were changed during the update operation. For newly created
-     * records, this may contain all fields of the record. For updated records, it may
-     * contain only the fields that were actually changed.
-     *
-     * This information can be used by event listeners to determine what specific changes
-     * were made to the record and to update search indices accordingly.
-     *
-     * @var array<string, int|string>
-     */
-    private array $fields;
-
-    /**
      * Constructor for the DataHandlerRecordUpdateEvent.
      *
      * Initializes a new event instance with the table name and record UID of the
@@ -84,11 +46,11 @@ final readonly class DataHandlerRecordUpdateEvent
      * @param int<1, max>               $recordUid The unique identifier of the created or updated record
      * @param array<string, int|string> $fields    The updated field values of the record
      */
-    public function __construct(string $table, int $recordUid, array $fields = [])
-    {
-        $this->table     = $table;
-        $this->recordUid = $recordUid;
-        $this->fields    = $fields;
+    public function __construct(
+        private string $table,
+        private int $recordUid,
+        private array $fields = [],
+    ) {
     }
 
     /**

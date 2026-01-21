@@ -38,16 +38,6 @@ use function is_string;
 readonly class TypoScriptService
 {
     /**
-     * TYPO3 configuration manager for accessing TypoScript settings.
-     *
-     * Used to retrieve the extension's TypoScript configuration from
-     * the TYPO3 configuration system.
-     *
-     * @var ConfigurationManagerInterface
-     */
-    private ConfigurationManagerInterface $configurationManager;
-
-    /**
      * Constructor for the TypoScript service.
      *
      * Initializes the service with the TYPO3 configuration manager
@@ -55,9 +45,9 @@ readonly class TypoScriptService
      *
      * @param ConfigurationManagerInterface $configurationManager The TYPO3 configuration manager
      */
-    public function __construct(ConfigurationManagerInterface $configurationManager)
-    {
-        $this->configurationManager = $configurationManager;
+    public function __construct(
+        private ConfigurationManagerInterface $configurationManager,
+    ) {
     }
 
     /**

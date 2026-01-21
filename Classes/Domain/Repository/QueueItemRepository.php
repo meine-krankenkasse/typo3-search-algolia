@@ -52,33 +52,6 @@ class QueueItemRepository extends Repository
     private const string TABLE_NAME = 'tx_typo3searchalgolia_domain_model_queueitem';
 
     /**
-     * TYPO3 database connection pool for direct database operations.
-     *
-     * This property provides access to database connections for performing
-     * optimized database operations that bypass Extbase's persistence layer.
-     * It is used for performance-critical operations like bulk inserts and
-     * statistics gathering, where direct SQL queries are more efficient.
-     *
-     * @var ConnectionPool
-     */
-    private readonly ConnectionPool $connectionPool;
-
-    /**
-     * @var ContentRepository The content element repository
-     */
-    private readonly ContentRepository $contentRepository;
-
-    /**
-     * @var PageRepository The page repository
-     */
-    private readonly PageRepository $pageRepository;
-
-    /**
-     * @var FileRepository The file repository
-     */
-    private readonly FileRepository $fileRepository;
-
-    /**
      * Initializes the repository with required dependencies.
      *
      * This constructor injects the TYPO3 connection pool that is used for direct
@@ -93,17 +66,12 @@ class QueueItemRepository extends Repository
      * @param FileRepository    $fileRepository    The file repository
      */
     public function __construct(
-        ConnectionPool $connectionPool,
-        ContentRepository $contentRepository,
-        PageRepository $pageRepository,
-        FileRepository $fileRepository,
+        private readonly ConnectionPool $connectionPool,
+        private readonly ContentRepository $contentRepository,
+        private readonly PageRepository $pageRepository,
+        private readonly FileRepository $fileRepository,
     ) {
         parent::__construct();
-
-        $this->connectionPool    = $connectionPool;
-        $this->contentRepository = $contentRepository;
-        $this->pageRepository    = $pageRepository;
-        $this->fileRepository    = $fileRepository;
     }
 
     /**
@@ -170,7 +138,7 @@ class QueueItemRepository extends Repository
      * The method uses a direct database query for optimal performance when
      * dealing with potentially large numbers of queue items.
      *
-     * @return array<int, array<string, int|string|array>> Array of statistics records, each containing 'table_name', 'count' and 'items' values
+     * @return array<int, array<string, int|string|array<mixed>>> Array of statistics records, each containing 'table_name', 'count' and 'items' values
      *
      * @throws Exception If a database error occurs during the query
      */
@@ -188,7 +156,7 @@ class QueueItemRepository extends Repository
             ->fetchAllAssociative();
 
         foreach ($statistics as &$statistic) {
-            $statistic['items'] = $this->findAllByTableName((string)$statistic['table_name']);
+            $statistic['items'] = $this->findAllByTableName((string) $statistic['table_name']);
         }
 
         return $statistics;
@@ -233,20 +201,20 @@ class QueueItemRepository extends Repository
 
         if ($tableName === 'sys_file_metadata') {
             foreach ($items as &$item) {
-                $item['file_info'] = $this->fileRepository->findInfo((int)$item['record_uid']);
-                $item['usages']    = $this->fileRepository->findUsages((int)$item['record_uid']);
+                $item['file_info'] = $this->fileRepository->findInfo((int) $item['record_uid']);
+                $item['usages']    = $this->fileRepository->findUsages((int) $item['record_uid']);
             }
         }
 
         if ($tableName === 'pages') {
             foreach ($items as &$item) {
-                $item['page_title'] = $this->pageRepository->findTitle((int)$item['record_uid']);
+                $item['page_title'] = $this->pageRepository->findTitle((int) $item['record_uid']);
             }
         }
 
         if ($tableName === 'tt_content') {
             foreach ($items as &$item) {
-                $item['content_info'] = $this->contentRepository->findInfo((int)$item['record_uid']);
+                $item['content_info'] = $this->contentRepository->findInfo((int) $item['record_uid']);
             }
         }
 

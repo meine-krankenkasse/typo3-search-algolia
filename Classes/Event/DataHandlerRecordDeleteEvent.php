@@ -33,29 +33,6 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Event;
 final readonly class DataHandlerRecordDeleteEvent
 {
     /**
-     * The database table name of the deleted record.
-     *
-     * This property contains the name of the database table that the deleted record
-     * belonged to (e.g., "pages", "tt_content", "sys_file_metadata"). It is used to
-     * identify the type of content that was deleted and is essential for locating
-     * the corresponding document in search indices.
-     *
-     * @var string
-     */
-    private string $table;
-
-    /**
-     * The unique identifier of the deleted record.
-     *
-     * This property contains the UID of the database record that was deleted.
-     * It uniquely identified the record within its table and is essential for
-     * locating the corresponding document in search indices for removal.
-     *
-     * @var int
-     */
-    private int $recordUid;
-
-    /**
      * Constructor for the DataHandlerRecordDeleteEvent.
      *
      * Initializes a new event instance with the table name and record UID of the
@@ -65,10 +42,10 @@ final readonly class DataHandlerRecordDeleteEvent
      * @param string $table     The database table name of the deleted record
      * @param int    $recordUid The unique identifier of the deleted record
      */
-    public function __construct(string $table, int $recordUid)
-    {
-        $this->table     = $table;
-        $this->recordUid = $recordUid;
+    public function __construct(
+        private string $table,
+        private int $recordUid,
+    ) {
     }
 
     /**

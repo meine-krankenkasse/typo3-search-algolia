@@ -48,48 +48,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class QueueModuleController extends AbstractBaseModuleController
 {
     /**
-     * Factory for creating indexer instances.
-     *
-     * This factory is used to create instances of indexers based on their type
-     * (e.g., page indexer, content indexer, file indexer). These indexers handle
-     * the actual process of adding items to the indexing queue.
-     *
-     * @var IndexerFactory
-     */
-    private readonly IndexerFactory $indexerFactory;
-
-    /**
-     * Repository for accessing indexing service configurations.
-     *
-     * This repository provides access to the indexing service configurations stored
-     * in the database, which define what content should be indexed and how.
-     *
-     * @var IndexingServiceRepository
-     */
-    private readonly IndexingServiceRepository $indexingServiceRepository;
-
-    /**
-     * Repository for managing queue items.
-     *
-     * This repository provides methods for adding, removing, and querying items
-     * in the indexing queue, as well as generating statistics about the queue.
-     *
-     * @var QueueItemRepository
-     */
-    private readonly QueueItemRepository $queueItemRepository;
-
-    /**
-     * Service for tracking indexing execution status.
-     *
-     * This service provides methods for retrieving information about when
-     * indexing operations were last executed, which is displayed in the
-     * queue module interface.
-     *
-     * @var QueueStatusService
-     */
-    private readonly QueueStatusService $queueStatusService;
-
-    /**
      * Initializes the controller with required dependencies.
      *
      * This constructor injects the necessary services for creating and configuring
@@ -106,20 +64,15 @@ class QueueModuleController extends AbstractBaseModuleController
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
         IconFactory $iconFactory,
-        IndexerFactory $indexerFactory,
-        IndexingServiceRepository $indexingServiceRepository,
-        QueueItemRepository $queueItemRepository,
-        QueueStatusService $queueStatusService,
+        private readonly IndexerFactory $indexerFactory,
+        private readonly IndexingServiceRepository $indexingServiceRepository,
+        private readonly QueueItemRepository $queueItemRepository,
+        private readonly QueueStatusService $queueStatusService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
             $iconFactory
         );
-
-        $this->indexerFactory            = $indexerFactory;
-        $this->indexingServiceRepository = $indexingServiceRepository;
-        $this->queueItemRepository       = $queueItemRepository;
-        $this->queueStatusService        = $queueStatusService;
     }
 
     /**

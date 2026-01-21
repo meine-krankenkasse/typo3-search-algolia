@@ -46,60 +46,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 readonly class RecordHandler
 {
     /**
-     * Factory for creating search engine service instances.
-     *
-     * This factory is used to create instances of search engine services based on
-     * their type (e.g., Algolia). These services provide the actual implementation
-     * for communicating with the search engine APIs.
-     *
-     * @var SearchEngineFactory
-     */
-    private SearchEngineFactory $searchEngineFactory;
-
-    /**
-     * Factory for creating indexer instances.
-     *
-     * This factory is used to create instances of indexers based on their type
-     * (e.g., page indexer, content indexer, file indexer). These indexers handle
-     * the actual process of adding items to the indexing queue.
-     *
-     * @var IndexerFactory
-     */
-    private IndexerFactory $indexerFactory;
-
-    /**
-     * Repository for page-related operations.
-     *
-     * This repository provides methods for retrieving page information,
-     * particularly for determining root page IDs and page hierarchies
-     * that are essential for proper indexing context.
-     *
-     * @var PageRepository
-     */
-    private PageRepository $pageRepository;
-
-    /**
-     * Repository for accessing indexing service configurations.
-     *
-     * This repository provides access to the indexing service configurations stored
-     * in the database, which define what content should be indexed and how.
-     *
-     * @var IndexingServiceRepository
-     */
-    private IndexingServiceRepository $indexingServiceRepository;
-
-    /**
-     * Repository for content element operations.
-     *
-     * This repository provides methods for retrieving content elements,
-     * particularly for finding all content elements on a specific page
-     * that need to be indexed or removed from the index.
-     *
-     * @var ContentRepository
-     */
-    private ContentRepository $contentRepository;
-
-    /**
      * Initializes the record handler with required dependencies.
      *
      * This constructor injects all the services and repositories needed for the
@@ -114,17 +60,12 @@ readonly class RecordHandler
      * @param ContentRepository         $contentRepository         Repository for content element operations
      */
     public function __construct(
-        SearchEngineFactory $searchEngineFactory,
-        IndexerFactory $indexerFactory,
-        PageRepository $pageRepository,
-        IndexingServiceRepository $indexingServiceRepository,
-        ContentRepository $contentRepository,
+        private SearchEngineFactory $searchEngineFactory,
+        private IndexerFactory $indexerFactory,
+        private PageRepository $pageRepository,
+        private IndexingServiceRepository $indexingServiceRepository,
+        private ContentRepository $contentRepository,
     ) {
-        $this->searchEngineFactory       = $searchEngineFactory;
-        $this->indexerFactory            = $indexerFactory;
-        $this->pageRepository            = $pageRepository;
-        $this->indexingServiceRepository = $indexingServiceRepository;
-        $this->contentRepository         = $contentRepository;
     }
 
     /**

@@ -35,31 +35,6 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 abstract class AbstractAfterFileEventListener
 {
     /**
-     * Event dispatcher for triggering search-related events.
-     *
-     * This property stores the event dispatcher service that is used by concrete
-     * implementations to dispatch DataHandler events (like DataHandlerRecordUpdateEvent
-     * or DataHandlerRecordDeleteEvent) when file operations occur. These events
-     * ensure that file metadata is properly indexed or removed from the search engine.
-     *
-     * @var EventDispatcherInterface
-     */
-    protected readonly EventDispatcherInterface $eventDispatcher;
-
-    /**
-     * Handler for file-specific operations in the search indexing system.
-     *
-     * This property stores the FileHandler service that provides methods for
-     * working with file metadata, particularly for retrieving metadata UIDs
-     * that are needed to identify file metadata records in the database.
-     * Concrete implementations use this handler to get the metadata UID for
-     * files affected by TYPO3 file events.
-     *
-     * @var FileHandler
-     */
-    protected FileHandler $fileHandler;
-
-    /**
      * Initializes the file event listener with required dependencies.
      *
      * This constructor injects the services needed for handling file events:
@@ -77,10 +52,8 @@ abstract class AbstractAfterFileEventListener
      * @param FileHandler              $fileHandler     The file handler service for working with file metadata
      */
     public function __construct(
-        EventDispatcherInterface $eventDispatcher,
-        FileHandler $fileHandler,
+        protected readonly EventDispatcherInterface $eventDispatcher,
+        protected FileHandler $fileHandler,
     ) {
-        $this->eventDispatcher = $eventDispatcher;
-        $this->fileHandler     = $fileHandler;
     }
 }

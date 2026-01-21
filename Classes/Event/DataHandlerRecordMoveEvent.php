@@ -36,49 +36,12 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Event;
 final class DataHandlerRecordMoveEvent
 {
     /**
-     * The database table name of the moved record.
-     *
-     * This property contains the name of the database table that the moved record
-     * belongs to (e.g., "pages", "tt_content", "sys_file_metadata"). It is used to
-     * identify the type of content that was moved and is essential for locating
-     * the corresponding document in search indices.
-     *
-     * @var string
-     */
-    private readonly string $table;
-
-    /**
-     * The unique identifier of the moved record.
-     *
-     * This property contains the UID of the database record that was moved.
-     * It uniquely identifies the record within its table and is essential for
-     * locating the corresponding document in search indices for updating.
-     *
-     * @var int<1, max>
-     */
-    private readonly int $recordUid;
-
-    /**
-     * The newly assigned parent ID (after moving).
-     *
-     * This property contains the ID of the page to which the record was moved.
-     * If the value is greater than or equal to 0, it refers to the page ID where
-     * the record was inserted. If it is less than 0, it refers to a UID from the
-     * table after which the record was inserted.
-     *
-     * @var int
-     */
-    private readonly int $targetPid;
-
-    /**
      * The previous parent ID (before moving).
      *
      * This property contains the ID of the page from which the record was moved.
      * It is initially null and can be set using the setPreviousPid() method.
      * This information is useful for understanding the record's original location
      * and for updating related records or search indices accordingly.
-     *
-     * @var int|null
      */
     private ?int $previousPid = null;
 
@@ -99,11 +62,11 @@ final class DataHandlerRecordMoveEvent
      *                               (as the first element). If it is less than 0, it refers to a UID from the table
      *                               after which it was inserted.
      */
-    public function __construct(string $table, int $recordUid, int $targetPid)
-    {
-        $this->table     = $table;
-        $this->recordUid = $recordUid;
-        $this->targetPid = $targetPid;
+    public function __construct(
+        private readonly string $table,
+        private readonly int $recordUid,
+        private readonly int $targetPid,
+    ) {
     }
 
     /**

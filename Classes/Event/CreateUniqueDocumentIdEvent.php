@@ -39,47 +39,12 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 final class CreateUniqueDocumentIdEvent
 {
     /**
-     * The search engine instance that needs the document ID.
-     *
-     * This property contains the search engine that is requesting a unique document ID.
-     * It provides context about which search engine implementation is being used
-     * (e.g., Algolia) and access to search engine-specific configuration and methods.
-     *
-     * @var SearchEngineInterface
-     */
-    private readonly SearchEngineInterface $searchEngine;
-
-    /**
-     * The database table name of the record.
-     *
-     * This property contains the name of the database table that the record belongs to
-     * (e.g., "pages", "tt_content", "sys_file_metadata"). It is used to identify the
-     * type of content being indexed and is typically included in the document ID.
-     *
-     * @var string
-     */
-    private readonly string $tableName;
-
-    /**
-     * The unique identifier of the record.
-     *
-     * This property contains the UID of the database record that is being indexed.
-     * It uniquely identifies the record within its table and is typically included
-     * in the document ID to ensure uniqueness.
-     *
-     * @var int
-     */
-    private readonly int $recordUid;
-
-    /**
      * The generated document ID.
      *
      * This property stores the document ID that will be used to identify the document
      * in the search engine index. It is initially empty and should be set by an event
      * listener using the setDocumentId() method. If no listener sets a document ID,
      * the search engine will typically use a default format.
-     *
-     * @var string
      */
     private string $documentId = '';
 
@@ -98,13 +63,10 @@ final class CreateUniqueDocumentIdEvent
      * @param int                   $recordUid    The unique identifier of the record
      */
     public function __construct(
-        SearchEngineInterface $searchEngine,
-        string $tableName,
-        int $recordUid,
+        private readonly SearchEngineInterface $searchEngine,
+        private readonly string $tableName,
+        private readonly int $recordUid,
     ) {
-        $this->searchEngine = $searchEngine;
-        $this->tableName    = $tableName;
-        $this->recordUid    = $recordUid;
     }
 
     /**

@@ -43,51 +43,12 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 class RecordUpdateEventListener
 {
     /**
-     * Handler for database record operations in the search indexing system.
-     *
-     * This property stores the RecordHandler service that provides methods for
-     * working with database records in the context of search indexing. It is used
-     * to determine root page IDs, update records in the indexing queue, and process
-     * related records that might be affected by the update operation.
-     *
-     * @var RecordHandler
-     */
-    private readonly RecordHandler $recordHandler;
-
-    /**
-     * Repository for accessing generic database records across different tables.
-     *
-     * This property stores the RecordRepository service that provides methods for
-     * retrieving information about database records regardless of their specific table.
-     * It is primarily used to find the parent page ID (pid) of content elements,
-     * which is needed to update the page's search index entry when a content element
-     * is modified.
-     *
-     * @var RecordRepository
-     */
-    private readonly RecordRepository $recordRepository;
-
-    /**
-     * Repository for page-related operations.
-     *
-     * This property stores the PageRepository service that provides methods for
-     * retrieving page information and navigating page hierarchies. It is used to
-     * find subpages of a modified page, which is necessary for updating the entire
-     * page tree in the search index when a page is modified.
-     *
-     * @var PageRepository
-     */
-    private readonly PageRepository $pageRepository;
-
-    /**
      * The current record update event being processed.
      *
      * This property stores the DataHandlerRecordUpdateEvent that triggered this listener.
      * It provides access to information about the created or modified record, including
      * the table name, record UID, and changed fields. This information is used to determine
      * what actions need to be taken to update the search index.
-     *
-     * @var DataHandlerRecordUpdateEvent
      */
     private DataHandlerRecordUpdateEvent $event;
 
@@ -110,13 +71,10 @@ class RecordUpdateEventListener
      * @param PageRepository   $pageRepository   The repository for page-related operations
      */
     public function __construct(
-        RecordHandler $recordHandler,
-        RecordRepository $recordRepository,
-        PageRepository $pageRepository,
+        private readonly RecordHandler $recordHandler,
+        private readonly RecordRepository $recordRepository,
+        private readonly PageRepository $pageRepository,
     ) {
-        $this->recordHandler    = $recordHandler;
-        $this->recordRepository = $recordRepository;
-        $this->pageRepository   = $pageRepository;
     }
 
     /**

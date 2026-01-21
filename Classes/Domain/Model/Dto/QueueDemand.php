@@ -36,8 +36,6 @@ class QueueDemand
      * that has been selected for queue operations. It is typically used when
      * performing operations on a specific indexing service, such as refreshing
      * the queue for just one service configuration.
-     *
-     * @var int
      */
     private int $indexingService = 0;
 

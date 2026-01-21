@@ -55,8 +55,6 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
      *
      * This property holds the connection to the Algolia API and is used
      * for all operations that interact with the Algolia search service.
-     *
-     * @var SearchClient
      */
     private SearchClient $client;
 
@@ -66,8 +64,6 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
      * This property stores the unique identifier for the Algolia application
      * that this search engine will connect to. It is retrieved from the
      * extension configuration.
-     *
-     * @var string
      */
     private readonly string $appId;
 
@@ -77,8 +73,6 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
      * This property stores the authentication key used to access the Algolia API.
      * It is retrieved from the extension configuration and should be kept secure
      * as it provides write access to the Algolia indices.
-     *
-     * @var string
      */
     private readonly string $apiKey;
 

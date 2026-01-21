@@ -55,8 +55,6 @@ class QueueProvider extends AbstractProvider
      * This property stores the file or folder object that the context menu
      * is being generated for. It's initialized in the initialize() method
      * and used throughout the class to determine what actions are available.
-     *
-     * @var File|Folder|null
      */
     private Folder|File|null $record = null;
 
@@ -88,11 +86,11 @@ class QueueProvider extends AbstractProvider
      * @param IndexingServiceRepository $indexingServiceRepository
      */
     public function __construct(
-        private ResourceFactory $resourceFactory,
-        private TypoScriptService $typoScriptService,
-        private UriBuilder $uriBuilder,
-        private FileCollectionRepository $fileCollectionRepository,
-        private IndexingServiceRepository $indexingServiceRepository,
+        private readonly ResourceFactory $resourceFactory,
+        private readonly TypoScriptService $typoScriptService,
+        private readonly UriBuilder $uriBuilder,
+        private readonly FileCollectionRepository $fileCollectionRepository,
+        private readonly IndexingServiceRepository $indexingServiceRepository,
     ) {
         parent::__construct();
     }
@@ -212,8 +210,11 @@ class QueueProvider extends AbstractProvider
     {
         $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
 
-        $canBeEnqueued = ($this->record instanceof File)
-            && ($this->record->isIndexed() === true)
+        if (!($this->record instanceof File)) {
+            return false;
+        }
+
+        $canBeEnqueued = ($this->record->isIndexed() === true)
             && $this->isExtensionAllowed($this->record, $allowedFileExtensions)
             && $this->record->checkActionPermission('editMeta')
             && $this->record->getMetaData()->offsetExists('uid')
@@ -232,7 +233,7 @@ class QueueProvider extends AbstractProvider
         foreach ($indexingServices as $indexingService) {
             $collectionIds = GeneralUtility::intExplode(
                 ',',
-                $indexingService?->getFileCollections() ?? '',
+                $indexingService->getFileCollections(),
                 true
             );
 

@@ -38,8 +38,6 @@ class QueueItem extends AbstractEntity
      * This property stores the name of the database table (e.g., "pages", "tt_content",
      * "sys_file_metadata") that contains the record that needs to be indexed.
      * Together with recordUid, it uniquely identifies the record in the TYPO3 database.
-     *
-     * @var string
      */
     protected string $tableName = '';
 
@@ -48,8 +46,6 @@ class QueueItem extends AbstractEntity
      *
      * This property stores the UID of the database record that needs to be indexed.
      * Together with tableName, it uniquely identifies the record in the TYPO3 database.
-     *
-     * @var int
      */
     protected int $recordUid = 0;
 
@@ -59,8 +55,6 @@ class QueueItem extends AbstractEntity
      * This property stores the UID of the IndexingService that should process
      * this queue item. It determines which indexing configuration and search
      * engine will be used when indexing the record.
-     *
-     * @var int
      */
     protected int $serviceUid = 0;
 
@@ -70,8 +64,6 @@ class QueueItem extends AbstractEntity
      * This property stores when the database record was last modified. It is used
      * to determine if the indexed version is outdated and needs to be updated.
      * Records with more recent changes are typically processed first.
-     *
-     * @var DateTime
      */
     protected DateTime $changed;
 
@@ -81,8 +73,6 @@ class QueueItem extends AbstractEntity
      * This property determines the order in which queue items are processed.
      * Items with higher priority values are processed before items with lower
      * priority values. This allows important content to be indexed faster.
-     *
-     * @var int
      */
     protected int $priority = 0;
 

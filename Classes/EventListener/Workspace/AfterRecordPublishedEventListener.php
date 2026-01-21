@@ -36,18 +36,6 @@ use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 readonly class AfterRecordPublishedEventListener
 {
     /**
-     * Event dispatcher for triggering search-related events.
-     *
-     * This property stores the event dispatcher service that is used by concrete
-     * implementations to dispatch DataHandler events (like DataHandlerRecordUpdateEvent
-     * or DataHandlerRecordDeleteEvent) when file operations occur. These events
-     * ensure that file metadata is properly indexed or removed from the search engine.
-     *
-     * @var EventDispatcherInterface
-     */
-    protected EventDispatcherInterface $eventDispatcher;
-
-    /**
      * Constructor method for initializing the class.
      *
      * @param EventDispatcherInterface $eventDispatcher An instance of EventDispatcherInterface for event handling
@@ -55,9 +43,8 @@ readonly class AfterRecordPublishedEventListener
      * @return void
      */
     public function __construct(
-        EventDispatcherInterface $eventDispatcher,
+        protected EventDispatcherInterface $eventDispatcher,
     ) {
-        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**

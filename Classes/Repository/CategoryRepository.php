@@ -25,17 +25,6 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 readonly class CategoryRepository
 {
     /**
-     * TYPO3 database connection pool for direct database operations.
-     *
-     * This property provides access to database connections for performing
-     * optimized database operations. It is used to create query builders
-     * for retrieving content elements from the tt_content table.
-     *
-     * @var ConnectionPool
-     */
-    private ConnectionPool $connectionPool;
-
-    /**
      * Initializes the repository with the database connection pool.
      *
      * This constructor injects the TYPO3 connection pool that is used
@@ -44,9 +33,9 @@ readonly class CategoryRepository
      *
      * @param ConnectionPool $connectionPool The TYPO3 database connection pool
      */
-    public function __construct(ConnectionPool $connectionPool)
-    {
-        $this->connectionPool = $connectionPool;
+    public function __construct(
+        private ConnectionPool $connectionPool,
+    ) {
     }
 
     /**

@@ -39,8 +39,6 @@ class IndexingService extends AbstractEntity
      * This property stores when the indexing service configuration was initially
      * created in the TYPO3 backend. It is automatically set by TYPO3's DataHandler
      * and is not directly editable by users.
-     *
-     * @var DateTime
      */
     protected DateTime $crdate;
 
@@ -50,8 +48,6 @@ class IndexingService extends AbstractEntity
      * This property stores when the indexing service configuration was last
      * modified in the TYPO3 backend. It is automatically updated by TYPO3's
      * DataHandler whenever the record is changed.
-     *
-     * @var DateTime
      */
     protected DateTime $tstamp;
 
@@ -61,8 +57,6 @@ class IndexingService extends AbstractEntity
      * When set to true, this indexing service is hidden in the TYPO3 backend
      * and will not be used for indexing operations. This allows administrators
      * to temporarily disable specific indexing configurations without deleting them.
-     *
-     * @var bool
      */
     protected bool $hidden = false;
 
@@ -72,8 +66,6 @@ class IndexingService extends AbstractEntity
      * When set to true, this indexing service is considered deleted in the TYPO3
      * system but is still stored in the database (soft delete). Deleted indexing
      * services are not used for indexing operations and are not shown in the backend.
-     *
-     * @var bool
      */
     protected bool $deleted = false;
 
@@ -83,8 +75,6 @@ class IndexingService extends AbstractEntity
      * This property stores the title that is displayed in the TYPO3 backend
      * to identify this indexing service configuration. It should be descriptive
      * of what content this service indexes (e.g., "Index all news pages").
-     *
-     * @var string
      */
     protected string $title = '';
 
@@ -94,8 +84,6 @@ class IndexingService extends AbstractEntity
      * This property stores an optional longer description that explains the
      * purpose and configuration of this indexing service in more detail.
      * It is displayed in the TYPO3 backend to provide additional context.
-     *
-     * @var string
      */
     protected string $description = '';
 
@@ -105,8 +93,6 @@ class IndexingService extends AbstractEntity
      * This property stores the database table name (e.g., "pages", "tt_content",
      * "sys_file_metadata") that identifies what type of content this indexing
      * service will process. It determines which indexer implementation will be used.
-     *
-     * @var string
      */
     protected string $type;
 
@@ -116,8 +102,6 @@ class IndexingService extends AbstractEntity
      * This property stores a relation to the SearchEngine model that defines
      * which search engine instance should receive the indexed content from this
      * indexing service. It determines the destination for all indexed content.
-     *
-     * @var SearchEngine
      */
     protected SearchEngine $searchEngine;
 
@@ -128,8 +112,6 @@ class IndexingService extends AbstractEntity
      * for pages, the content of all content elements on each page will be included
      * in the page's search index document. This creates more comprehensive search
      * results but may result in larger index documents.
-     *
-     * @var bool
      */
     protected bool $includeContentElements;
 
@@ -139,8 +121,6 @@ class IndexingService extends AbstractEntity
      * This property allows filtering which types of content elements (CType)
      * should be indexed. When empty, all content element types are included.
      * When specified, only the listed types will be indexed (e.g., "text,textpic,image").
-     *
-     * @var string
      */
     protected string $contentElementTypes = '';
 
@@ -150,8 +130,6 @@ class IndexingService extends AbstractEntity
      * This property allows filtering which types of pages should be indexed.
      * When empty, all page types are included. When specified, only pages with
      * the listed doktypes will be indexed (e.g., "1,4" for standard pages and shortcuts).
-     *
-     * @var string
      */
     protected string $pagesDoktype = '';
 
@@ -161,8 +139,6 @@ class IndexingService extends AbstractEntity
      * This property allows explicitly selecting individual pages for indexing
      * by their unique identifiers. When specified, only the listed pages will
      * be considered for indexing, regardless of other filtering criteria.
-     *
-     * @var string
      */
     protected string $pagesSingle = '';
 
@@ -172,8 +148,6 @@ class IndexingService extends AbstractEntity
      * This property allows selecting entire page trees for indexing by specifying
      * the root page UIDs. When specified, the listed pages and all their subpages
      * will be considered for indexing, subject to other filtering criteria.
-     *
-     * @var string
      */
     protected string $pagesRecursive = '';
 
@@ -183,8 +157,6 @@ class IndexingService extends AbstractEntity
      * This property is used when the indexing service is configured for files.
      * It specifies which file collections should be processed for indexing.
      * Only files within the listed collections will be considered for indexing.
-     *
-     * @var string
      */
     protected string $fileCollections = '';
 

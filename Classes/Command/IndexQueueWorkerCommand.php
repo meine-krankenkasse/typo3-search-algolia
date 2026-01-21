@@ -64,75 +64,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      * This property provides methods for formatted console output, including
      * tables, progress bars, and styled messages. It's initialized in the
      * execute() method with the input and output interfaces.
-     *
-     * @var SymfonyStyle
      */
     private SymfonyStyle $io;
-
-    /**
-     * TYPO3 persistence manager for database operations.
-     *
-     * Used to persist changes to database entities, particularly when updating
-     * queue items after processing them. It ensures that all changes are
-     * properly saved to the database.
-     *
-     * @var PersistenceManagerInterface
-     */
-    private PersistenceManagerInterface $persistenceManager;
-
-    /**
-     * TYPO3 registry for persistent storage.
-     *
-     * Used to store and retrieve persistent values across executions,
-     * particularly for tracking indexing progress and status information.
-     *
-     * @var Registry
-     */
-    private Registry $registry;
-
-    /**
-     * TYPO3 database connection pool.
-     *
-     * Provides access to database connections for direct database queries
-     * when repository methods are insufficient or when performance
-     * optimizations are needed.
-     *
-     * @var ConnectionPool
-     */
-    private ConnectionPool $connectionPool;
-
-    /**
-     * Repository for queue item operations.
-     *
-     * Provides methods for retrieving, updating, and deleting queue items
-     * that represent records waiting to be indexed. Used to fetch the next
-     * batch of items for processing and to update their status after indexing.
-     *
-     * @var QueueItemRepository
-     */
-    private QueueItemRepository $queueItemRepository;
-
-    /**
-     * Repository for indexing service operations.
-     *
-     * Provides methods for retrieving indexing service configurations that
-     * define how different types of content should be indexed. Used to get
-     * the appropriate indexing service for each queue item.
-     *
-     * @var IndexingServiceRepository
-     */
-    private IndexingServiceRepository $indexingServiceRepository;
-
-    /**
-     * Service for managing queue execution status.
-     *
-     * Provides methods for tracking when indexing operations were last executed
-     * and updating this information after each run. Used to maintain state
-     * between indexing runs and for reporting purposes.
-     *
-     * @var QueueStatusService
-     */
-    private QueueStatusService $queueStatusService;
 
     /**
      * Initializes the command with required dependencies.
@@ -150,21 +83,14 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      * @param QueueStatusService          $queueStatusService        Service for tracking indexing execution status
      */
     public function __construct(
-        PersistenceManagerInterface $persistenceManager,
-        Registry $registry,
-        ConnectionPool $connectionPool,
-        QueueItemRepository $queueItemRepository,
-        IndexingServiceRepository $indexingServiceRepository,
-        QueueStatusService $queueStatusService,
+        private PersistenceManagerInterface $persistenceManager,
+        private Registry $registry,
+        private ConnectionPool $connectionPool,
+        private QueueItemRepository $queueItemRepository,
+        private IndexingServiceRepository $indexingServiceRepository,
+        private QueueStatusService $queueStatusService,
     ) {
         parent::__construct();
-
-        $this->persistenceManager        = $persistenceManager;
-        $this->registry                  = $registry;
-        $this->connectionPool            = $connectionPool;
-        $this->queueItemRepository       = $queueItemRepository;
-        $this->indexingServiceRepository = $indexingServiceRepository;
-        $this->queueStatusService        = $queueStatusService;
     }
 
     /**

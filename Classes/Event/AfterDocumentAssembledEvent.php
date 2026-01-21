@@ -36,52 +36,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 final readonly class AfterDocumentAssembledEvent
 {
     /**
-     * The processed document that has been assembled.
-     *
-     * This property contains the document object that has been created and filled
-     * with fields and metadata from the database record. Event listeners can access
-     * this property to read or modify the document before it is sent to the search engine.
-     *
-     * @var Document
-     */
-    private Document $document;
-
-    /**
-     * The indexer instance that created the document.
-     *
-     * This property contains the indexer that was used to create the document.
-     * It provides context about the type of content being indexed (pages, content elements,
-     * files, etc.) and access to indexer-specific configuration and methods.
-     *
-     * @var IndexerInterface
-     */
-    private IndexerInterface $indexer;
-
-    /**
-     * The indexing service configuration used for this indexing operation.
-     *
-     * This property contains the configuration that defines how the content should
-     * be indexed, including which search engine to use, which fields to include,
-     * and other indexing parameters. Event listeners can use this information to
-     * make decisions about how to modify the document.
-     *
-     * @var IndexingService
-     */
-    private IndexingService $indexingService;
-
-    /**
-     * The original database record that was used to create the document.
-     *
-     * This property contains the raw data from the database that was used to
-     * create the document. Event listeners can access this property to retrieve
-     * additional information from the record that might not have been included
-     * in the document by default.
-     *
-     * @var array<string, mixed>
-     */
-    private array $record;
-
-    /**
      * Constructor for the AfterDocumentAssembledEvent.
      *
      * Initializes a new event instance with the assembled document, the indexer that
@@ -95,15 +49,11 @@ final readonly class AfterDocumentAssembledEvent
      * @param array<string, mixed> $record          The original database record data
      */
     public function __construct(
-        Document $document,
-        IndexerInterface $indexer,
-        IndexingService $indexingService,
-        array $record,
+        private Document $document,
+        private IndexerInterface $indexer,
+        private IndexingService $indexingService,
+        private array $record,
     ) {
-        $this->document        = $document;
-        $this->indexer         = $indexer;
-        $this->indexingService = $indexingService;
-        $this->record          = $record;
     }
 
     /**

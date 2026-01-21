@@ -45,27 +45,6 @@ use TYPO3\CMS\Extbase\Http\ForwardResponse;
 class AdministrationModuleController extends AbstractBaseModuleController
 {
     /**
-     * Factory for creating search engine service instances.
-     *
-     * This factory is used to create instances of search engine services based on
-     * their type (e.g., Algolia). These services provide the actual implementation
-     * for communicating with the search engine APIs.
-     *
-     * @var SearchEngineFactory
-     */
-    private readonly SearchEngineFactory $searchEngineFactory;
-
-    /**
-     * Repository for accessing search engine configuration records.
-     *
-     * This repository provides access to the search engine configurations stored
-     * in the database, including connection details and index names.
-     *
-     * @var SearchEngineRepository
-     */
-    private readonly SearchEngineRepository $searchEngineRepository;
-
-    /**
      * Initializes the controller with required dependencies.
      *
      * This constructor injects the necessary services for creating and configuring
@@ -80,16 +59,13 @@ class AdministrationModuleController extends AbstractBaseModuleController
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
         IconFactory $iconFactory,
-        SearchEngineFactory $searchEngineFactory,
-        SearchEngineRepository $searchEngineRepository,
+        private readonly SearchEngineFactory $searchEngineFactory,
+        private readonly SearchEngineRepository $searchEngineRepository,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
             $iconFactory
         );
-
-        $this->searchEngineFactory    = $searchEngineFactory;
-        $this->searchEngineRepository = $searchEngineRepository;
     }
 
     /**

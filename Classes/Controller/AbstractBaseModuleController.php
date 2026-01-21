@@ -40,25 +40,10 @@ use function is_array;
  */
 abstract class AbstractBaseModuleController extends ActionController
 {
-    /**
-     * @var ModuleTemplateFactory
-     */
-    private readonly ModuleTemplateFactory $moduleTemplateFactory;
-
-    /**
-     * @var IconFactory
-     */
-    protected IconFactory $iconFactory;
-
-    /**
-     * @var ModuleTemplate
-     */
     protected ModuleTemplate $moduleTemplate;
 
     /**
      * The selected page ID.
-     *
-     * @var int
      */
     protected int $pageUid = 0;
 
@@ -69,11 +54,9 @@ abstract class AbstractBaseModuleController extends ActionController
      * @param IconFactory           $iconFactory
      */
     public function __construct(
-        ModuleTemplateFactory $moduleTemplateFactory,
-        IconFactory $iconFactory,
+        private readonly ModuleTemplateFactory $moduleTemplateFactory,
+        protected IconFactory $iconFactory,
     ) {
-        $this->moduleTemplateFactory = $moduleTemplateFactory;
-        $this->iconFactory           = $iconFactory;
     }
 
     /**

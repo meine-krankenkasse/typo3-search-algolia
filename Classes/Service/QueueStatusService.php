@@ -32,21 +32,13 @@ use TYPO3\CMS\Core\Registry;
 readonly class QueueStatusService
 {
     /**
-     * Used to store and retrieve execution timestamps across requests
-     * and CLI executions.
-     *
-     * @var Registry
-     */
-    private Registry $registry;
-
-    /**
      * Initializes the service with the TYPO3 registry for persistent storage.
      *
      * @param Registry $registry The TYPO3 registry service
      */
-    public function __construct(Registry $registry)
-    {
-        $this->registry = $registry;
+    public function __construct(
+        private Registry $registry,
+    ) {
     }
 
     /**

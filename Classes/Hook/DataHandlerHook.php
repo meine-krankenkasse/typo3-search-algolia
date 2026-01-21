@@ -50,31 +50,6 @@ use function is_int;
 class DataHandlerHook
 {
     /**
-     * Event dispatcher for triggering search-related events.
-     *
-     * This property stores the event dispatcher service that is used to dispatch
-     * events when record operations occur. These events (DataHandlerRecordUpdateEvent,
-     * DataHandlerRecordDeleteEvent, DataHandlerRecordMoveEvent) notify the search
-     * indexing system about changes to records that need to be reflected in the
-     * search index.
-     *
-     * @var EventDispatcherInterface
-     */
-    private readonly EventDispatcherInterface $eventDispatcher;
-
-    /**
-     * Repository for page-related operations.
-     *
-     * This property stores the PageRepository service that provides methods for
-     * retrieving page information and navigating page hierarchies. It is used to
-     * find subpages of a modified page, which is necessary for updating the entire
-     * page tree in the search index when a page is modified.
-     *
-     * @var PageRepository
-     */
-    private readonly PageRepository $pageRepository;
-
-    /**
      * Tracks record movements during DataHandler operations.
      *
      * This property stores information about record movements, mapping target PIDs
@@ -106,11 +81,9 @@ class DataHandlerHook
      * @return void
      */
     public function __construct(
-        EventDispatcherInterface $eventDispatcher,
-        PageRepository $pageRepository,
+        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly PageRepository $pageRepository,
     ) {
-        $this->eventDispatcher = $eventDispatcher;
-        $this->pageRepository  = $pageRepository;
     }
 
     /**

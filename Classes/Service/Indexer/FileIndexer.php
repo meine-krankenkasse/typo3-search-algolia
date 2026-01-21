@@ -56,36 +56,6 @@ class FileIndexer extends AbstractIndexer
     public const string TABLE = 'sys_file_metadata';
 
     /**
-     * Repository for file collection operations.
-     *
-     * This repository is used to retrieve file collections and their contents
-     * based on the configuration in the indexing service.
-     *
-     * @var FileCollectionRepository
-     */
-    private readonly FileCollectionRepository $fileCollectionRepository;
-
-    /**
-     * Handler for file operations.
-     *
-     * This service provides methods for working with files, including
-     * retrieving metadata UIDs and other file-specific operations.
-     *
-     * @var FileHandler
-     */
-    private readonly FileHandler $fileHandler;
-
-    /**
-     * Service for TypoScript configuration access.
-     *
-     * This service provides access to TypoScript configuration values,
-     * particularly for retrieving allowed file extensions for indexing.
-     *
-     * @var TypoScriptService
-     */
-    private readonly TypoScriptService $typoScriptService;
-
-    /**
      * Constructor for the file indexer.
      *
      * Initializes the indexer with all required dependencies for database access,
@@ -109,9 +79,9 @@ class FileIndexer extends AbstractIndexer
         SearchEngineFactory $searchEngineFactory,
         QueueItemRepository $queueItemRepository,
         DocumentBuilder $documentBuilder,
-        FileCollectionRepository $fileCollectionRepository,
-        FileHandler $fileHandler,
-        TypoScriptService $typoScriptService,
+        private readonly FileCollectionRepository $fileCollectionRepository,
+        private readonly FileHandler $fileHandler,
+        private readonly TypoScriptService $typoScriptService,
     ) {
         parent::__construct(
             $connectionPool,
@@ -121,10 +91,6 @@ class FileIndexer extends AbstractIndexer
             $queueItemRepository,
             $documentBuilder
         );
-
-        $this->fileCollectionRepository = $fileCollectionRepository;
-        $this->fileHandler              = $fileHandler;
-        $this->typoScriptService        = $typoScriptService;
     }
 
     /**

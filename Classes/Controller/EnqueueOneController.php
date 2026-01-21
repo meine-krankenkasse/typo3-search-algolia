@@ -38,56 +38,6 @@ use function is_array;
 readonly class EnqueueOneController
 {
     /**
-     * Event dispatcher for triggering indexing events.
-     *
-     * This service is used to dispatch events that notify the indexing system
-     * about files that need to be added to the indexing queue.
-     *
-     * @var EventDispatcherInterface
-     */
-    private EventDispatcherInterface $eventDispatcher;
-
-    /**
-     * Factory for creating module template instances.
-     *
-     * This service is used to create and configure the TYPO3 backend module template
-     * that provides the standard layout and styling for flash messages.
-     *
-     * @var ModuleTemplateFactory
-     */
-    private ModuleTemplateFactory $moduleTemplateFactory;
-
-    /**
-     * Factory for retrieving file objects.
-     *
-     * This service is used to convert file identifiers into proper File objects
-     * that can be processed for indexing.
-     *
-     * @var ResourceFactory
-     */
-    private ResourceFactory $resourceFactory;
-
-    /**
-     * Factory for creating HTTP responses.
-     *
-     * This service is used to create appropriate HTTP responses for the AJAX
-     * requests that trigger the file enqueuing process.
-     *
-     * @var ResponseFactory
-     */
-    private ResponseFactory $responseFactory;
-
-    /**
-     * Handler for file-specific operations.
-     *
-     * This service provides methods for working with files, particularly for
-     * retrieving metadata UIDs that are needed for the indexing process.
-     *
-     * @var FileHandler
-     */
-    private FileHandler $fileHandler;
-
-    /**
      * Constructor.
      *
      * @param EventDispatcherInterface $eventDispatcher
@@ -97,17 +47,12 @@ readonly class EnqueueOneController
      * @param FileHandler              $fileHandler
      */
     public function __construct(
-        EventDispatcherInterface $eventDispatcher,
-        ModuleTemplateFactory $moduleTemplateFactory,
-        ResourceFactory $resourceFactory,
-        ResponseFactory $responseFactory,
-        FileHandler $fileHandler,
+        private EventDispatcherInterface $eventDispatcher,
+        private ModuleTemplateFactory $moduleTemplateFactory,
+        private ResourceFactory $resourceFactory,
+        private ResponseFactory $responseFactory,
+        private FileHandler $fileHandler,
     ) {
-        $this->eventDispatcher       = $eventDispatcher;
-        $this->moduleTemplateFactory = $moduleTemplateFactory;
-        $this->resourceFactory       = $resourceFactory;
-        $this->responseFactory       = $responseFactory;
-        $this->fileHandler           = $fileHandler;
     }
 
     /**

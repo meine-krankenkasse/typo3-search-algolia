@@ -40,8 +40,6 @@ class SearchEngine extends AbstractEntity
      * This property stores when the search engine configuration was initially
      * created in the TYPO3 backend. It is automatically set by TYPO3's DataHandler
      * and is not directly editable by users.
-     *
-     * @var DateTime
      */
     protected DateTime $crdate;
 
@@ -51,8 +49,6 @@ class SearchEngine extends AbstractEntity
      * This property stores when the search engine configuration was last
      * modified in the TYPO3 backend. It is automatically updated by TYPO3's
      * DataHandler whenever the record is changed.
-     *
-     * @var DateTime
      */
     protected DateTime $tstamp;
 
@@ -63,8 +59,6 @@ class SearchEngine extends AbstractEntity
      * in the TYPO3 system but is still stored in the database (soft delete).
      * Deleted configurations are not used for indexing operations and are not
      * shown in the backend.
-     *
-     * @var bool
      */
     protected bool $deleted = false;
 
@@ -74,8 +68,6 @@ class SearchEngine extends AbstractEntity
      * This property stores the title that is displayed in the TYPO3 backend
      * to identify this search engine configuration. It should be descriptive
      * of the search engine instance it represents (e.g., "Production Algolia").
-     *
-     * @var string
      */
     protected string $title = '';
 
@@ -85,8 +77,6 @@ class SearchEngine extends AbstractEntity
      * This property stores an optional longer description that explains the
      * purpose and configuration of this search engine in more detail.
      * It is displayed in the TYPO3 backend to provide additional context.
-     *
-     * @var string
      */
     protected string $description = '';
 
@@ -96,8 +86,6 @@ class SearchEngine extends AbstractEntity
      * This property stores the identifier of the search engine type (e.g., "algolia")
      * that determines which search engine implementation will be used for indexing.
      * It corresponds to the subtype registered in the SearchEngineRegistry.
-     *
-     * @var string
      */
     protected string $engine;
 
@@ -108,8 +96,6 @@ class SearchEngine extends AbstractEntity
      * where indexed content will be stored. Different indices can be used to
      * separate content for different environments (e.g., "production", "staging")
      * or different purposes (e.g., "main", "products").
-     *
-     * @var string
      */
     protected string $indexName;
 

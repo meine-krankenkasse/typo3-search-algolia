@@ -53,55 +53,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class UpdateAssembledPageDocumentEventListener
 {
     /**
-     * TYPO3 site finder service for retrieving site information.
-     *
-     * This property stores the SiteFinder service that is used to retrieve
-     * site information based on page IDs. It's essential for determining
-     * the site domain and generating URLs to pages, which are added to
-     * the document for proper linking in search results.
-     *
-     * @var SiteFinder
-     */
-    private readonly SiteFinder $siteFinder;
-
-    /**
-     * Repository for accessing content elements stored in the database.
-     *
-     * This property stores the ContentRepository service that is used to retrieve
-     * content elements on a page. It's essential for the content aggregation
-     * functionality that combines the content of all elements on a page into
-     * a single text field for full-text indexing, allowing users to search
-     * for text within any content element on the page.
-     *
-     * @var ContentRepository
-     */
-    private readonly ContentRepository $contentRepository;
-
-    /**
-     * Repository for accessing system categories stored in the database.
-     *
-     * This property stores the CategoryRepository service that is used to retrieve
-     * system categories assigned to a page.
-     *
-     * @var CategoryRepository
-     */
-    private readonly CategoryRepository $categoryRepository;
-
-    /**
-     * Service for accessing TypoScript configuration values.
-     *
-     * This property stores the TypoScriptService that provides access to
-     * TypoScript configuration values. It's used to retrieve the configuration
-     * for content element fields that should be included in the page's content
-     * field for full-text indexing. This configuration determines which fields
-     * from content elements are extracted and combined into the page's searchable
-     * content.
-     *
-     * @var TypoScriptService
-     */
-    private readonly TypoScriptService $typoScriptService;
-
-    /**
      * The current document assembled event being processed.
      *
      * This property stores the AfterDocumentAssembledEvent that is currently
@@ -110,8 +61,6 @@ class UpdateAssembledPageDocumentEventListener
      * information like the indexing service configuration. This allows helper
      * methods to retrieve configuration values without needing to pass the
      * event as a parameter to each method.
-     *
-     * @var AfterDocumentAssembledEvent
      */
     private AfterDocumentAssembledEvent $event;
 
@@ -133,15 +82,11 @@ class UpdateAssembledPageDocumentEventListener
      * @param TypoScriptService  $typoScriptService  The service for accessing TypoScript configuration
      */
     public function __construct(
-        SiteFinder $siteFinder,
-        ContentRepository $contentRepository,
-        CategoryRepository $categoryRepository,
-        TypoScriptService $typoScriptService,
+        private readonly SiteFinder $siteFinder,
+        private readonly ContentRepository $contentRepository,
+        private readonly CategoryRepository $categoryRepository,
+        private readonly TypoScriptService $typoScriptService,
     ) {
-        $this->siteFinder         = $siteFinder;
-        $this->contentRepository  = $contentRepository;
-        $this->categoryRepository = $categoryRepository;
-        $this->typoScriptService  = $typoScriptService;
     }
 
     /**

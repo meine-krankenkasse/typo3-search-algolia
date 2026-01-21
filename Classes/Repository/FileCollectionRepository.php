@@ -33,17 +33,6 @@ use TYPO3\CMS\Core\Resource\Collection\AbstractFileCollection;
 class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRepository
 {
     /**
-     * TYPO3 database connection pool for direct database operations.
-     *
-     * This property provides access to database connections for performing
-     * optimized database queries on file collections. It is used to create
-     * query builders for retrieving file collections from the database.
-     *
-     * @var ConnectionPool
-     */
-    private readonly ConnectionPool $connectionPool;
-
-    /**
      * Initializes the repository with the database connection pool.
      *
      * This constructor injects the TYPO3 connection pool that is used
@@ -53,9 +42,9 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
      *
      * @param ConnectionPool $connectionPool The TYPO3 database connection pool
      */
-    public function __construct(ConnectionPool $connectionPool)
-    {
-        $this->connectionPool = $connectionPool;
+    public function __construct(
+        private readonly ConnectionPool $connectionPool,
+    ) {
     }
 
     /**

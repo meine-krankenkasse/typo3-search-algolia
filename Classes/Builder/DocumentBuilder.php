@@ -42,42 +42,20 @@ use function is_scalar;
 class DocumentBuilder
 {
     /**
-     * Used to dispatch events after document assembly, allowing other
-     * components to modify or extend the document before indexing.
-     *
-     * @var EventDispatcherInterface
-     */
-    private readonly EventDispatcherInterface $eventDispatcher;
-
-    /**
      * This property holds the document instance that is being assembled
      * with fields and metadata from the database record.
-     *
-     * @var Document
      */
     private Document $document;
 
     /**
      * Contains settings for how documents should be indexed, including
      * which search engine to use and other indexing parameters.
-     *
-     * @var IndexingService
      */
     private IndexingService $indexingService;
 
     /**
-     * Used to retrieve field mappings and other configuration values
-     * that control how database fields are mapped to document fields.
-     *
-     * @var TypoScriptService
-     */
-    private readonly TypoScriptService $typoScriptService;
-
-    /**
      * Provides information about the table being indexed and other
      * type-specific indexing behavior.
-     *
-     * @var IndexerInterface|null
      */
     private ?IndexerInterface $indexer = null;
 
@@ -97,11 +75,9 @@ class DocumentBuilder
      * @param TypoScriptService        $typoScriptService Service for accessing TypoScript configuration
      */
     public function __construct(
-        EventDispatcherInterface $eventDispatcher,
-        TypoScriptService $typoScriptService,
+        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly TypoScriptService $typoScriptService,
     ) {
-        $this->eventDispatcher   = $eventDispatcher;
-        $this->typoScriptService = $typoScriptService;
     }
 
     /**

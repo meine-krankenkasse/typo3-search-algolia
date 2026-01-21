@@ -5,10 +5,10 @@ includes:
     - %currentWorkingDirectory%/Build/phpstan-baseline.neon
 
 parameters:
-    # You can currently choose from 10 levels (0 is the loosest and 9 is the strictest).
+    # You can currently choose from 11 levels (0 is the loosest and 10 is the strictest).
     level: 8
 
-    # PHP Version to check against (PHP 8.4 as minimum target)
+    # PHP Version to check against (PHP 8.3 as minimum target)
     phpVersion: 80300
 
     paths:

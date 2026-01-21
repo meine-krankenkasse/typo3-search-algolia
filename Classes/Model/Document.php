@@ -34,30 +34,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 class Document
 {
     /**
-     * The indexer that created this document.
-     *
-     * This property stores a reference to the indexer that was used to create
-     * this document. It provides context about the type of content being indexed
-     * (pages, content elements, files, etc.) and can be used to access indexer-specific
-     * configuration and methods.
-     *
-     * @var IndexerInterface
-     */
-    private readonly IndexerInterface $indexer;
-
-    /**
-     * The original database record data.
-     *
-     * This property stores the raw data from the TYPO3 database that was used to
-     * create this document. It contains all fields from the original record and
-     * can be accessed to retrieve additional information that might not be included
-     * in the document fields.
-     *
-     * @var array<string, mixed>
-     */
-    private readonly array $record;
-
-    /**
      * The document fields and their values.
      *
      * This property stores the actual fields that will be sent to the search engine
@@ -83,10 +59,10 @@ class Document
      * @param IndexerInterface     $indexer The indexer that created this document
      * @param array<string, mixed> $record  The original database record data
      */
-    public function __construct(IndexerInterface $indexer, array $record)
-    {
-        $this->indexer = $indexer;
-        $this->record  = $record;
+    public function __construct(
+        private readonly IndexerInterface $indexer,
+        private readonly array $record,
+    ) {
     }
 
     /**

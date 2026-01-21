@@ -32,21 +32,10 @@ use RuntimeException;
 abstract class AbstractSearchEngine implements SearchEngineInterface
 {
     /**
-     * Event dispatcher for handling events within the search engine.
-     *
-     * Used primarily for creating unique document IDs and other event-based operations.
-     *
-     * @var EventDispatcherInterface
-     */
-    protected EventDispatcherInterface $eventDispatcher;
-
-    /**
      * The name of the currently active index.
      *
      * This property stores the name of the index that is currently being operated on.
      * It is set when opening an index and cleared when closing it.
-     *
-     * @var string|null
      */
     protected ?string $indexName = null;
 
@@ -58,9 +47,9 @@ abstract class AbstractSearchEngine implements SearchEngineInterface
      *
      * @param EventDispatcherInterface $eventDispatcher The event dispatcher service
      */
-    public function __construct(EventDispatcherInterface $eventDispatcher)
-    {
-        $this->eventDispatcher = $eventDispatcher;
+    public function __construct(
+        protected EventDispatcherInterface $eventDispatcher,
+    ) {
     }
 
     /**

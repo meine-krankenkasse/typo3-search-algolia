@@ -39,18 +39,6 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 readonly class UpdateAssembledContentElementDocumentEventListener
 {
     /**
-     * TYPO3 site finder service for retrieving site information.
-     *
-     * This property stores the SiteFinder service that is used to retrieve
-     * site information based on page IDs. It's essential for determining
-     * the site domain and generating URLs to content elements, which are
-     * added to the document for proper linking in search results.
-     *
-     * @var SiteFinder
-     */
-    private SiteFinder $siteFinder;
-
-    /**
      * Initializes the event listener with the site finder service.
      *
      * This constructor injects the TYPO3 SiteFinder service that is used
@@ -61,9 +49,9 @@ readonly class UpdateAssembledContentElementDocumentEventListener
      *
      * @param SiteFinder $siteFinder The TYPO3 site finder service
      */
-    public function __construct(SiteFinder $siteFinder)
-    {
-        $this->siteFinder = $siteFinder;
+    public function __construct(
+        private SiteFinder $siteFinder,
+    ) {
     }
 
     /**

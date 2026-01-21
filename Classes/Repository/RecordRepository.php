@@ -33,18 +33,6 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 readonly class RecordRepository
 {
     /**
-     * TYPO3 database connection pool for direct database operations.
-     *
-     * This property provides access to database connections for performing
-     * optimized database queries across different tables. It is used to create
-     * query builders for retrieving record information regardless of the
-     * specific table type.
-     *
-     * @var ConnectionPool
-     */
-    private ConnectionPool $connectionPool;
-
-    /**
      * Initializes the repository with the database connection pool.
      *
      * This constructor injects the TYPO3 connection pool that is used
@@ -54,9 +42,9 @@ readonly class RecordRepository
      *
      * @param ConnectionPool $connectionPool The TYPO3 database connection pool
      */
-    public function __construct(ConnectionPool $connectionPool)
-    {
-        $this->connectionPool = $connectionPool;
+    public function __construct(
+        private ConnectionPool $connectionPool,
+    ) {
     }
 
     /**

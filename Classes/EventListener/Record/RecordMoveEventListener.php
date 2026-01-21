@@ -39,38 +39,12 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 class RecordMoveEventListener
 {
     /**
-     * Handler for database record operations in the search indexing system.
-     *
-     * This property stores the RecordHandler service that provides methods for
-     * working with database records in the context of search indexing. It is used
-     * to determine root page IDs, update records in the indexing queue, and process
-     * related records that might be affected by the move operation.
-     *
-     * @var RecordHandler
-     */
-    private readonly RecordHandler $recordHandler;
-
-    /**
-     * Repository for page-related operations.
-     *
-     * This property stores the PageRepository service that provides methods for
-     * retrieving page information and navigating page hierarchies. It is used to
-     * find subpages of a modified page, which is necessary for updating the entire
-     * page tree in the search index when a page is modified.
-     *
-     * @var PageRepository
-     */
-    private readonly PageRepository $pageRepository;
-
-    /**
      * The current record move event being processed.
      *
      * This property stores the DataHandlerRecordMoveEvent that triggered this listener.
      * It provides access to information about the moved record, including the table name,
      * record UID, target PID, and previous PID. This information is used to determine
      * what actions need to be taken to update the search index.
-     *
-     * @var DataHandlerRecordMoveEvent
      */
     private DataHandlerRecordMoveEvent $event;
 
@@ -83,11 +57,9 @@ class RecordMoveEventListener
      * @return void
      */
     public function __construct(
-        RecordHandler $recordHandler,
-        PageRepository $pageRepository,
+        private readonly RecordHandler $recordHandler,
+        private readonly PageRepository $pageRepository,
     ) {
-        $this->recordHandler  = $recordHandler;
-        $this->pageRepository = $pageRepository;
     }
 
     /**

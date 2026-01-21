@@ -52,72 +52,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 abstract class AbstractIndexer implements IndexerInterface
 {
     /**
-     * Database connection pool for executing database queries.
-     *
-     * Used to create query builders for different database tables and
-     * to retrieve records for indexing.
-     *
-     * @var ConnectionPool
-     */
-    protected ConnectionPool $connectionPool;
-
-    /**
-     * Site finder service for retrieving site configurations.
-     *
-     * Used to resolve site-specific information when indexing content.
-     *
-     * @var SiteFinder
-     */
-    protected SiteFinder $siteFinder;
-
-    /**
-     * Repository for page-related operations.
-     *
-     * Provides methods for retrieving page information and handling
-     * page hierarchies for recursive indexing.
-     *
-     * @var PageRepository
-     */
-    protected PageRepository $pageRepository;
-
-    /**
-     * Factory for creating search engine instances.
-     *
-     * Used to create the appropriate search engine service based on
-     * the configured search engine model.
-     *
-     * @var SearchEngineFactory
-     */
-    protected SearchEngineFactory $searchEngineFactory;
-
-    /**
-     * Repository for managing queue items.
-     *
-     * Handles the creation, retrieval, and deletion of queue items
-     * for scheduled indexing operations.
-     *
-     * @var QueueItemRepository
-     */
-    protected QueueItemRepository $queueItemRepository;
-
-    /**
-     * Builder for creating document objects.
-     *
-     * Responsible for assembling document objects from records
-     * that will be sent to the search engine for indexing.
-     *
-     * @var DocumentBuilder
-     */
-    private readonly DocumentBuilder $documentBuilder;
-
-    /**
      * The currently used indexing service instance.
      *
      * This property stores the configuration for the current indexing operation,
      * including which search engine to use, which pages to index, and other
      * indexer-specific settings. It is set via the withIndexingService() method.
-     *
-     * @var IndexingService|null
      */
     protected ?IndexingService $indexingService = null;
 
@@ -128,8 +67,6 @@ abstract class AbstractIndexer implements IndexerInterface
      * excluded from indexing operations. This affects both direct page indexing
      * and the retrieval of page hierarchies for recursive indexing.
      * It is set via the withExcludeHiddenPages() method.
-     *
-     * @var bool
      */
     protected bool $excludeHiddenPages = false;
 
@@ -148,19 +85,13 @@ abstract class AbstractIndexer implements IndexerInterface
      * @param DocumentBuilder     $documentBuilder     Builder for creating document objects
      */
     public function __construct(
-        ConnectionPool $connectionPool,
-        SiteFinder $siteFinder,
-        PageRepository $pageRepository,
-        SearchEngineFactory $searchEngineFactory,
-        QueueItemRepository $queueItemRepository,
-        DocumentBuilder $documentBuilder,
+        protected ConnectionPool $connectionPool,
+        protected SiteFinder $siteFinder,
+        protected PageRepository $pageRepository,
+        protected SearchEngineFactory $searchEngineFactory,
+        protected QueueItemRepository $queueItemRepository,
+        private readonly DocumentBuilder $documentBuilder,
     ) {
-        $this->connectionPool      = $connectionPool;
-        $this->siteFinder          = $siteFinder;
-        $this->pageRepository      = $pageRepository;
-        $this->searchEngineFactory = $searchEngineFactory;
-        $this->queueItemRepository = $queueItemRepository;
-        $this->documentBuilder     = $documentBuilder;
     }
 
     /**

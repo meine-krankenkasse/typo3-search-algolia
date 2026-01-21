@@ -48,19 +48,6 @@ use TYPO3\CMS\Core\Resource\FileRepository;
 readonly class UpdateAssembledFileDocumentEventListener
 {
     /**
-     * TYPO3 file repository for retrieving file objects.
-     *
-     * This property stores the FileRepository service that is used to retrieve
-     * file objects based on their UIDs. It's essential for accessing the actual
-     * file data and content that needs to be added to the document, including
-     * file properties like extension, MIME type, name, size, and the file content
-     * itself for full-text indexing.
-     *
-     * @var FileRepository
-     */
-    private FileRepository $fileRepository;
-
-    /**
      * Initializes the event listener with the file repository service.
      *
      * This constructor injects the TYPO3 FileRepository service that is used
@@ -72,9 +59,8 @@ readonly class UpdateAssembledFileDocumentEventListener
      * @param FileRepository $fileRepository The TYPO3 file repository service
      */
     public function __construct(
-        FileRepository $fileRepository,
+        private FileRepository $fileRepository,
     ) {
-        $this->fileRepository = $fileRepository;
     }
 
     /**
@@ -117,7 +103,7 @@ readonly class UpdateAssembledFileDocumentEventListener
             $file = null;
         }
 
-        if ($file === null) {
+        if (!($file instanceof FileInterface)) {
             return;
         }
 
@@ -142,23 +128,21 @@ readonly class UpdateAssembledFileDocumentEventListener
             $file->getSize()
         );
 
-        if ($file instanceof FileInterface) {
-            $publicUrl = $file->getPublicUrl();
+        $publicUrl = $file->getPublicUrl();
 
-            // Remove the left leading slash
-            if (
-                ($publicUrl !== null)
-                && str_starts_with($publicUrl, '/')
-                && ($file->getStorage()->getDriverType() === 'Local')
-            ) {
-                $publicUrl = ltrim($publicUrl, '/');
-            }
-
-            $document->setField(
-                'url',
-                $publicUrl
-            );
+        // Remove the left leading slash
+        if (
+            ($publicUrl !== null)
+            && str_starts_with($publicUrl, '/')
+            && ($file->getStorage()->getDriverType() === 'Local')
+        ) {
+            $publicUrl = ltrim($publicUrl, '/');
         }
+
+        $document->setField(
+            'url',
+            $publicUrl
+        );
 
         $document->setField(
             'content',
