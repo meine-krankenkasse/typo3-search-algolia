@@ -180,11 +180,16 @@ readonly class FileRepository
     }
 
     /**
-     * Retrieves the sys_file UID for a given sys_file_metadata UID.
+     * Retrieves the file UID associated with the given metadata UID.
      *
-     * @param int $metadataUid The unique identifier of the sys_file_metadata record
+     * This method performs a database query to find the file UID from the table
+     * 'sys_file_metadata' where the UID matches the provided metadata UID. If a
+     * match is found, the corresponding file UID is returned; otherwise, null
+     * is returned.
      *
-     * @return int|null The UID of the sys_file record, or null if not found
+     * @param int $metadataUid The UID of the metadata record to query
+     *
+     * @return int|null The UID of the associated file or null if no match is found
      */
     public function getFileUidByMetadataUid(int $metadataUid): ?int
     {
@@ -210,13 +215,17 @@ readonly class FileRepository
     }
 
     /**
-     * Checks if a file has a reference to any of the given UIDs.
+     * Checks if a specific file has a reference in the given table and foreign UIDs.
      *
-     * @param int    $fileUid     UID of the sys_file record
-     * @param string $tableName   The table name
-     * @param int[]  $foreignUids List of foreign UIDs (uid_foreign)
+     * This method queries the `sys_file_reference` table to determine if a file,
+     * identified by its UID, is referenced in the specified table using the array
+     * of foreign UIDs provided.
      *
-     * @return bool
+     * @param int    $fileUid     The UID of the file to check
+     * @param string $tableName   The name of the table where the reference is searched
+     * @param int[]  $foreignUids An array of foreign UIDs to check against
+     *
+     * @return bool Returns true if a file reference exists, false otherwise
      */
     public function hasFileReference(int $fileUid, string $tableName, array $foreignUids): bool
     {

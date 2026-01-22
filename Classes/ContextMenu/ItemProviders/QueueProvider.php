@@ -16,18 +16,16 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceReposi
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\FileCollectionService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Traits\FileEligibilityTrait;
 use Override;
 use TYPO3\CMS\Backend\ContextMenu\ItemProviders\AbstractProvider;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
-use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-
-use function in_array;
 
 /**
  * This class provides context menu items for files in the TYPO3 backend.
@@ -48,6 +46,7 @@ use function in_array;
  */
 class QueueProvider extends AbstractProvider
 {
+    use FileEligibilityTrait;
     /**
      * The current file or folder object being processed.
      *
@@ -206,17 +205,12 @@ class QueueProvider extends AbstractProvider
      */
     private function canBeEnqueued(): bool
     {
-        $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
-
         if (!($this->record instanceof File)) {
             return false;
         }
 
-        $canBeEnqueued = ($this->record->isIndexed() === true)
-            && $this->isExtensionAllowed($this->record, $allowedFileExtensions)
+        $canBeEnqueued = $this->isEligible($this->record, $this->typoScriptService->getAllowedFileExtensions())
             && $this->record->checkActionPermission('editMeta')
-            && $this->record->getMetaData()->offsetExists('uid')
-            && $this->isIndexable($this->record)
             && $this->backendUser->check('tables_modify', 'sys_file_metadata')
             && $this->backendUser->checkLanguageAccess(0);
 
@@ -245,23 +239,6 @@ class QueueProvider extends AbstractProvider
     }
 
     /**
-     * Checks if a file's extension is in the list of allowed extensions.
-     *
-     * This method determines if a file can be indexed based on its extension.
-     * Only files with extensions that are explicitly configured as allowed
-     * in the TypoScript configuration will be considered for indexing.
-     *
-     * @param FileInterface $file           The file to check
-     * @param string[]      $fileExtensions Array of allowed file extensions
-     *
-     * @return bool True if the file extension is allowed, false otherwise
-     */
-    private function isExtensionAllowed(FileInterface $file, array $fileExtensions): bool
-    {
-        return in_array($file->getExtension(), $fileExtensions, true);
-    }
-
-    /**
      * Provides additional HTML attributes for context menu items.
      *
      * This method adds custom data attributes to the context menu items that
@@ -283,23 +260,5 @@ class QueueProvider extends AbstractProvider
             'data-callback-module' => '@meine-krankenkasse/typo3-search-algolia/context-menu-actions',
             'data-action-url'      => (string) $this->uriBuilder->buildUriFromRoute('algolia_enqueue_one'),
         ];
-    }
-
-    /**
-     * Determines if a file should be included in the search index.
-     *
-     * This method checks if the file has the 'no_search' property set to 0,
-     * which indicates that the file should be included in search results.
-     * Files can be excluded from search by setting this property to 1 in
-     * the file metadata record.
-     *
-     * @param FileInterface $file The file to check
-     *
-     * @return bool True if the file should be indexed, false otherwise
-     */
-    private function isIndexable(FileInterface $file): bool
-    {
-        return $file->hasProperty('no_search')
-            && ((int) $file->getProperty('no_search') === 0);
     }
 }

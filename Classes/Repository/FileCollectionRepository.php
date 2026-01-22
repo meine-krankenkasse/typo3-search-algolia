@@ -78,9 +78,13 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
     }
 
     /**
-     * Retrieves minimal data for the given collections.
+     * Retrieves collection data for the given collection IDs.
      *
-     * @param int[] $collectionIds Array of file collection UIDs
+     * This method fetches records from the repository's table based on the
+     * provided collection IDs. If no IDs are passed, an empty array is returned.
+     * The resulting data includes specific details for each collection.
+     *
+     * @param int[] $collectionIds An array of collection IDs to fetch data for
      *
      * @return list<array{uid: int, type: string, folder_identifier: string, recursive: int, category: int}>
      */

@@ -19,17 +19,15 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\FileCollectionService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Traits\FileEligibilityTrait;
 use Override;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
-use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-
-use function in_array;
 
 /**
  * Indexer for TYPO3 files and their metadata.
@@ -50,6 +48,7 @@ use function in_array;
  */
 class FileIndexer extends AbstractIndexer
 {
+    use FileEligibilityTrait;
     /**
      * The database table name for file metadata.
      *
@@ -166,14 +165,7 @@ class FileIndexer extends AbstractIndexer
             return false;
         }
 
-        $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
-
-        $canBeEnqueued = ($file->isIndexed() === true)
-            && $this->isExtensionAllowed($file, $allowedFileExtensions)
-            && $file->getMetaData()->offsetExists('uid')
-            && $this->isIndexable($file);
-
-        if ($canBeEnqueued === false) {
+        if (!$this->isEligible($file, $this->typoScriptService->getAllowedFileExtensions())) {
             return false;
         }
 
@@ -221,9 +213,8 @@ class FileIndexer extends AbstractIndexer
             ->fileCollectionRepository
             ->findAllByCollectionUids($collectionIds);
 
-        $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
-        $serviceUid            = $this->indexingService?->getUid() ?? 0;
-        $items                 = [];
+        $serviceUid = $this->indexingService?->getUid() ?? 0;
+        $items      = [];
 
         foreach ($collections as $collection) {
             // Load content of the collection
@@ -231,12 +222,7 @@ class FileIndexer extends AbstractIndexer
 
             /** @var File $file */
             foreach ($collection as $file) {
-                $canBeEnqueued = ($file->isIndexed() === true)
-                    && $this->isExtensionAllowed($file, $allowedFileExtensions)
-                    && $file->getMetaData()->offsetExists('uid')
-                    && $this->isIndexable($file);
-
-                if ($canBeEnqueued === false) {
+                if (!$this->isEligible($file, $this->typoScriptService->getAllowedFileExtensions())) {
                     continue;
                 }
 
@@ -261,42 +247,6 @@ class FileIndexer extends AbstractIndexer
             }
         }
 
-        return $items;
-    }
-
-    /**
-     * Determines if a file's extension is allowed for indexing.
-     *
-     * This method checks if the file's extension is in the list of allowed
-     * file extensions configured in TypoScript. Only files with allowed
-     * extensions will be considered for indexing, which helps filter out
-     * file types that are not suitable for search (e.g., system files).
-     *
-     * @param FileInterface $file           The file to check
-     * @param string[]      $fileExtensions Array of allowed file extensions
-     *
-     * @return bool True if the file extension is allowed, false otherwise
-     */
-    private function isExtensionAllowed(FileInterface $file, array $fileExtensions): bool
-    {
-        return in_array($file->getExtension(), $fileExtensions, true);
-    }
-
-    /**
-     * Determines if a file should be included in the search index.
-     *
-     * This method checks if the file has the 'no_search' property set to 0,
-     * which indicates that the file should be included in search results.
-     * Files can be excluded from search by setting this property to 1 in
-     * the file metadata record.
-     *
-     * @param FileInterface $file The file to check
-     *
-     * @return bool True if the file should be indexed, false otherwise
-     */
-    private function isIndexable(FileInterface $file): bool
-    {
-        return $file->hasProperty('no_search')
-            && ((int) $file->getProperty('no_search') === 0);
+        return array_values($items);
     }
 }

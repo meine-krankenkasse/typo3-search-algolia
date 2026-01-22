@@ -89,13 +89,16 @@ readonly class CategoryRepository
     }
 
     /**
-     * Checks if a record is assigned to any of the given category UIDs.
+     * Checks if a record in the specified table has a relationship to any of the given category UIDs.
      *
-     * @param int    $uid          UID of the record
-     * @param string $tableName    Name of the table the record belongs to
-     * @param int[]  $categoryUids List of sys_category UIDs
+     * This method queries the `sys_category_record_mm` table to determine if there is at least
+     * one matching category reference for the specified record and table.
      *
-     * @return bool
+     * @param int    $uid          The UID of the record to check for category associations
+     * @param string $tableName    The name of the table to which the record belongs
+     * @param int[]  $categoryUids An array of category UIDs to match against
+     *
+     * @return bool True if a category reference exists for the given criteria, false otherwise
      */
     public function hasCategoryReference(int $uid, string $tableName, array $categoryUids): bool
     {
