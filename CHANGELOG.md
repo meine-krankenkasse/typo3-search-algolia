@@ -1,3 +1,19 @@
+# 1.2.0
+
+## MISC
+
+- 95b0253 WEB-1394: Avoid duplicate code
+- e28d190 WEB-1394: Rework file indexing
+- 58cad5c WEB-1394: Apply rector rules
+- 0944581 WEB-1394: Add detail view of enqueued items
+- 769dc3d WEB-1394: Fix context menu queue provider to respect fileindexer configuration
+- 8264fdf Correct file indexer icon
+- 788802e Update dev tool configuration
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.1.0
 
 ## MISC
