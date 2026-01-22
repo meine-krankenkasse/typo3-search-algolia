@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -55,12 +56,23 @@ readonly class CategoryRepository
 
         return $queryBuilder
             ->select('sc.*')
-            ->from('sys_category', 'sc')
-            ->leftJoin('sc', 'sys_category_record_mm', 'mm', 'mm.uid_local = sc.uid')
+            ->from(
+                'sys_category',
+                'sc'
+            )
+            ->leftJoin(
+                'sc',
+                'sys_category_record_mm',
+                'mm',
+                'mm.uid_local = sc.uid'
+            )
             ->where(
                 $queryBuilder->expr()->eq(
                     'mm.uid_foreign',
-                    $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter(
+                        $uid,
+                        Connection::PARAM_INT
+                    )
                 ),
                 $queryBuilder->expr()->eq(
                     'mm.tablenames',
@@ -74,5 +86,57 @@ readonly class CategoryRepository
             ->orderBy('sc.title')
             ->executeQuery()
             ->fetchAllAssociative();
+    }
+
+    /**
+     * Checks if a record is assigned to any of the given category UIDs.
+     *
+     * @param int    $uid          UID of the record
+     * @param string $tableName    Name of the table the record belongs to
+     * @param int[]  $categoryUids List of sys_category UIDs
+     *
+     * @return bool
+     */
+    public function hasCategoryReference(int $uid, string $tableName, array $categoryUids): bool
+    {
+        if ($categoryUids === []) {
+            return false;
+        }
+
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable('sys_category_record_mm');
+
+        $matchingRecord = $queryBuilder
+            ->select('uid_local')
+            ->from('sys_category_record_mm')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'tablenames',
+                    $queryBuilder->createNamedParameter($tableName)
+                ),
+                $queryBuilder->expr()->eq(
+                    'fieldname',
+                    $queryBuilder->createNamedParameter('categories')
+                ),
+                $queryBuilder->expr()->eq(
+                    'uid_foreign',
+                    $queryBuilder->createNamedParameter(
+                        $uid,
+                        Connection::PARAM_INT
+                    )
+                ),
+                $queryBuilder->expr()->in(
+                    'uid_local',
+                    $queryBuilder->createNamedParameter(
+                        $categoryUids,
+                        ArrayParameterType::INTEGER
+                    )
+                )
+            )
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
+
+        return $matchingRecord !== false;
     }
 }

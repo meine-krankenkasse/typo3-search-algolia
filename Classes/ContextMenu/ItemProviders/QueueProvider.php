@@ -13,14 +13,13 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\ContextMenu\ItemProviders;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileCollectionRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\FileCollectionService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
 use TYPO3\CMS\Backend\ContextMenu\ItemProviders\AbstractProvider;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Core\Resource\Collection\FolderBasedFileCollection;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -82,14 +81,13 @@ class QueueProvider extends AbstractProvider
     /**
      * Constructor.
      *
-     * @param FileCollectionRepository  $fileCollectionRepository
      * @param IndexingServiceRepository $indexingServiceRepository
      */
     public function __construct(
         private readonly ResourceFactory $resourceFactory,
-        private readonly TypoScriptService $typoScriptService,
         private readonly UriBuilder $uriBuilder,
-        private readonly FileCollectionRepository $fileCollectionRepository,
+        private readonly TypoScriptService $typoScriptService,
+        private readonly FileCollectionService $fileCollectionService,
         private readonly IndexingServiceRepository $indexingServiceRepository,
     ) {
         parent::__construct();
@@ -218,6 +216,7 @@ class QueueProvider extends AbstractProvider
             && $this->isExtensionAllowed($this->record, $allowedFileExtensions)
             && $this->record->checkActionPermission('editMeta')
             && $this->record->getMetaData()->offsetExists('uid')
+            && $this->isIndexable($this->record)
             && $this->backendUser->check('tables_modify', 'sys_file_metadata')
             && $this->backendUser->checkLanguageAccess(0);
 
@@ -237,19 +236,8 @@ class QueueProvider extends AbstractProvider
                 true
             );
 
-            $collections = $this
-                ->fileCollectionRepository
-                ->findAllByCollections($collectionIds);
-
-            foreach ($collections as $collection) {
-                if (!($collection instanceof FolderBasedFileCollection)) {
-                    continue;
-                }
-
-                // Check if the file record identifier starts with the collection's identifier
-                if (str_starts_with($this->record->getCombinedIdentifier(), $collection->getItemsCriteria())) {
-                    return true;
-                }
+            if ($this->fileCollectionService->isInAnyCollection($this->record, $collectionIds)) {
+                return true;
             }
         }
 
@@ -295,5 +283,23 @@ class QueueProvider extends AbstractProvider
             'data-callback-module' => '@meine-krankenkasse/typo3-search-algolia/context-menu-actions',
             'data-action-url'      => (string) $this->uriBuilder->buildUriFromRoute('algolia_enqueue_one'),
         ];
+    }
+
+    /**
+     * Determines if a file should be included in the search index.
+     *
+     * This method checks if the file has the 'no_search' property set to 0,
+     * which indicates that the file should be included in search results.
+     * Files can be excluded from search by setting this property to 1 in
+     * the file metadata record.
+     *
+     * @param FileInterface $file The file to check
+     *
+     * @return bool True if the file should be indexed, false otherwise
+     */
+    private function isIndexable(FileInterface $file): bool
+    {
+        return $file->hasProperty('no_search')
+            && ((int) $file->getProperty('no_search') === 0);
     }
 }

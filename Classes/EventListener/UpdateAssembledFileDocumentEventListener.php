@@ -134,6 +134,7 @@ readonly class UpdateAssembledFileDocumentEventListener
         if (
             ($publicUrl !== null)
             && str_starts_with($publicUrl, '/')
+            && ($file->getStorage() !== null)
             && ($file->getStorage()->getDriverType() === 'Local')
         ) {
             $publicUrl = ltrim($publicUrl, '/');

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
+use Doctrine\DBAL\ArrayParameterType;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\Collection\AbstractFileCollection;
 
@@ -62,7 +63,7 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
      *
      * @return AbstractFileCollection[] Array of file collection objects
      */
-    public function findAllByCollections(array $collectionIds = []): array
+    public function findAllByCollectionUids(array $collectionIds = []): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->table);
@@ -74,5 +75,46 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
         }
 
         return $this->queryMultipleRecords($constraints) ?? [];
+    }
+
+    /**
+     * Retrieves minimal data for the given collections.
+     *
+     * @param int[] $collectionIds Array of file collection UIDs
+     *
+     * @return list<array{uid: int, type: string, folder_identifier: string, recursive: int, category: int}>
+     */
+    public function getCollectionDataByIds(array $collectionIds): array
+    {
+        if ($collectionIds === []) {
+            return [];
+        }
+
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable($this->table);
+
+        /** @var list<array{uid: int, type: string, folder_identifier: string, recursive: int, category: int}> $rows */
+        $rows = $queryBuilder
+            ->select(
+                'uid',
+                'type',
+                'folder_identifier',
+                'recursive',
+                'category'
+            )
+            ->from($this->table)
+            ->where(
+                $queryBuilder->expr()->in(
+                    'uid',
+                    $queryBuilder->createNamedParameter(
+                        $collectionIds,
+                        ArrayParameterType::INTEGER
+                    )
+                )
+            )
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return $rows;
     }
 }

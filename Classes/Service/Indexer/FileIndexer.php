@@ -12,17 +12,20 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
-use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\FileHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileCollectionRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\FileCollectionService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -69,8 +72,9 @@ class FileIndexer extends AbstractIndexer
      * @param QueueItemRepository      $queueItemRepository      Repository for managing indexing queue items
      * @param DocumentBuilder          $documentBuilder          Builder for creating document objects
      * @param FileCollectionRepository $fileCollectionRepository Repository for file collection operations
-     * @param FileHandler              $fileHandler              Handler for file operations
+     * @param FileRepository           $fileRepository           Repository for file operations
      * @param TypoScriptService        $typoScriptService        Service for TypoScript configuration access
+     * @param FileCollectionService    $fileCollectionService    Service for file collection operations
      */
     public function __construct(
         ConnectionPool $connectionPool,
@@ -79,9 +83,11 @@ class FileIndexer extends AbstractIndexer
         SearchEngineFactory $searchEngineFactory,
         QueueItemRepository $queueItemRepository,
         DocumentBuilder $documentBuilder,
+        private readonly ResourceFactory $resourceFactory,
         private readonly FileCollectionRepository $fileCollectionRepository,
-        private readonly FileHandler $fileHandler,
+        private readonly FileRepository $fileRepository,
         private readonly TypoScriptService $typoScriptService,
+        private readonly FileCollectionService $fileCollectionService,
     ) {
         parent::__construct(
             $connectionPool,
@@ -126,14 +132,79 @@ class FileIndexer extends AbstractIndexer
     }
 
     /**
+     * Initializes a queue item record for indexing based on a given record UID.
+     *
+     * This method retrieves metadata associated with the specified record UID
+     * and evaluates whether the corresponding file meets the criteria to be
+     * enqueued for processing. The evaluation includes checks on file indexing
+     * status, extension allowances, action permissions, metadata existence, and
+     * belonging to specific file collections.
+     *
+     * @param int $recordUid The UID of the metadata record to initialize
+     *
+     * @return array<array-key, int|string>|false Returns an associative array with queue item details
+     *                                            if the file can be enqueued, or false otherwise
+     */
+    #[Override]
+    protected function initQueueItemRecord(int $recordUid): array|bool
+    {
+        // Get the file UID from the metadata record
+        $fileUid = $this->fileRepository->getFileUidByMetadataUid($recordUid);
+
+        if ($fileUid === null) {
+            return false;
+        }
+
+        try {
+            $file = $this->resourceFactory
+                ->retrieveFileOrFolderObject((string) $fileUid);
+        } catch (ResourceDoesNotExistException) {
+            $file = null;
+        }
+
+        if (!($file instanceof File)) {
+            return false;
+        }
+
+        $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
+
+        $canBeEnqueued = ($file->isIndexed() === true)
+            && $this->isExtensionAllowed($file, $allowedFileExtensions)
+            && $file->getMetaData()->offsetExists('uid')
+            && $this->isIndexable($file);
+
+        if ($canBeEnqueued === false) {
+            return false;
+        }
+
+        $collectionIds = GeneralUtility::intExplode(
+            ',',
+            $this->indexingService?->getFileCollections() ?? '',
+            true
+        );
+
+        if (!$this->fileCollectionService->isInAnyCollection($file, $collectionIds)) {
+            return false;
+        }
+
+        return [
+            'table_name'  => $this->getTable(),
+            'record_uid'  => $file->getMetaData()->offsetGet('uid'),
+            'service_uid' => $this->indexingService?->getUid() ?? 0,
+            'changed'     => (int) ($GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 0),
+            'priority'    => $this->getPriority(),
+        ];
+    }
+
+    /**
      * Prepares file records for addition to the indexing queue.
      *
-     * This method overrides the parent implementation to handle the specific
+     * This method ov*errides the parent implementation to handle the specific
      * requirements of file indexing. Instead of querying a database table directly,
      * it retrieves files from file collections, filters them by extension and
      * indexability, and prepares them for indexing.
      *
-     * @param int[] $recordUids Unused parameter, kept for compatibility with parent method
+     * @param int[] $recordUids Unused parameter, kept for compatibility with the parent method
      *
      * @return array<array-key, array<string, int|string>> Array of prepared file records
      */
@@ -148,11 +219,11 @@ class FileIndexer extends AbstractIndexer
 
         $collections = $this
             ->fileCollectionRepository
-            ->findAllByCollections($collectionIds);
+            ->findAllByCollectionUids($collectionIds);
 
-        $fileExtensions = $this->typoScriptService->getAllowedFileExtensions();
-        $serviceUid     = $this->indexingService?->getUid() ?? 0;
-        $items          = [];
+        $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
+        $serviceUid            = $this->indexingService?->getUid() ?? 0;
+        $items                 = [];
 
         foreach ($collections as $collection) {
             // Load content of the collection
@@ -160,19 +231,16 @@ class FileIndexer extends AbstractIndexer
 
             /** @var File $file */
             foreach ($collection as $file) {
-                if (!$this->isExtensionAllowed($file, $fileExtensions)) {
+                $canBeEnqueued = ($file->isIndexed() === true)
+                    && $this->isExtensionAllowed($file, $allowedFileExtensions)
+                    && $file->getMetaData()->offsetExists('uid')
+                    && $this->isIndexable($file);
+
+                if ($canBeEnqueued === false) {
                     continue;
                 }
 
-                if (!$this->isIndexable($file)) {
-                    continue;
-                }
-
-                $metadataUid = $this->fileHandler->getMetadataUid($file);
-
-                if ($metadataUid === false) {
-                    continue;
-                }
+                $metadataUid = $file->getMetaData()->offsetGet('uid');
 
                 // See UNIQUE column key in ext_tables.sql => table_name, record_uid, service_uid
                 $uniqueKey = $this->getTable() . '-' . $metadataUid . '-' . $serviceUid;
