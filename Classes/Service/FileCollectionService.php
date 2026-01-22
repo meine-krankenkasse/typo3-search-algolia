@@ -169,7 +169,8 @@ final readonly class FileCollectionService
                     return false;
                 }
 
-                $folderIdentifier = trim($collectionRow['folder_identifier']);
+                $folderIdentifier = trim((string) $collectionRow['folder_identifier']);
+
                 if ($folderIdentifier === '') {
                     return false;
                 }
