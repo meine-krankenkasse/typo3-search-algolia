@@ -1,3 +1,13 @@
+# 1.2.1
+
+## MISC
+
+- dce62c1 WEB-1394: Use PHP84 polyfill for array_any
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.2.0
 
 ## MISC
