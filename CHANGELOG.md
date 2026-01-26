@@ -1,3 +1,13 @@
+# 1.2.2
+
+## MISC
+
+- 0272609 Fix minor rector issue
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.2.1
 
 ## MISC
