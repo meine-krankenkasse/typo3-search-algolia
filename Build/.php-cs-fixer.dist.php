@@ -60,6 +60,7 @@ return (new PhpCsFixer\Config())
             ],
         ],
         'no_alias_functions'              => true,
+        'no_unneeded_control_parentheses' => true,
         'whitespace_after_comma_in_array' => [
             'ensure_single_space' => true,
         ],
