@@ -127,7 +127,13 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
 
         $document = $event->getDocument();
         $record   = $event->getRecord();
-        $pageId   = $record['uid'];
+        $pageId   = (int)($record['uid'] ?? 0);
+
+        // Skip if page ID is invalid
+        if ($pageId === 0) {
+            return;
+        }
+
         $site     = $this->getSite($pageId);
 
         // Set page-related fields
@@ -157,7 +163,7 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
             )
         );
 
-        if ($record['SYS_LASTCHANGED'] !== 0) {
+        if (($record['SYS_LASTCHANGED'] ?? 0) !== 0) {
             $document->setField(
                 'changed',
                 $record['SYS_LASTCHANGED']
