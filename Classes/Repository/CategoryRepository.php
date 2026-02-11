@@ -23,7 +23,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class CategoryRepository
+readonly class CategoryRepository implements CategoryLookupInterface
 {
     /**
      * Initializes the repository with the database connection pool.
