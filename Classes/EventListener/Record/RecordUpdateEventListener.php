@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
@@ -170,7 +171,7 @@ class RecordUpdateEventListener
                         [
                             $this->event->getRecordUid(),
                         ],
-                        99,
+                        Constants::MAX_PAGE_TREE_DEPTH,
                         false,
                         true
                     );

@@ -14,6 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
@@ -572,8 +573,7 @@ abstract class AbstractIndexer implements IndexerInterface
         $pageIds[] = $this->pageRepository
             ->getPageIdsRecursive(
                 $pagesRecursive,
-                // Maximum depth of 99 levels
-                99,
+                Constants::MAX_PAGE_TREE_DEPTH,
                 // Include the parent pages
                 true,
                 // Whether to exclude hidden pages

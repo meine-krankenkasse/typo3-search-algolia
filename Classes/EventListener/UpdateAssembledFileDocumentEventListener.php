@@ -15,6 +15,7 @@ use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
+use Psr\Log\LoggerInterface;
 use Smalot\PdfParser\Config;
 use Smalot\PdfParser\Parser;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -48,18 +49,20 @@ use TYPO3\CMS\Core\Resource\FileRepository;
 readonly class UpdateAssembledFileDocumentEventListener
 {
     /**
-     * Initializes the event listener with the file repository service.
+     * Initializes the event listener with required dependencies.
      *
-     * This constructor injects the TYPO3 FileRepository service that is used
-     * to retrieve file objects based on their UIDs. The file repository is
-     * essential for accessing the actual file data and content that needs to
-     * be added to the document, including file properties like extension,
+     * This constructor injects the TYPO3 FileRepository service and a PSR-3 logger
+     * that are used to retrieve file objects and log errors during file processing.
+     * The file repository is essential for accessing the actual file data and content
+     * that needs to be added to the document, including file properties like extension,
      * MIME type, name, size, and the file content itself for full-text indexing.
      *
-     * @param FileRepository $fileRepository The TYPO3 file repository service
+     * @param FileRepository  $fileRepository The TYPO3 file repository service
+     * @param LoggerInterface $logger         The PSR-3 logger for error logging
      */
     public function __construct(
         private FileRepository $fileRepository,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -193,8 +196,16 @@ readonly class UpdateAssembledFileDocumentEventListener
         try {
             $pdf     = $parser->parseContent($file->getContents());
             $content = ContentExtractor::cleanHtml($pdf->getText());
-        } catch (Exception) {
-            // TODO Track indexing errors and display failed records in backend
+        } catch (Exception $exception) {
+            // Log the error but return null to avoid blocking the entire indexing process
+            $this->logger->warning(
+                'Failed to extract PDF content for indexing',
+                [
+                    'fileUid' => $file->getUid(),
+                    'fileName' => $file->getName(),
+                    'exception' => $exception->getMessage(),
+                ]
+            );
 
             return null;
         }

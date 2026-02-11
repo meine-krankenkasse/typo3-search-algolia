@@ -19,6 +19,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -50,8 +52,9 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class UpdateAssembledPageDocumentEventListener
+class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
     /**
      * The current document assembled event being processed.
      *
@@ -177,10 +180,16 @@ class UpdateAssembledPageDocumentEventListener
                     'content',
                     $this->getPageContent($pageId)
                 );
-            } catch (Exception) {
-                // Silently continue without content if an exception occurs
-
-                // TODO Track indexing errors and display failed records in backend
+            } catch (Exception $exception) {
+                // Log the error but continue without content to avoid blocking the entire indexing process
+                $this->logger?->warning(
+                    'Failed to extract page content for indexing',
+                    [
+                        'pageId' => $pageId,
+                        'exception' => $exception->getMessage(),
+                        'trace' => $exception->getTraceAsString(),
+                    ]
+                );
             }
         }
     }

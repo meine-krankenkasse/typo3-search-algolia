@@ -34,4 +34,15 @@ class Constants
      * @var string
      */
     public const string EXTENSION_NAME = 'typo3_search_algolia';
+
+    /**
+     * Maximum depth for recursive page tree traversal.
+     *
+     * This constant defines the maximum number of levels to traverse when recursively
+     * fetching pages from the page tree. This prevents infinite loops and excessive
+     * database queries when dealing with deeply nested page structures.
+     *
+     * @var int
+     */
+    public const int MAX_PAGE_TREE_DEPTH = 99;
 }
