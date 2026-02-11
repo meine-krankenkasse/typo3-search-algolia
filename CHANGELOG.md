@@ -1,3 +1,14 @@
+# 1.2.3
+
+## MISC
+
+- d55df05 WEB-1381: Add Interface for category repository
+- 476f8e6 WEB-1381: Add method to query single category record by UID
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.2.2
 
 ## MISC
