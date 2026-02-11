@@ -1,3 +1,13 @@
+# 1.2.4
+
+## MISC
+
+- df3af7f WEB-1381: Fix minor phpstan issue
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.2.3
 
 ## MISC
