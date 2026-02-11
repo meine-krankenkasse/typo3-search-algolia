@@ -13,6 +13,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception;
+use Override;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
@@ -97,6 +98,7 @@ readonly class CategoryRepository implements CategoryLookupInterface
      *
      * @throws Exception
      */
+    #[Override]
     public function findByUid(int $uid): ?array
     {
         $queryBuilder = $this->connectionPool
@@ -114,7 +116,7 @@ readonly class CategoryRepository implements CategoryLookupInterface
             ->executeQuery()
             ->fetchAssociative();
 
-        return $result ?: null;
+        return $result !== false ? $result : null;
     }
 
     /**

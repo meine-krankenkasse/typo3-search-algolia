@@ -29,14 +29,16 @@
         "symfony/polyfill-php84": "^1.33"
     },
     "require-dev": {
+        "a9f/typo3-fractor": "^0.5",
         "friendsofphp/php-cs-fixer": "^3.65",
-        "saschaegerer/phpstan-typo3": "^1.0",
         "overtrue/phplint": "^9.5",
-        "phpstan/phpstan": "^1.0",
-        "phpstan/phpstan-strict-rules": "^1.0",
-        "phpstan/phpstan-deprecation-rules": "^1.0",
-        "ssch/typo3-rector": "^2.0",
-        "a9f/typo3-fractor": "^0.5"
+        "phpstan/phpstan": "^1.0 || ^2.0",
+        "phpstan/phpstan-deprecation-rules": "^1.0 || ^2.0",
+        "phpstan/phpstan-phpunit": "^1.0 || ^2.0",
+        "phpstan/phpstan-strict-rules": "^1.0 || ^2.0",
+        "saschaegerer/phpstan-typo3": "^1.0 || ^2.0",
+        "ssch/typo3-rector": "^2.0 || ^3.0",
+        "typo3/testing-framework": "^8.0 || ^9.0"
     },
     "suggest": {
         "typo3/cms-workspaces": "Required for workspace support and automatic reindexing when publishing workspace records"
@@ -68,6 +70,11 @@
             "MeineKrankenkasse\\Typo3SearchAlgolia\\": "Classes"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "MeineKrankenkasse\\Typo3SearchAlgolia\\Tests\\": "Tests"
+        }
+    },
     "scripts": {
         "ci:cgl": [
             "php-cs-fixer fix --config Build/.php-cs-fixer.dist.php --diff --verbose --cache-file .build/.php-cs-fixer.cache"
@@ -83,6 +90,15 @@
         ],
         "ci:test:php:lint": [
             "phplint --configuration Build/.phplint.yml"
+        ],
+        "ci:test:php:unit": [
+            "phpunit --configuration Build/UnitTests.xml"
+        ],
+        "ci:test:php:unit:coverage": [
+            "XDEBUG_MODE=coverage && phpunit --configuration Build/UnitTests.xml --coverage-html .build/coverage/"
+        ],
+        "ci:test:php:functional": [
+            "phpunit --configuration Build/FunctionalTests.xml"
         ],
         "ci:test:php:phpstan": [
             "phpstan analyze --configuration Build/phpstan.neon --memory-limit=-1"
@@ -101,6 +117,8 @@
             "@ci:test:php:phpstan",
             "@ci:test:php:rector",
             "@ci:test:php:fractor",
+            "@ci:test:php:unit",
+            "@ci:test:php:functional",
             "@ci:test:php:cgl"
         ]
     }
