@@ -89,6 +89,35 @@ readonly class CategoryRepository
     }
 
     /**
+     * Returns a single system category by its UID.
+     *
+     * @param int $uid The UID of the category to find
+     *
+     * @return array<string, int|string|null>|null The category record, or null if not found
+     *
+     * @throws Exception
+     */
+    public function findByUid(int $uid): ?array
+    {
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable('sys_category');
+
+        $result = $queryBuilder
+            ->select('*')
+            ->from('sys_category')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)
+                )
+            )
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return $result ?: null;
+    }
+
+    /**
      * Checks if a record in the specified table has a relationship to any of the given category UIDs.
      *
      * This method queries the `sys_category_record_mm` table to determine if there is at least
