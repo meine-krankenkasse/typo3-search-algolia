@@ -1,3 +1,20 @@
+# 1.3.0
+
+## MISC
+
+- 2bf6c34 Fix ci.yml
+- 817a784 Fix risky tests
+- 18db66b Update CI pipeline, add coverage command to functional tests
+- ba02749 Update unit/functional test configuration
+- ec32de5 Add functional and unit tests
+- 24b47e4 Extract interfaces for SearchClient and QueueStatusService
+- ed7752d Add interfaces for easier mocking classes during tests
+- 8b37442 Update DEV tools
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.2.4
 
 ## MISC
