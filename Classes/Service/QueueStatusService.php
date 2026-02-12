@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use Override;
 use TYPO3\CMS\Core\Registry;
 
 /**
@@ -29,7 +30,7 @@ use TYPO3\CMS\Core\Registry;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class QueueStatusService
+readonly class QueueStatusService implements QueueStatusServiceInterface
 {
     /**
      * Initializes the service with the TYPO3 registry for persistent storage.
@@ -51,6 +52,7 @@ readonly class QueueStatusService
      *
      * @return void
      */
+    #[Override]
     public function setLastExecutionTime(int $lastExecutionTime): void
     {
         $this->registry->set(
@@ -67,6 +69,7 @@ readonly class QueueStatusService
      *
      * @return int Unix timestamp of when indexing was last executed, or 0 if never run
      */
+    #[Override]
     public function getLastExecutionTime(): int
     {
         return $this->registry->get(Constants::EXTENSION_NAME, 'last-exec-time') ?? 0;

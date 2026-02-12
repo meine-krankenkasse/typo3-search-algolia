@@ -18,7 +18,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceReposi
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
@@ -54,12 +54,12 @@ class QueueModuleController extends AbstractBaseModuleController
      * the backend module interface, as well as the indexing-specific services
      * needed for queue management operations.
      *
-     * @param ModuleTemplateFactory     $moduleTemplateFactory     Factory for creating module template instances
-     * @param IconFactory               $iconFactory               Factory for creating icon instances
-     * @param IndexerFactory            $indexerFactory            Factory for creating indexer instances
-     * @param IndexingServiceRepository $indexingServiceRepository Repository for accessing indexing service configurations
-     * @param QueueItemRepository       $queueItemRepository       Repository for managing queue items
-     * @param QueueStatusService        $queueStatusService        Service for tracking indexing execution status
+     * @param ModuleTemplateFactory       $moduleTemplateFactory     Factory for creating module template instances
+     * @param IconFactory                 $iconFactory               Factory for creating icon instances
+     * @param IndexerFactory              $indexerFactory            Factory for creating indexer instances
+     * @param IndexingServiceRepository   $indexingServiceRepository Repository for accessing indexing service configurations
+     * @param QueueItemRepository         $queueItemRepository       Repository for managing queue items
+     * @param QueueStatusServiceInterface $queueStatusService        Service for tracking indexing execution status
      */
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
@@ -67,7 +67,7 @@ class QueueModuleController extends AbstractBaseModuleController
         private readonly IndexerFactory $indexerFactory,
         private readonly IndexingServiceRepository $indexingServiceRepository,
         private readonly QueueItemRepository $queueItemRepository,
-        private readonly QueueStatusService $queueStatusService,
+        private readonly QueueStatusServiceInterface $queueStatusService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,

@@ -84,14 +84,16 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
      * that the required configuration values (appId and apiKey) are present and
      * initializes the Algolia client.
      *
-     * @param EventDispatcherInterface $eventDispatcher        Event dispatcher for handling events
-     * @param ExtensionConfiguration   $extensionConfiguration TYPO3 extension configuration service
+     * @param EventDispatcherInterface     $eventDispatcher        Event dispatcher for handling events
+     * @param ExtensionConfiguration       $extensionConfiguration TYPO3 extension configuration service
+     * @param SearchClientFactoryInterface $searchClientFactory    Factory for creating Algolia SearchClient instances
      *
      * @throws MissingConfigurationException If the Algolia credentials are missing or invalid
      */
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
         ExtensionConfiguration $extensionConfiguration,
+        private readonly SearchClientFactoryInterface $searchClientFactory,
     ) {
         parent::__construct($eventDispatcher);
 
@@ -129,7 +131,7 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
     public function init(): bool
     {
         try {
-            $this->client = SearchClient::create(
+            $this->client = $this->searchClientFactory->create(
                 $this->appId,
                 $this->apiKey
             );

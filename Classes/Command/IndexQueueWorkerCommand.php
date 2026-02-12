@@ -18,7 +18,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use Override;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -30,7 +30,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Registry;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 
 /**
@@ -80,7 +79,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      * @param ConnectionPool              $connectionPool            Database connection pool for direct queries
      * @param QueueItemRepository         $queueItemRepository       Repository for queue item operations
      * @param IndexingServiceRepository   $indexingServiceRepository Repository for indexing service configurations
-     * @param QueueStatusService          $queueStatusService        Service for tracking indexing execution status
+     * @param QueueStatusServiceInterface $queueStatusService        Service for tracking indexing execution status
+     * @param IndexerFactory              $indexerFactory            Factory for creating indexer instances
      */
     public function __construct(
         private PersistenceManagerInterface $persistenceManager,
@@ -88,7 +88,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         private ConnectionPool $connectionPool,
         private QueueItemRepository $queueItemRepository,
         private IndexingServiceRepository $indexingServiceRepository,
-        private QueueStatusService $queueStatusService,
+        private QueueStatusServiceInterface $queueStatusService,
+        private IndexerFactory $indexerFactory,
     ) {
         parent::__construct();
     }
@@ -189,9 +190,6 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         $progressBar = $this->io->createProgressBar($queueItems->count());
         $progressBar->start();
 
-        /** @var IndexerFactory $indexerFactory */
-        $indexerFactory = GeneralUtility::makeInstance(IndexerFactory::class);
-
         /** @var QueueItem $item */
         foreach ($queueItems as $item) {
             // Get the underlying record
@@ -202,7 +200,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             }
 
             // Find matching indexer
-            $indexerInstance = $indexerFactory->makeInstanceByType($item->getTableName());
+            $indexerInstance = $this->indexerFactory->makeInstanceByType($item->getTableName());
 
             $indexingService = $this->indexingServiceRepository
                 ->findByUid($item->getServiceUid());
