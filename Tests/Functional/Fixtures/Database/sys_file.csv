@@ -1,0 +1,4 @@
+sys_file,,,,,,,,
+,uid,pid,storage,identifier,name,extension,mime_type,size
+,1,0,1,"/fileadmin/test.pdf","test.pdf","pdf","application/pdf",12345
+,2,0,1,"/fileadmin/docs/report.docx","report.docx","docx","application/vnd.openxmlformats-officedocument.wordprocessingml.document",54321

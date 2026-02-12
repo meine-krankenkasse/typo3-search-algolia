@@ -1,0 +1,7 @@
+tx_news_domain_model_news,,,,,,,,
+,uid,pid,title,tstamp,crdate,hidden,deleted,starttime,endtime,sys_language_uid,t3ver_wsid
+,1,2,"First news",1700000000,1700000000,0,0,0,0,0,0
+,2,2,"Second news",1700000000,1700000000,0,0,0,0,0,0
+,3,3,"Third news",1700000000,1700000000,0,0,0,0,0,0
+,4,2,"Hidden news",1700000000,1700000000,1,0,0,0,0,0
+,5,2,"Deleted news",1700000000,1700000000,0,1,0,0,0,0

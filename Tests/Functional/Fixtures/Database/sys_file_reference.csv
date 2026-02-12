@@ -1,0 +1,5 @@
+sys_file_reference,,,,,,,
+,uid,pid,uid_local,uid_foreign,tablenames,fieldname,deleted
+,1,0,1,1,tt_content,files,0
+,2,0,1,2,tt_content,files,0
+,3,0,2,3,tt_content,files,1

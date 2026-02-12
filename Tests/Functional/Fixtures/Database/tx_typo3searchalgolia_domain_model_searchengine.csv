@@ -1,0 +1,3 @@
+tx_typo3searchalgolia_domain_model_searchengine,,,,,,
+,uid,pid,title,engine,index_name,deleted
+,1,1,"Test Engine","algolia","test_index",0

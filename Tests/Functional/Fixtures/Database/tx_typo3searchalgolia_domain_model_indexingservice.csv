@@ -1,0 +1,5 @@
+tx_typo3searchalgolia_domain_model_indexingservice,,,,,,,,,,,
+,uid,pid,title,type,search_engine,deleted,pages_recursive,pages_single,pages_doktype,content_element_types,include_content_elements
+,1,1,"Page Indexer","pages",1,0,"1","","1","",0
+,2,1,"Content Indexer","tt_content",1,0,"1","","","",0
+,3,1,"News Indexer","tx_news_domain_model_news",1,0,"1","","","",0

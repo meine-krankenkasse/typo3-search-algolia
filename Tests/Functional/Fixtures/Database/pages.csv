@@ -1,0 +1,8 @@
+pages,,,,,,,
+,uid,pid,title,is_siteroot,doktype,deleted,hidden,no_search
+,1,0,"Root Page",1,1,0,0,0
+,2,1,"Sub Page",0,1,0,0,0
+,3,2,"Deep Page",0,1,0,0,0
+,4,1,"Hidden Page",0,1,0,1,0
+,5,1,"Recycler",0,255,0,0,0
+,6,1,"No Search Page",0,1,0,0,1
