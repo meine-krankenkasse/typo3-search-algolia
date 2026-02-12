@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
 use Doctrine\DBAL\Exception;
+use Override;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
@@ -32,7 +33,7 @@ use function is_array;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class ContentRepository
+readonly class ContentRepository implements ContentRepositoryInterface
 {
     /**
      * Initializes the repository with the database connection pool.
@@ -62,6 +63,7 @@ readonly class ContentRepository
      *
      * @return array<string, int|string> An associative array containing 'header' and 'page_uid'
      */
+    #[Override]
     public function findInfo(int $uid): array
     {
         $queryBuilder = $this->connectionPool
@@ -115,6 +117,7 @@ readonly class ContentRepository
      *
      * @throws Exception If a database error occurs during the query
      */
+    #[Override]
     public function findAllByPid(int $pageId, array $columns, array $contentElementTypes = []): array
     {
         $queryBuilder = $this->connectionPool

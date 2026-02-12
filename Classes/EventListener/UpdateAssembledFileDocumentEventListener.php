@@ -15,6 +15,7 @@ use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
+use Psr\Log\LoggerInterface;
 use Smalot\PdfParser\Config;
 use Smalot\PdfParser\Parser;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -60,6 +61,7 @@ readonly class UpdateAssembledFileDocumentEventListener
      */
     public function __construct(
         private FileRepository $fileRepository,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -177,7 +179,7 @@ readonly class UpdateAssembledFileDocumentEventListener
      */
     private function getFileContent(FileInterface $file): ?string
     {
-        // Currently only PDF files are supported
+        // Currently, only PDF files are supported
         if ($file->getExtension() !== 'pdf') {
             return null;
         }
@@ -193,22 +195,32 @@ readonly class UpdateAssembledFileDocumentEventListener
         try {
             $pdf     = $parser->parseContent($file->getContents());
             $content = ContentExtractor::cleanHtml($pdf->getText());
-        } catch (Exception) {
-            // TODO Track indexing errors and display failed records in backend
+        } catch (Exception $exception) {
+            $this->logger->warning(
+                'Failed to extract PDF content for indexing',
+                [
+                    'file'      => $file->getIdentifier(),
+                    'fileName'  => $file->getName(),
+                    'exception' => $exception->getMessage(),
+                ]
+            );
 
             return null;
         }
 
-        // Prevent "json_encode error: Malformed UTF-8 characters, possibly incorrectly encoded"
-        if (mb_detect_encoding($content) !== false) {
-            /** @var string|false $content */
-            $content = mb_convert_encoding(
-                $content,
-                mb_detect_encoding($content),
-                'UTF-8'
-            );
+        // Ensure valid UTF-8 encoding to prevent "json_encode error: Malformed UTF-8 characters,
+        // possibly incorrectly encoded". PDF content may use various encodings depending on the
+        // document source.
+        $detectedEncoding = mb_detect_encoding($content);
+
+        if (($detectedEncoding !== false) && ($detectedEncoding !== 'UTF-8')) {
+            $converted = mb_convert_encoding($content, 'UTF-8', $detectedEncoding);
+
+            if ($converted !== false) {
+                $content = $converted;
+            }
         }
 
-        return ($content !== false) && ($content !== '') ? $content : null;
+        return $content !== '' ? $content : null;
     }
 }

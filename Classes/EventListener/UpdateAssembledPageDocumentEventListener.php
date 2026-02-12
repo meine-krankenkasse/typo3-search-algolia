@@ -14,11 +14,13 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\CategoryRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\CategoryLookupInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptServiceInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -50,8 +52,9 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class UpdateAssembledPageDocumentEventListener
+class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
     /**
      * The current document assembled event being processed.
      *
@@ -76,16 +79,16 @@ class UpdateAssembledPageDocumentEventListener
      * enhancing page documents with site-specific information and content,
      * making search results more useful and comprehensive.
      *
-     * @param SiteFinder         $siteFinder         The TYPO3 site finder service
-     * @param ContentRepository  $contentRepository  The repository for accessing content elements
-     * @param CategoryRepository $categoryRepository The repository for accessing system categories
-     * @param TypoScriptService  $typoScriptService  The service for accessing TypoScript configuration
+     * @param SiteFinder                 $siteFinder         The TYPO3 site finder service
+     * @param ContentRepositoryInterface $contentRepository  The repository for accessing content elements
+     * @param CategoryLookupInterface    $categoryRepository The repository for accessing system categories
+     * @param TypoScriptServiceInterface $typoScriptService  The service for accessing TypoScript configuration
      */
     public function __construct(
         private readonly SiteFinder $siteFinder,
-        private readonly ContentRepository $contentRepository,
-        private readonly CategoryRepository $categoryRepository,
-        private readonly TypoScriptService $typoScriptService,
+        private readonly ContentRepositoryInterface $contentRepository,
+        private readonly CategoryLookupInterface $categoryRepository,
+        private readonly TypoScriptServiceInterface $typoScriptService,
     ) {
     }
 
@@ -124,8 +127,11 @@ class UpdateAssembledPageDocumentEventListener
 
         $document = $event->getDocument();
         $record   = $event->getRecord();
-        $pageId   = $record['uid'];
-        $site     = $this->getSite($pageId);
+
+        // uid/pid are always present in TYPO3 database records; defensive null-checks
+        // would mask real errors in the data retrieval pipeline
+        $pageId = $record['uid'];
+        $site   = $this->getSite($pageId);
 
         // Set page-related fields
         $document->setField(
@@ -154,7 +160,7 @@ class UpdateAssembledPageDocumentEventListener
             )
         );
 
-        if ($record['SYS_LASTCHANGED'] !== 0) {
+        if (($record['SYS_LASTCHANGED'] ?? 0) !== 0) {
             $document->setField(
                 'changed',
                 $record['SYS_LASTCHANGED']
@@ -177,10 +183,14 @@ class UpdateAssembledPageDocumentEventListener
                     'content',
                     $this->getPageContent($pageId)
                 );
-            } catch (Exception) {
-                // Silently continue without content if an exception occurs
-
-                // TODO Track indexing errors and display failed records in backend
+            } catch (Exception $exception) {
+                $this->logger?->warning(
+                    'Failed to retrieve page content for indexing',
+                    [
+                        'pageId'    => $pageId,
+                        'exception' => $exception->getMessage(),
+                    ]
+                );
             }
         }
     }

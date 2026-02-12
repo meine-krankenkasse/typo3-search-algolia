@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
 use Doctrine\DBAL\Exception;
+use Override;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -37,7 +38,7 @@ use TYPO3\CMS\Core\Utility\RootlineUtility;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class PageRepository
+readonly class PageRepository implements PageRepositoryInterface
 {
     /**
      * Initializes the repository with the database connection pool.
@@ -65,6 +66,7 @@ readonly class PageRepository
      *
      * @return string The title of the page, or an empty string if the page doesn't exist
      */
+    #[Override]
     public function findTitle(int $uid): string
     {
         $queryBuilder = $this->connectionPool
@@ -102,6 +104,7 @@ readonly class PageRepository
      *
      * @return array<string, int|string|null> An associative array containing the record data, or an empty array if the record is not found
      */
+    #[Override]
     public function getPageRecord(
         string $tableName,
         int $recordUid,
@@ -140,6 +143,7 @@ readonly class PageRepository
      *
      * @throws Exception If a database error occurs during the query
      */
+    #[Override]
     public function getPageIdsRecursive(
         array $pageIds,
         int $depth,
@@ -277,6 +281,7 @@ readonly class PageRepository
      *
      * @return int The UID of the root page, or 0 if no root page could be determined
      */
+    #[Override]
     public function getRootPageId(int $pageId): int
     {
         // TODO Could possibly replaced with a "WITH RECURSIVE" SQL call

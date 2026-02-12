@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
+use Override;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
@@ -30,7 +31,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class RecordRepository
+readonly class RecordRepository implements RecordRepositoryInterface
 {
     /**
      * Initializes the repository with the database connection pool.
@@ -64,6 +65,7 @@ readonly class RecordRepository
      *
      * @return int|false The parent page ID (pid) of the record, or false if the record doesn't exist
      */
+    #[Override]
     public function findPid(string $tableName, int $recordUid): int|false
     {
         $queryBuilder = $this->connectionPool

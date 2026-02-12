@@ -50,6 +50,7 @@ readonly class CategoryRepository implements CategoryLookupInterface
      *
      * @throws Exception
      */
+    #[Override]
     public function findAssignedToRecord(string $tableName, int $uid): array
     {
         $queryBuilder = $this->connectionPool
@@ -94,17 +95,17 @@ readonly class CategoryRepository implements CategoryLookupInterface
      *
      * @param int $uid The UID of the category to find
      *
-     * @return array<string, int|string|null>|null The category record, or null if not found
+     * @return array<string, int|string|null>|false The category record, or false if not found
      *
      * @throws Exception
      */
     #[Override]
-    public function findByUid(int $uid): ?array
+    public function findByUid(int $uid): array|false
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('sys_category');
 
-        $result = $queryBuilder
+        return $queryBuilder
             ->select('*')
             ->from('sys_category')
             ->where(
@@ -115,8 +116,6 @@ readonly class CategoryRepository implements CategoryLookupInterface
             )
             ->executeQuery()
             ->fetchAssociative();
-
-        return $result !== false ? $result : null;
     }
 
     /**
@@ -131,6 +130,7 @@ readonly class CategoryRepository implements CategoryLookupInterface
      *
      * @return bool True if a category reference exists for the given criteria, false otherwise
      */
+    #[Override]
     public function hasCategoryReference(int $uid, string $tableName, array $categoryUids): bool
     {
         if ($categoryUids === []) {

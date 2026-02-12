@@ -184,14 +184,14 @@ readonly class FileRepository
      *
      * This method performs a database query to find the file UID from the table
      * 'sys_file_metadata' where the UID matches the provided metadata UID. If a
-     * match is found, the corresponding file UID is returned; otherwise, null
+     * match is found, the corresponding file UID is returned; otherwise, false
      * is returned.
      *
      * @param int $metadataUid The UID of the metadata record to query
      *
-     * @return int|null The UID of the associated file or null if no match is found
+     * @return int|false The UID of the associated file or false if no match is found
      */
-    public function getFileUidByMetadataUid(int $metadataUid): ?int
+    public function getFileUidByMetadataUid(int $metadataUid): int|false
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('sys_file_metadata');
@@ -211,7 +211,7 @@ readonly class FileRepository
             ->executeQuery()
             ->fetchOne();
 
-        return $result !== false ? ((int) $result) : null;
+        return $result !== false ? ((int) $result) : false;
     }
 
     /**

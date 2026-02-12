@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
+use Override;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
@@ -35,7 +36,7 @@ use function is_string;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class TypoScriptService
+readonly class TypoScriptService implements TypoScriptServiceInterface
 {
     /**
      * Constructor for the TypoScript service.
@@ -59,6 +60,7 @@ readonly class TypoScriptService
      *
      * @return array<string, array<string, array<string, string|array<string, string>>>> The processed TypoScript configuration
      */
+    #[Override]
     public function getTypoScriptConfiguration(): array
     {
         $typoscriptConfiguration = $this->configurationManager
@@ -83,6 +85,7 @@ readonly class TypoScriptService
      *
      * @return string[]
      */
+    #[Override]
     public function getFieldMappingByType(string $indexerType): array
     {
         $typoscriptConfiguration = $this->getTypoScriptConfiguration();
@@ -106,6 +109,7 @@ readonly class TypoScriptService
      *
      * @return string[] Array of allowed file extensions (e.g., ['pdf', 'doc', 'docx'])
      */
+    #[Override]
     public function getAllowedFileExtensions(): array
     {
         $typoscriptConfiguration = $this->getTypoScriptConfiguration();

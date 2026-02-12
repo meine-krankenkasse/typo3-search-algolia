@@ -150,7 +150,7 @@ class FileIndexer extends AbstractIndexer
         // Get the file UID from the metadata record
         $fileUid = $this->fileRepository->getFileUidByMetadataUid($recordUid);
 
-        if ($fileUid === null) {
+        if ($fileUid === false) {
             return false;
         }
 

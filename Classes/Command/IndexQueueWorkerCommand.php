@@ -284,6 +284,9 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 ->executeQuery()
                 ->fetchAssociative();
         } catch (Throwable) {
+            // Intentionally catching all exceptions: TYPO3's QueryBuilder methods declare
+            // @throws annotations for Doctrine exceptions, but the actual exceptions may vary.
+            // A missing or inaccessible record should not abort the entire indexing run.
             return false;
         }
     }

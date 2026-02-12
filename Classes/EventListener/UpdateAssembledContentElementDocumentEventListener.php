@@ -80,8 +80,11 @@ readonly class UpdateAssembledContentElementDocumentEventListener
             return;
         }
 
-        $document         = $event->getDocument();
-        $record           = $event->getRecord();
+        $document = $event->getDocument();
+        $record   = $event->getRecord();
+
+        // uid/pid are always present in TYPO3 database records; defensive null-checks
+        // would mask real errors in the data retrieval pipeline
         $pageId           = $record['pid'];
         $site             = $this->getSite($pageId);
         $contentElementId = $record['uid'];

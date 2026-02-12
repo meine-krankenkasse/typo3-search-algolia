@@ -11,10 +11,11 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandlerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 
 /**
@@ -66,14 +67,14 @@ class RecordUpdateEventListener
      *   and navigating page hierarchies, which is necessary for updating the entire
      *   page tree when a page is modified.
      *
-     * @param RecordHandler    $recordHandler    The record handler service for database operations
-     * @param RecordRepository $recordRepository The repository for accessing generic database records
-     * @param PageRepository   $pageRepository   The repository for page-related operations
+     * @param RecordHandlerInterface    $recordHandler    The record handler service for database operations
+     * @param RecordRepositoryInterface $recordRepository The repository for accessing generic database records
+     * @param PageRepositoryInterface   $pageRepository   The repository for page-related operations
      */
     public function __construct(
-        private readonly RecordHandler $recordHandler,
-        private readonly RecordRepository $recordRepository,
-        private readonly PageRepository $pageRepository,
+        private readonly RecordHandlerInterface $recordHandler,
+        private readonly RecordRepositoryInterface $recordRepository,
+        private readonly PageRepositoryInterface $pageRepository,
     ) {
     }
 
@@ -170,7 +171,7 @@ class RecordUpdateEventListener
                         [
                             $this->event->getRecordUid(),
                         ],
-                        99,
+                        Constants::MAX_PAGE_TREE_DEPTH,
                         false,
                         true
                     );

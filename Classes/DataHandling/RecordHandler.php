@@ -24,6 +24,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
+use Override;
 
 /**
  * Core handler for database record operations in the search indexing process.
@@ -43,7 +44,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class RecordHandler
+readonly class RecordHandler implements RecordHandlerInterface
 {
     /**
      * Initializes the record handler with required dependencies.
@@ -85,6 +86,7 @@ readonly class RecordHandler
      *
      * @return Generator A generator yielding pairs of IndexingService => IndexerInterface
      */
+    #[Override]
     public function createIndexerGenerator(int $rootPageId, string $tableName): Generator
     {
         $indexingServices = $this->indexingServiceRepository
@@ -126,6 +128,7 @@ readonly class RecordHandler
      *
      * @throws Exception If a database error occurs during the queue operations
      */
+    #[Override]
     public function updateRecordInQueue(int $rootPageId, string $tableName, int $recordUid): void
     {
         $indexerInstanceGenerator = $this->createIndexerGenerator($rootPageId, $tableName);
@@ -162,6 +165,7 @@ readonly class RecordHandler
      *
      * @throws Exception If a database error occurs during the queue operations
      */
+    #[Override]
     public function processPageOfContentElement(int $rootPageId, int $pageId): void
     {
         $indexerInstanceGenerator = $this->createIndexerGenerator(
@@ -212,6 +216,7 @@ readonly class RecordHandler
      *
      * @throws Exception If a database error occurs during the queue or index operations
      */
+    #[Override]
     public function processContentElementsOfPage(int $pageId, bool $removePageContentElements): void
     {
         // Get all content element indexer services
@@ -272,6 +277,7 @@ readonly class RecordHandler
      *
      * @return int The resolved root page ID
      */
+    #[Override]
     public function getRecordRootPageId(array $pageRecord, string $tableName, int $recordUid): int
     {
         $recordPageId = $recordUid;
@@ -373,6 +379,7 @@ readonly class RecordHandler
      *
      * @return void
      */
+    #[Override]
     public function deleteRecord(
         IndexingService $indexingService,
         IndexerInterface $indexerInstance,
@@ -419,6 +426,7 @@ readonly class RecordHandler
      *
      * @return void
      */
+    #[Override]
     public function deleteRecords(
         IndexingService $indexingService,
         IndexerInterface $indexerInstance,
