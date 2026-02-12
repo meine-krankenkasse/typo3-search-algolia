@@ -77,6 +77,10 @@ class IndexQueueWorkerCommandTest extends TestCase
         );
     }
 
+    /**
+     * Tests that getProgress() returns 0.0 when no progress value
+     * has been stored in the TYPO3 registry yet.
+     */
     #[Test]
     public function getProgressReturnsZeroWhenNoProgressStored(): void
     {
@@ -90,6 +94,10 @@ class IndexQueueWorkerCommandTest extends TestCase
         self::assertSame(0.0, $command->getProgress());
     }
 
+    /**
+     * Tests that getProgress() correctly scales the registry value (0.5)
+     * to a percentage (50.0).
+     */
     #[Test]
     public function getProgressReturnsScaledPercentage(): void
     {
@@ -103,6 +111,10 @@ class IndexQueueWorkerCommandTest extends TestCase
         self::assertSame(50.0, $command->getProgress());
     }
 
+    /**
+     * Tests that getProgress() returns 100.0 when the registry
+     * contains a progress value of 1 (fully complete).
+     */
     #[Test]
     public function getProgressReturnsHundredWhenComplete(): void
     {
@@ -116,6 +128,10 @@ class IndexQueueWorkerCommandTest extends TestCase
         self::assertSame(100.0, $command->getProgress());
     }
 
+    /**
+     * Tests that the command can be instantiated with all required
+     * dependencies including the IndexerFactory.
+     */
     #[Test]
     public function constructorAcceptsIndexerFactory(): void
     {

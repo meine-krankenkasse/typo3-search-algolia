@@ -44,6 +44,10 @@ class TypoScriptServiceTest extends TestCase
         return new TypoScriptService($configurationManagerMock);
     }
 
+    /**
+     * Tests that getFieldMappingByType() returns the configured field mapping
+     * array for a known indexer type.
+     */
     #[Test]
     public function getFieldMappingByTypeReturnsFieldsArray(): void
     {
@@ -67,6 +71,10 @@ class TypoScriptServiceTest extends TestCase
         self::assertSame(['title' => 'title', 'description' => 'abstract'], $result);
     }
 
+    /**
+     * Tests that getFieldMappingByType() returns an empty array when
+     * the requested indexer type does not exist in the configuration.
+     */
     #[Test]
     public function getFieldMappingByTypeReturnsEmptyForUnknownType(): void
     {
@@ -89,6 +97,10 @@ class TypoScriptServiceTest extends TestCase
         self::assertSame([], $result);
     }
 
+    /**
+     * Tests that getFieldMappingByType() returns an empty array when
+     * the fields configuration value is not an array.
+     */
     #[Test]
     public function getFieldMappingByTypeReturnsEmptyWhenFieldsNotArray(): void
     {
@@ -109,6 +121,10 @@ class TypoScriptServiceTest extends TestCase
         self::assertSame([], $result);
     }
 
+    /**
+     * Tests that getAllowedFileExtensions() returns the configured file
+     * extensions as an array of strings.
+     */
     #[Test]
     public function getAllowedFileExtensionsReturnsExtensions(): void
     {
@@ -129,6 +145,10 @@ class TypoScriptServiceTest extends TestCase
         self::assertSame(['pdf', 'doc', 'docx'], $result);
     }
 
+    /**
+     * Tests that getAllowedFileExtensions() returns an empty array when
+     * no file extensions are configured in TypoScript.
+     */
     #[Test]
     public function getAllowedFileExtensionsReturnsEmptyWhenNotConfigured(): void
     {

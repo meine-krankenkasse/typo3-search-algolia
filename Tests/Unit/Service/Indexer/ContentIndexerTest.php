@@ -16,14 +16,20 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\SearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\CategoryRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\FileCollectionService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use RuntimeException;
@@ -41,6 +47,12 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(ContentIndexer::class)]
+#[UsesClass(CategoryRepository::class)]
+#[UsesClass(FileRepository::class)]
+#[UsesClass(PageRepository::class)]
+#[UsesClass(FileCollectionService::class)]
+#[CoversClass(AbstractIndexer::class)]
+#[UsesClass(TypoScriptService::class)]
 class ContentIndexerTest extends TestCase
 {
     private ContentIndexer $subject;
@@ -62,12 +74,19 @@ class ContentIndexerTest extends TestCase
         );
     }
 
+    /**
+     * Tests that getTable() returns the expected database table name 'tt_content'.
+     */
     #[Test]
     public function getTableReturnsTtContent(): void
     {
         self::assertSame('tt_content', $this->subject->getTable());
     }
 
+    /**
+     * Tests that withIndexingService() returns a new instance (immutable pattern)
+     * while the original instance remains unchanged.
+     */
     #[Test]
     public function withIndexingServiceReturnsNewInstance(): void
     {
@@ -78,6 +97,10 @@ class ContentIndexerTest extends TestCase
         self::assertInstanceOf(IndexerInterface::class, $clone);
     }
 
+    /**
+     * Tests that withExcludeHiddenPages() returns a new instance (immutable pattern)
+     * while the original instance remains unchanged.
+     */
     #[Test]
     public function withExcludeHiddenPagesReturnsNewInstance(): void
     {
@@ -87,6 +110,10 @@ class ContentIndexerTest extends TestCase
         self::assertInstanceOf(IndexerInterface::class, $clone);
     }
 
+    /**
+     * Tests that enqueueOne() throws a RuntimeException when called
+     * without a configured indexing service.
+     */
     #[Test]
     public function enqueueOneThrowsExceptionWithoutIndexingService(): void
     {
@@ -96,6 +123,10 @@ class ContentIndexerTest extends TestCase
         $this->subject->enqueueOne(1);
     }
 
+    /**
+     * Tests that dequeueOne() throws a RuntimeException when called
+     * without a configured indexing service.
+     */
     #[Test]
     public function dequeueOneThrowsExceptionWithoutIndexingService(): void
     {
@@ -105,6 +136,10 @@ class ContentIndexerTest extends TestCase
         $this->subject->dequeueOne(1);
     }
 
+    /**
+     * Tests that dequeueAll() throws a RuntimeException when called
+     * without a configured indexing service.
+     */
     #[Test]
     public function dequeueAllThrowsExceptionWithoutIndexingService(): void
     {
@@ -114,6 +149,10 @@ class ContentIndexerTest extends TestCase
         $this->subject->dequeueAll();
     }
 
+    /**
+     * Tests that enqueueMultiple() throws a RuntimeException when called
+     * without a configured indexing service.
+     */
     #[Test]
     public function enqueueMultipleThrowsExceptionWithoutIndexingService(): void
     {
@@ -123,6 +162,10 @@ class ContentIndexerTest extends TestCase
         $this->subject->enqueueMultiple([1, 2]);
     }
 
+    /**
+     * Tests that enqueueAll() throws a RuntimeException when called
+     * without a configured indexing service.
+     */
     #[Test]
     public function enqueueAllThrowsExceptionWithoutIndexingService(): void
     {
@@ -152,6 +195,10 @@ class ContentIndexerTest extends TestCase
         );
     }
 
+    /**
+     * Tests that dequeueOne() delegates to the QueueItemRepository with
+     * the correct table name, record UID array and service UID.
+     */
     #[Test]
     public function dequeueOneCallsRepositoryWithCorrectParameters(): void
     {
@@ -173,6 +220,10 @@ class ContentIndexerTest extends TestCase
         self::assertInstanceOf(IndexerInterface::class, $result);
     }
 
+    /**
+     * Tests that dequeueMultiple() delegates to the QueueItemRepository with
+     * the correct table name, record UID array and service UID.
+     */
     #[Test]
     public function dequeueMultipleCallsRepositoryWithCorrectParameters(): void
     {
@@ -194,6 +245,10 @@ class ContentIndexerTest extends TestCase
         self::assertInstanceOf(IndexerInterface::class, $result);
     }
 
+    /**
+     * Tests that dequeueAll() delegates to the QueueItemRepository
+     * by calling deleteByIndexingService() with the configured service.
+     */
     #[Test]
     public function dequeueAllCallsDeleteByIndexingService(): void
     {
@@ -212,6 +267,10 @@ class ContentIndexerTest extends TestCase
         self::assertInstanceOf(IndexerInterface::class, $result);
     }
 
+    /**
+     * Tests the full indexRecord() happy path: retrieves the search engine,
+     * opens the index, builds and updates the document, commits and closes.
+     */
     #[Test]
     public function indexRecordReturnsTrueOnSuccess(): void
     {
@@ -258,6 +317,10 @@ class ContentIndexerTest extends TestCase
         self::assertTrue($result);
     }
 
+    /**
+     * Tests that indexRecord() returns false and skips document building
+     * when the search engine factory returns null.
+     */
     #[Test]
     public function indexRecordReturnsFalseWhenNoSearchEngine(): void
     {
@@ -285,6 +348,10 @@ class ContentIndexerTest extends TestCase
         self::assertFalse($result);
     }
 
+    /**
+     * Tests that indexRecord() returns false when documentUpdate() fails,
+     * but still calls indexCommit() and indexClose() for cleanup.
+     */
     #[Test]
     public function indexRecordReturnsFalseWhenDocumentUpdateFails(): void
     {
@@ -328,6 +395,10 @@ class ContentIndexerTest extends TestCase
         self::assertFalse($result);
     }
 
+    /**
+     * Tests that withIndexingService() properly sets the service on the cloned
+     * instance, allowing dequeueOne() to execute without RuntimeException.
+     */
     #[Test]
     public function withIndexingServiceSetsServiceOnClone(): void
     {
@@ -348,6 +419,10 @@ class ContentIndexerTest extends TestCase
         $clone->dequeueOne(1);
     }
 
+    /**
+     * Tests that withExcludeHiddenPages() sets the correct boolean value
+     * on the cloned instance via reflection inspection.
+     */
     #[Test]
     public function withExcludeHiddenPagesSetsValueOnClone(): void
     {

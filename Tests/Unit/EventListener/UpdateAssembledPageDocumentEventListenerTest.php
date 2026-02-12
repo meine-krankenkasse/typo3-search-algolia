@@ -12,17 +12,21 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener;
 
 use GuzzleHttp\Psr7\Uri;
+use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledPageDocumentEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\CategoryLookupInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepositoryInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptServiceInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Routing\RouterInterface;
@@ -37,8 +41,17 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(UpdateAssembledPageDocumentEventListener::class)]
+#[UsesClass(AfterDocumentAssembledEvent::class)]
+#[UsesClass(Document::class)]
+#[UsesClass(AbstractIndexer::class)]
+#[UsesClass(ContentExtractor::class)]
+#[UsesClass(PageRepository::class)]
 class UpdateAssembledPageDocumentEventListenerTest extends TestCase
 {
+    /**
+     * Tests that the listener does nothing when the indexer
+     * is not a PageIndexer instance.
+     */
     #[Test]
     public function invokeDoesNothingForNonPageIndexer(): void
     {
@@ -73,6 +86,10 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         self::assertEmpty($document->getFields());
     }
 
+    /**
+     * Tests that the listener sets the site domain and URL fields
+     * on the document for a valid page record.
+     */
     #[Test]
     public function invokeSetsSiteDomainAndUrlForPage(): void
     {
@@ -130,6 +147,10 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         self::assertSame(1700000000, $document->getFields()['changed']);
     }
 
+    /**
+     * Tests that the listener falls back to a NullSite when the
+     * SiteFinder throws a SiteNotFoundException.
+     */
     #[Test]
     public function invokeUsesNullSiteWhenSiteNotFound(): void
     {
@@ -178,6 +199,10 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         self::assertArrayNotHasKey('changed', $document->getFields());
     }
 
+    /**
+     * Tests that the listener adds content element text to the document
+     * when includeContentElements is enabled on the indexing service.
+     */
     #[Test]
     public function invokeAddsContentElementsWhenIncludeContentEnabled(): void
     {
@@ -247,6 +272,10 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         self::assertStringContainsString('More content here', $document->getFields()['content']);
     }
 
+    /**
+     * Tests that the listener does not add content when the
+     * TypoScript field mapping for tt_content is empty.
+     */
     #[Test]
     public function invokeDoesNotAddContentWhenFieldMappingEmpty(): void
     {

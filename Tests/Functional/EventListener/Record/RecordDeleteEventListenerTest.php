@@ -90,6 +90,10 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
         );
     }
 
+    /**
+     * Tests that the listener deletes a page record from the indexing
+     * queue when a DataHandlerRecordDeleteEvent is dispatched.
+     */
     #[Test]
     public function invokeDeletesPageFromQueue(): void
     {
@@ -108,6 +112,10 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
         ($this->subject)($event);
     }
 
+    /**
+     * Tests that the listener deletes a content element from the indexing
+     * queue when a DataHandlerRecordDeleteEvent is dispatched for tt_content.
+     */
     #[Test]
     public function invokeDeletesContentElementFromQueue(): void
     {
@@ -133,6 +141,10 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
         ($this->subject)($event);
     }
 
+    /**
+     * Tests that the listener throws a PageNotFoundException when the
+     * delete event references a record that does not exist in the database.
+     */
     #[Test]
     public function invokeThrowsExceptionForNonExistentRecord(): void
     {

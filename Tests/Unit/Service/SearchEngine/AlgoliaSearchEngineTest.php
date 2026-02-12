@@ -22,11 +22,13 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Exception\MissingConfigurationException
 use MeineKrankenkasse\Typo3SearchAlgolia\Exception\RateLimitException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine\AbstractSearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine\AlgoliaSearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngine\SearchClientFactoryInterface;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -41,6 +43,8 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(AlgoliaSearchEngine::class)]
+#[CoversClass(AbstractSearchEngine::class)]
+#[UsesClass(CreateUniqueDocumentIdEvent::class)]
 class AlgoliaSearchEngineTest extends TestCase
 {
     private MockObject&EventDispatcherInterface $eventDispatcherMock;
@@ -139,6 +143,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // Constructor
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that the constructor throws a MissingConfigurationException
+     * when the Algolia application ID is set to false.
+     */
     #[Test]
     public function constructorThrowsExceptionWhenAppIdIsFalse(): void
     {
@@ -155,6 +163,10 @@ class AlgoliaSearchEngineTest extends TestCase
         $this->createEngine();
     }
 
+    /**
+     * Tests that the constructor throws a MissingConfigurationException
+     * when the Algolia API key is set to false.
+     */
     #[Test]
     public function constructorThrowsExceptionWhenApiKeyIsFalse(): void
     {
@@ -171,6 +183,10 @@ class AlgoliaSearchEngineTest extends TestCase
         $this->createEngine();
     }
 
+    /**
+     * Tests that the constructor invokes the SearchClientFactory exactly once
+     * with the configured application ID and API key.
+     */
     #[Test]
     public function constructorCallsFactoryWithCredentials(): void
     {
@@ -188,6 +204,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // indexOpen / indexClose
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that indexClose() resets the index name, causing a subsequent
+     * documentAdd() call to throw a RuntimeException.
+     */
     #[Test]
     public function indexCloseResetsIndexName(): void
     {
@@ -206,6 +226,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // indexExists
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that indexExists() returns true when the Algolia client
+     * confirms the index exists.
+     */
     #[Test]
     public function indexExistsReturnsTrueWhenIndexExists(): void
     {
@@ -219,6 +243,10 @@ class AlgoliaSearchEngineTest extends TestCase
         self::assertTrue($engine->indexExists('test_index'));
     }
 
+    /**
+     * Tests that indexExists() returns false when the Algolia client
+     * throws an exception during the existence check.
+     */
     #[Test]
     public function indexExistsReturnsFalseOnException(): void
     {
@@ -235,6 +263,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // indexDelete
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that indexDelete() calls deleteIndex() on the client and returns
+     * the validation result from the DeletedAtResponse.
+     */
     #[Test]
     public function indexDeleteCallsClientAndReturnsResult(): void
     {
@@ -258,6 +290,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // indexCommit
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that indexCommit() always returns true, since Algolia
+     * automatically commits changes.
+     */
     #[Test]
     public function indexCommitReturnsTrue(): void
     {
@@ -270,6 +306,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // indexClear
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that indexClear() calls clearObjects() on the client and returns
+     * the validation result from the UpdatedAtResponse.
+     */
     #[Test]
     public function indexClearCallsClientAndReturnsResult(): void
     {
@@ -289,6 +329,10 @@ class AlgoliaSearchEngineTest extends TestCase
         self::assertTrue($engine->indexClear('test_index'));
     }
 
+    /**
+     * Tests that indexClear() throws a RateLimitException when the Algolia
+     * client responds with HTTP status code 429.
+     */
     #[Test]
     public function indexClearThrowsRateLimitExceptionOn429(): void
     {
@@ -303,6 +347,10 @@ class AlgoliaSearchEngineTest extends TestCase
         $engine->indexClear('test_index');
     }
 
+    /**
+     * Tests that indexClear() returns false when a non-rate-limit exception
+     * (e.g. HTTP 500) is thrown by the client.
+     */
     #[Test]
     public function indexClearReturnsFalseOnOtherException(): void
     {
@@ -319,6 +367,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // documentAdd
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that documentAdd() throws a RuntimeException when called
+     * without opening an index first.
+     */
     #[Test]
     public function documentAddThrowsExceptionWhenNoIndexOpen(): void
     {
@@ -330,6 +382,10 @@ class AlgoliaSearchEngineTest extends TestCase
         $engine->documentAdd($this->createDocumentMock());
     }
 
+    /**
+     * Tests the full documentAdd() happy path: generates a unique objectID
+     * via the event dispatcher and saves the document fields to Algolia.
+     */
     #[Test]
     public function documentAddSavesObjectToAlgolia(): void
     {
@@ -361,6 +417,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // documentUpdate
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that documentUpdate() delegates to documentAdd(), resulting
+     * in a single saveObject() call to the Algolia client.
+     */
     #[Test]
     public function documentUpdateDelegatesToDocumentAdd(): void
     {
@@ -386,6 +446,10 @@ class AlgoliaSearchEngineTest extends TestCase
     // documentDelete
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that documentDelete() throws a RuntimeException when called
+     * without opening an index first.
+     */
     #[Test]
     public function documentDeleteThrowsExceptionWhenNoIndexOpen(): void
     {
@@ -397,6 +461,10 @@ class AlgoliaSearchEngineTest extends TestCase
         $engine->documentDelete('doc-1');
     }
 
+    /**
+     * Tests that documentDelete() calls deleteObject() on the client with
+     * the correct index name and document ID, returning the validation result.
+     */
     #[Test]
     public function documentDeleteCallsClientAndReturnsResult(): void
     {

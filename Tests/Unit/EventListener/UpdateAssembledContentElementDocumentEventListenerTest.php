@@ -20,6 +20,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Routing\RouterInterface;
@@ -34,8 +35,14 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(UpdateAssembledContentElementDocumentEventListener::class)]
+#[UsesClass(AfterDocumentAssembledEvent::class)]
+#[UsesClass(Document::class)]
 class UpdateAssembledContentElementDocumentEventListenerTest extends TestCase
 {
+    /**
+     * Tests that the listener does nothing when the indexer
+     * is not a ContentIndexer instance.
+     */
     #[Test]
     public function invokeDoesNothingForNonContentIndexer(): void
     {
@@ -61,6 +68,10 @@ class UpdateAssembledContentElementDocumentEventListenerTest extends TestCase
         self::assertEmpty($document->getFields());
     }
 
+    /**
+     * Tests that the listener sets the site domain and URL fields
+     * on the document for a valid content element record.
+     */
     #[Test]
     public function invokeSetsSiteDomainAndUrlForContentElement(): void
     {
@@ -99,6 +110,10 @@ class UpdateAssembledContentElementDocumentEventListenerTest extends TestCase
         self::assertSame('https://www.example.com/page#c42', $document->getFields()['url']);
     }
 
+    /**
+     * Tests that the listener falls back to a NullSite when the
+     * SiteFinder throws a SiteNotFoundException.
+     */
     #[Test]
     public function invokeUsesNullSiteWhenSiteNotFound(): void
     {

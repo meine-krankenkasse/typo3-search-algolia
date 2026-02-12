@@ -15,6 +15,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\SearchEngine;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
@@ -24,6 +25,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -44,6 +46,9 @@ use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(RecordHandler::class)]
+#[UsesClass(ContentRepository::class)]
+#[UsesClass(CreateUniqueDocumentIdEvent::class)]
+#[UsesClass(PageRepository::class)]
 class RecordHandlerTest extends TestCase
 {
     /**

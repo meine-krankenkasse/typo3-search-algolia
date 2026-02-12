@@ -78,6 +78,10 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
     // enqueueOne
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that enqueueOne() adds a single content element to the indexing
+     * queue with the correct table name, record UID and service UID.
+     */
     #[Test]
     public function enqueueOneAddsContentToQueue(): void
     {
@@ -94,6 +98,10 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
         self::assertSame(2, (int) $row['service_uid']);
     }
 
+    /**
+     * Tests that enqueueOne() returns zero when the specified content
+     * element does not exist in the database.
+     */
     #[Test]
     public function enqueueOneReturnsZeroForNonExistentContent(): void
     {
@@ -108,6 +116,10 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
     // enqueueMultiple / enqueueAll
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that enqueueMultiple() adds multiple content elements to
+     * the indexing queue in a single operation.
+     */
     #[Test]
     public function enqueueMultipleAddsMultipleContentElements(): void
     {
@@ -124,6 +136,10 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
         self::assertNotFalse($row2);
     }
 
+    /**
+     * Tests that enqueueAll() adds all eligible content elements from
+     * pages within the recursive page tree to the indexing queue.
+     */
     #[Test]
     public function enqueueAllAddsAllEligibleContent(): void
     {
@@ -140,6 +156,10 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
     // dequeueOne / dequeueMultiple / dequeueAll
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that dequeueOne() removes a single content element
+     * from the indexing queue by its record UID.
+     */
     #[Test]
     public function dequeueOneRemovesContentFromQueue(): void
     {
@@ -153,6 +173,10 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
         self::assertFalse($row);
     }
 
+    /**
+     * Tests that dequeueMultiple() removes only the specified content
+     * elements from the queue while leaving others untouched.
+     */
     #[Test]
     public function dequeueMultipleRemovesMultipleContentElements(): void
     {
@@ -170,6 +194,10 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
         self::assertFalse($row3);
     }
 
+    /**
+     * Tests that dequeueAll() removes all queue items associated with
+     * the indexing service, regardless of individual record UIDs.
+     */
     #[Test]
     public function dequeueAllRemovesAllContentForService(): void
     {

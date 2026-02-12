@@ -104,6 +104,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
     // enqueueOne
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that enqueueOne() adds a single news record to the indexing
+     * queue with the correct table name, record UID and service UID.
+     */
     #[Test]
     public function enqueueOneAddsNewsToQueue(): void
     {
@@ -120,6 +124,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
         self::assertSame(3, (int) $row['service_uid']);
     }
 
+    /**
+     * Tests that enqueueOne() returns zero when the specified news
+     * record does not exist in the database.
+     */
     #[Test]
     public function enqueueOneReturnsZeroForNonExistentNews(): void
     {
@@ -130,6 +138,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
         self::assertSame(0, $result);
     }
 
+    /**
+     * Tests that enqueueOne() returns zero for a hidden news record,
+     * since hidden records are excluded by the default restrictions.
+     */
     #[Test]
     public function enqueueOneReturnsZeroForHiddenNews(): void
     {
@@ -141,6 +153,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
         self::assertSame(0, $result);
     }
 
+    /**
+     * Tests that enqueueOne() returns zero for a deleted news record,
+     * since deleted records are excluded by the default restrictions.
+     */
     #[Test]
     public function enqueueOneReturnsZeroForDeletedNews(): void
     {
@@ -156,6 +172,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
     // enqueueMultiple / enqueueAll
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that enqueueMultiple() adds multiple news records to
+     * the indexing queue in a single operation.
+     */
     #[Test]
     public function enqueueMultipleAddsMultipleNews(): void
     {
@@ -172,6 +192,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
         self::assertNotFalse($row2);
     }
 
+    /**
+     * Tests that enqueueAll() adds all eligible news records, excluding
+     * hidden and deleted records, to the indexing queue.
+     */
     #[Test]
     public function enqueueAllAddsAllEligibleNews(): void
     {
@@ -188,6 +212,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
     // dequeueOne / dequeueMultiple / dequeueAll
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that dequeueOne() removes a single news record from
+     * the indexing queue by its record UID.
+     */
     #[Test]
     public function dequeueOneRemovesNewsFromQueue(): void
     {
@@ -201,6 +229,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
         self::assertFalse($row);
     }
 
+    /**
+     * Tests that dequeueMultiple() removes only the specified news
+     * records from the queue while leaving others untouched.
+     */
     #[Test]
     public function dequeueMultipleRemovesMultipleNews(): void
     {
@@ -218,6 +250,10 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
         self::assertFalse($row3);
     }
 
+    /**
+     * Tests that dequeueAll() removes all queue items associated with
+     * the indexing service, regardless of individual record UIDs.
+     */
     #[Test]
     public function dequeueAllRemovesAllNewsForService(): void
     {

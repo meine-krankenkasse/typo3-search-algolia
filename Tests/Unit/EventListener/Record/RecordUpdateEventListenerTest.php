@@ -16,12 +16,14 @@ use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandlerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\RecordUpdateEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractAfterFileEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -33,6 +35,8 @@ use PHPUnit\Framework\TestCase;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(RecordUpdateEventListener::class)]
+#[UsesClass(AbstractAfterFileEventListener::class)]
+#[UsesClass(DataHandlerRecordUpdateEvent::class)]
 class RecordUpdateEventListenerTest extends TestCase
 {
     private MockObject&RecordHandlerInterface $recordHandlerMock;
@@ -72,6 +76,10 @@ class RecordUpdateEventListenerTest extends TestCase
         );
     }
 
+    /**
+     * Tests that the listener enqueues the record when the page record
+     * is enabled (not hidden, not deleted) and has matching indexers.
+     */
     #[Test]
     public function invokeEnqueuesRecordWhenEnabled(): void
     {
@@ -108,6 +116,10 @@ class RecordUpdateEventListenerTest extends TestCase
         $this->createListener()($event);
     }
 
+    /**
+     * Tests that the listener dequeues the record and processes content
+     * elements when the page record is disabled (hidden).
+     */
     #[Test]
     public function invokeDequeuesRecordWhenDisabled(): void
     {
@@ -149,6 +161,10 @@ class RecordUpdateEventListenerTest extends TestCase
         $this->createListener()($event);
     }
 
+    /**
+     * Tests that the listener processes the parent page when a tt_content
+     * record is updated.
+     */
     #[Test]
     public function invokeProcessesPageOfContentElementForTtContent(): void
     {
@@ -186,6 +202,10 @@ class RecordUpdateEventListenerTest extends TestCase
         $this->createListener()($event);
     }
 
+    /**
+     * Tests that the listener does not process a parent page when
+     * the updated record is not a content element.
+     */
     #[Test]
     public function invokeDoesNotProcessPageForNonContentElements(): void
     {
@@ -217,6 +237,10 @@ class RecordUpdateEventListenerTest extends TestCase
         $this->createListener()($event);
     }
 
+    /**
+     * Tests that the listener processes content elements of a page
+     * when the page record itself is updated.
+     */
     #[Test]
     public function invokeProcessesContentElementsWhenPageUpdated(): void
     {
@@ -249,6 +273,10 @@ class RecordUpdateEventListenerTest extends TestCase
         $this->createListener()($event);
     }
 
+    /**
+     * Tests that the listener processes subpages recursively when the
+     * hidden field changes with extendToSubpages enabled.
+     */
     #[Test]
     public function invokeProcessesSubpagesWhenHiddenFieldChanges(): void
     {
@@ -292,6 +320,10 @@ class RecordUpdateEventListenerTest extends TestCase
         $this->createListener()($event);
     }
 
+    /**
+     * Tests that the listener skips subpage processing when no
+     * hidden or extendToSubpages field changes are present.
+     */
     #[Test]
     public function invokeSkipsSubpageProcessingWhenNotRequired(): void
     {

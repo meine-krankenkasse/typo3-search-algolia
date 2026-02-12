@@ -43,6 +43,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         $this->subject = new FileRepository($this->getConnectionPool());
     }
 
+    /**
+     * Tests that getFileUidByMetadataUid() returns the corresponding
+     * file UID for a given metadata record UID.
+     */
     #[Test]
     public function getFileUidByMetadataUidReturnsFileUid(): void
     {
@@ -51,6 +55,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, $fileUid);
     }
 
+    /**
+     * Tests that getFileUidByMetadataUid() returns false when no
+     * metadata record exists with the given UID.
+     */
     #[Test]
     public function getFileUidByMetadataUidReturnsFalseForNonExistent(): void
     {
@@ -59,6 +67,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         self::assertFalse($fileUid);
     }
 
+    /**
+     * Tests that findInfo() returns the file name and MIME type
+     * for an existing file metadata record.
+     */
     #[Test]
     public function findInfoReturnsFileInformation(): void
     {
@@ -68,6 +80,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame('application/pdf', $info['type']);
     }
 
+    /**
+     * Tests that findInfo() returns an empty array when the file
+     * metadata record does not exist in the database.
+     */
     #[Test]
     public function findInfoReturnsEmptyArrayForNonExistent(): void
     {
@@ -76,6 +92,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame([], $info);
     }
 
+    /**
+     * Tests that findUsages() returns the content element UIDs that
+     * reference the given file through sys_file_reference.
+     */
     #[Test]
     public function findUsagesReturnsContentElementUids(): void
     {
@@ -88,6 +108,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         self::assertContains(2, $uids);
     }
 
+    /**
+     * Tests that findUsages() excludes deleted file references
+     * and returns an empty array when all references are deleted.
+     */
     #[Test]
     public function findUsagesExcludesDeletedReferences(): void
     {
@@ -97,6 +121,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame([], $usages);
     }
 
+    /**
+     * Tests that hasFileReference() returns true when an active file
+     * reference exists for the given file UID, table and foreign UIDs.
+     */
     #[Test]
     public function hasFileReferenceReturnsTrueWhenReferenceExists(): void
     {
@@ -105,6 +133,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         self::assertTrue($result);
     }
 
+    /**
+     * Tests that hasFileReference() returns false when an empty
+     * array of foreign UIDs is provided.
+     */
     #[Test]
     public function hasFileReferenceReturnsFalseForEmptyForeignUids(): void
     {
@@ -113,6 +145,10 @@ final class FileRepositoryTest extends AbstractFunctionalTestCase
         self::assertFalse($result);
     }
 
+    /**
+     * Tests that hasFileReference() returns false when no file reference
+     * exists for the given file UID and foreign record combination.
+     */
     #[Test]
     public function hasFileReferenceReturnsFalseWhenNoReferenceExists(): void
     {

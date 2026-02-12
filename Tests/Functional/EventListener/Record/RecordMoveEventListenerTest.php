@@ -85,6 +85,10 @@ final class RecordMoveEventListenerTest extends AbstractFunctionalTestCase
         );
     }
 
+    /**
+     * Tests that the listener dequeues and re-enqueues a page record
+     * when a DataHandlerRecordMoveEvent is dispatched with a new target.
+     */
     #[Test]
     public function invokeUpdatesRecordInQueueOnMove(): void
     {
@@ -109,6 +113,10 @@ final class RecordMoveEventListenerTest extends AbstractFunctionalTestCase
         ($this->subject)($event);
     }
 
+    /**
+     * Tests that the listener does nothing when the target page ID
+     * equals the previous page ID, indicating no actual move occurred.
+     */
     #[Test]
     public function invokeDoesNothingWhenTargetEqualsPrevious(): void
     {
@@ -122,6 +130,10 @@ final class RecordMoveEventListenerTest extends AbstractFunctionalTestCase
         ($this->subject)($event);
     }
 
+    /**
+     * Tests that the listener handles a move event correctly when the
+     * previous page ID is null, treating it as a valid move operation.
+     */
     #[Test]
     public function invokeHandlesMoveWithNullPreviousPid(): void
     {

@@ -42,6 +42,10 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
         $this->subject = new ContentRepository($this->getConnectionPool());
     }
 
+    /**
+     * Tests that findAllByPid() returns all content elements
+     * on a page with the requested field selection.
+     */
     #[Test]
     public function findAllByPidReturnsContentElements(): void
     {
@@ -50,6 +54,10 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
         self::assertCount(2, $elements);
     }
 
+    /**
+     * Tests that findAllByPid() returns an empty array when the
+     * specified page contains no content elements.
+     */
     #[Test]
     public function findAllByPidReturnsEmptyForPageWithoutContent(): void
     {
@@ -58,6 +66,10 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame([], $elements);
     }
 
+    /**
+     * Tests that findAllByPid() only returns the fields specified
+     * in the selection parameter, excluding all others.
+     */
     #[Test]
     public function findAllByPidFiltersSelectedFields(): void
     {
@@ -68,6 +80,10 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
         self::assertArrayNotHasKey('header', $elements[0]);
     }
 
+    /**
+     * Tests that findAllByPid() filters content elements by the
+     * specified CType values, returning only matching elements.
+     */
     #[Test]
     public function findAllByPidFiltersByContentElementType(): void
     {
@@ -77,6 +93,10 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame('text', $elements[0]['CType']);
     }
 
+    /**
+     * Tests that findInfo() returns the header text and parent page UID
+     * for an existing content element.
+     */
     #[Test]
     public function findInfoReturnsHeaderAndPageUid(): void
     {
@@ -86,6 +106,10 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(2, $info['page_uid']);
     }
 
+    /**
+     * Tests that findInfo() returns an empty array when the content
+     * element does not exist in the database.
+     */
     #[Test]
     public function findInfoReturnsEmptyForNonExistent(): void
     {

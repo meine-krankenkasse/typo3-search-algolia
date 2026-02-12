@@ -12,10 +12,12 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\CreateUniqueDocumentIdEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\CreateDefaultDocumentIdEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -26,6 +28,8 @@ use PHPUnit\Framework\TestCase;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(CreateDefaultDocumentIdEventListener::class)]
+#[UsesClass(CreateUniqueDocumentIdEvent::class)]
+#[UsesClass(DataHandlerRecordUpdateEvent::class)]
 class CreateDefaultDocumentIdEventListenerTest extends TestCase
 {
     /**

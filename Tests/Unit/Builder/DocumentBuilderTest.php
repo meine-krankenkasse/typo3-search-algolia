@@ -12,13 +12,18 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Builder;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
+use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -32,6 +37,12 @@ use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(DocumentBuilder::class)]
+#[UsesClass(ContentExtractor::class)]
+#[UsesClass(AfterDocumentAssembledEvent::class)]
+#[UsesClass(Document::class)]
+#[UsesClass(ContentRepository::class)]
+#[UsesClass(PageRepository::class)]
+#[UsesClass(TypoScriptService::class)]
 class DocumentBuilderTest extends TestCase
 {
     /**

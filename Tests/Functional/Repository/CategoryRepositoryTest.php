@@ -41,6 +41,10 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         $this->subject = new CategoryRepository($this->getConnectionPool());
     }
 
+    /**
+     * Tests that findAssignedToRecord() returns the category UIDs
+     * assigned to a page record via the sys_category_record_mm table.
+     */
     #[Test]
     public function findAssignedToRecordReturnsCategoriesForPage(): void
     {
@@ -49,6 +53,10 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         self::assertCount(2, $categories);
     }
 
+    /**
+     * Tests that findAssignedToRecord() returns an empty array when
+     * the page has no category assignments in the MM table.
+     */
     #[Test]
     public function findAssignedToRecordReturnsEmptyForPageWithoutCategories(): void
     {
@@ -57,6 +65,10 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame([], $categories);
     }
 
+    /**
+     * Tests that findByUid() returns the full category record
+     * including its title for an existing category UID.
+     */
     #[Test]
     public function findByUidReturnsCategoryRecord(): void
     {
@@ -66,6 +78,10 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame('Category A', $category['title']);
     }
 
+    /**
+     * Tests that findByUid() returns false when no category
+     * exists with the given UID in the database.
+     */
     #[Test]
     public function findByUidReturnsFalseForNonExistentCategory(): void
     {
@@ -74,6 +90,10 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         self::assertFalse($category);
     }
 
+    /**
+     * Tests that hasCategoryReference() returns true when the record
+     * has at least one matching category reference in the MM table.
+     */
     #[Test]
     public function hasCategoryReferenceReturnsTrueWhenReferenceExists(): void
     {
@@ -82,6 +102,10 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         self::assertTrue($result);
     }
 
+    /**
+     * Tests that hasCategoryReference() returns false when the record
+     * has no matching category references in the MM table.
+     */
     #[Test]
     public function hasCategoryReferenceReturnsFalseWhenNoReferenceExists(): void
     {
@@ -90,6 +114,10 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         self::assertFalse($result);
     }
 
+    /**
+     * Tests that hasCategoryReference() returns false when an empty
+     * array of category UIDs is provided.
+     */
     #[Test]
     public function hasCategoryReferenceReturnsFalseForEmptyCategoryUids(): void
     {

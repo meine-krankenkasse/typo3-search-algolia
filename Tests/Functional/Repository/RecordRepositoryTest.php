@@ -40,6 +40,10 @@ final class RecordRepositoryTest extends AbstractFunctionalTestCase
         $this->subject = new RecordRepository($this->getConnectionPool());
     }
 
+    /**
+     * Tests that findPid() returns the page ID (pid) for an existing
+     * page record in the database.
+     */
     #[Test]
     public function findPidReturnsPidForExistingPage(): void
     {
@@ -48,6 +52,10 @@ final class RecordRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, $pid);
     }
 
+    /**
+     * Tests that findPid() returns the page ID (pid) for an existing
+     * content element record in the tt_content table.
+     */
     #[Test]
     public function findPidReturnsPidForContentElement(): void
     {
@@ -56,6 +64,10 @@ final class RecordRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(2, $pid);
     }
 
+    /**
+     * Tests that findPid() returns false when the specified record
+     * does not exist in the database.
+     */
     #[Test]
     public function findPidReturnsFalseForNonExistentRecord(): void
     {
@@ -64,6 +76,10 @@ final class RecordRepositoryTest extends AbstractFunctionalTestCase
         self::assertFalse($pid);
     }
 
+    /**
+     * Tests that findPid() returns zero for the root page, since
+     * the root page has pid=0 by convention.
+     */
     #[Test]
     public function findPidReturnsZeroPidForRootPage(): void
     {

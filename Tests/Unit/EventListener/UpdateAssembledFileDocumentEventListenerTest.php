@@ -20,6 +20,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Resource\File;
@@ -34,8 +35,14 @@ use TYPO3\CMS\Core\Resource\ResourceStorage;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(UpdateAssembledFileDocumentEventListener::class)]
+#[UsesClass(AfterDocumentAssembledEvent::class)]
+#[UsesClass(Document::class)]
 class UpdateAssembledFileDocumentEventListenerTest extends TestCase
 {
+    /**
+     * Tests that the listener does nothing when the indexer
+     * is not a FileIndexer instance.
+     */
     #[Test]
     public function invokeDoesNothingForNonFileIndexer(): void
     {
@@ -61,6 +68,10 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
         self::assertEmpty($document->getFields());
     }
 
+    /**
+     * Tests that the listener adds file-specific fields (extension,
+     * mimeType, name, size, url) to the document.
+     */
     #[Test]
     public function invokeAddsFileFieldsToDocument(): void
     {
@@ -109,6 +120,10 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
         self::assertSame('fileadmin/test-document.pdf', $document->getFields()['url']);
     }
 
+    /**
+     * Tests that the listener returns early without modifying
+     * the document when the file repository throws an exception.
+     */
     #[Test]
     public function invokeReturnsEarlyWhenFileNotFound(): void
     {
@@ -136,6 +151,10 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
         self::assertEmpty($document->getFields());
     }
 
+    /**
+     * Tests that the listener does not set a content field
+     * for non-PDF files.
+     */
     #[Test]
     public function invokeReturnsNullContentForNonPdfFile(): void
     {

@@ -78,6 +78,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
     // getRecordRootPageId
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that getRecordRootPageId() returns the root page UID
+     * for a record that is a direct child of the root page.
+     */
     #[Test]
     public function getRecordRootPageIdReturnsRootForPageRecord(): void
     {
@@ -90,6 +94,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         self::assertSame(1, $rootPageId);
     }
 
+    /**
+     * Tests that getRecordRootPageId() returns the root page UID
+     * for a deeply nested page by traversing the page tree upward.
+     */
     #[Test]
     public function getRecordRootPageIdReturnsRootForDeepPage(): void
     {
@@ -102,6 +110,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         self::assertSame(1, $rootPageId);
     }
 
+    /**
+     * Tests that getRecordRootPageId() returns the root page UID
+     * for a content element by resolving via its parent page ID.
+     */
     #[Test]
     public function getRecordRootPageIdReturnsRootForContentElement(): void
     {
@@ -115,6 +127,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         self::assertSame(1, $rootPageId);
     }
 
+    /**
+     * Tests that getRecordRootPageId() throws a PageNotFoundException
+     * when the record's parent page does not exist in the database.
+     */
     #[Test]
     public function getRecordRootPageIdThrowsExceptionForOrphanRecord(): void
     {
@@ -127,6 +143,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         );
     }
 
+    /**
+     * Tests that getRecordRootPageId() uses the record UID itself
+     * (not the pid) when the table is 'pages', returning the root page.
+     */
     #[Test]
     public function getRecordRootPageIdUsesRecordUidForPages(): void
     {
@@ -145,6 +165,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
     // createIndexerGenerator
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that createIndexerGenerator() yields an indexer instance
+     * when the root page ID matches an existing indexing service.
+     */
     #[Test]
     public function createIndexerGeneratorYieldsIndexerForMatchingRootPage(): void
     {
@@ -173,6 +197,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         self::assertSame($indexerMock, $yielded[0]);
     }
 
+    /**
+     * Tests that createIndexerGenerator() yields nothing when the
+     * root page ID does not match any configured indexing service.
+     */
     #[Test]
     public function createIndexerGeneratorYieldsNothingForNonMatchingRootPage(): void
     {
@@ -197,6 +225,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         self::assertSame(0, $count);
     }
 
+    /**
+     * Tests that createIndexerGenerator() yields nothing when the
+     * indexer factory returns null for the given table type.
+     */
     #[Test]
     public function createIndexerGeneratorYieldsNothingWhenFactoryReturnsNull(): void
     {
@@ -218,6 +250,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
     // updateRecordInQueue
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that updateRecordInQueue() dequeues and then re-enqueues the
+     * record for all matching indexers on the given root page.
+     */
     #[Test]
     public function updateRecordInQueueDequeuesAndEnqueuesRecord(): void
     {
@@ -244,6 +280,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         $this->subject->updateRecordInQueue(1, 'pages', 2);
     }
 
+    /**
+     * Tests that updateRecordInQueue() does nothing when no indexers
+     * match the given table type (factory returns null).
+     */
     #[Test]
     public function updateRecordInQueueDoesNothingWhenNoIndexersMatch(): void
     {
@@ -261,6 +301,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
     // deleteRecord / deleteRecords
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that deleteRecord() dequeues the record from all matching
+     * indexers and removes it from the search engine index.
+     */
     #[Test]
     public function deleteRecordDequeuesAndRemovesFromSearchEngine(): void
     {
@@ -299,6 +343,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         );
     }
 
+    /**
+     * Tests that deleteRecord() only dequeues the record without removing
+     * it from the search engine when removeFromIndex is false.
+     */
     #[Test]
     public function deleteRecordDequeuesWithoutRemovingFromIndex(): void
     {
@@ -323,6 +371,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         );
     }
 
+    /**
+     * Tests that deleteRecords() dequeues multiple records at once
+     * and removes each one from the search engine index.
+     */
     #[Test]
     public function deleteRecordsDequeuesMultipleAndRemovesFromIndex(): void
     {
@@ -360,6 +412,10 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         );
     }
 
+    /**
+     * Tests that deleteRecord() silently handles the case where the search
+     * engine factory returns null for an unknown engine type.
+     */
     #[Test]
     public function deleteRecordSilentlyHandlesMissingSearchEngine(): void
     {

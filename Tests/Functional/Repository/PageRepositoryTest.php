@@ -43,6 +43,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         $this->subject = new PageRepository($this->getConnectionPool());
     }
 
+    /**
+     * Tests that getRootPageId() returns the root page UID for
+     * a page that is a direct child of the root page.
+     */
     #[Test]
     public function getRootPageIdReturnsRootForDirectChild(): void
     {
@@ -51,6 +55,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, $rootPageId);
     }
 
+    /**
+     * Tests that getRootPageId() returns the root page UID for a
+     * deeply nested page by traversing the page tree upward.
+     */
     #[Test]
     public function getRootPageIdReturnsRootForDeepPage(): void
     {
@@ -59,6 +67,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, $rootPageId);
     }
 
+    /**
+     * Tests that getRootPageId() throws a PageNotFoundException
+     * when the specified page does not exist in the database.
+     */
     #[Test]
     public function getRootPageIdThrowsExceptionForNonExistentPage(): void
     {
@@ -67,6 +79,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         $this->subject->getRootPageId(999);
     }
 
+    /**
+     * Tests that getRootPageId() returns the page's own UID when
+     * the page itself is the root page (pid=0).
+     */
     #[Test]
     public function getRootPageIdReturnsRootPageItself(): void
     {
@@ -75,6 +91,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, $rootPageId);
     }
 
+    /**
+     * Tests that getPageIdsRecursive() returns all sub-pages within
+     * the page tree, excluding recycler pages (doktype=255).
+     */
     #[Test]
     public function getPageIdsRecursiveReturnsAllSubPages(): void
     {
@@ -89,6 +109,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertNotContains(5, $pageIds);
     }
 
+    /**
+     * Tests that getPageIdsRecursive() respects the depth parameter
+     * and only returns pages within one level below the starting pages.
+     */
     #[Test]
     public function getPageIdsRecursiveRespectsDepthOne(): void
     {
@@ -102,6 +126,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertNotContains(3, $pageIds);
     }
 
+    /**
+     * Tests that getPageIdsRecursive() excludes hidden pages from
+     * the result when the excludeHidden parameter is enabled.
+     */
     #[Test]
     public function getPageIdsRecursiveExcludesHiddenPages(): void
     {
@@ -113,6 +141,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertContains(2, $pageIds);
     }
 
+    /**
+     * Tests that getPageIdsRecursive() always excludes recycler
+     * pages (doktype=255) from the result set.
+     */
     #[Test]
     public function getPageIdsRecursiveExcludesRecycler(): void
     {
@@ -122,6 +154,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertNotContains(5, $pageIds);
     }
 
+    /**
+     * Tests that getPageIdsRecursive() returns an empty array
+     * when given an empty array of starting page IDs.
+     */
     #[Test]
     public function getPageIdsRecursiveReturnsEmptyForEmptyInput(): void
     {
@@ -130,6 +166,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame([], $pageIds);
     }
 
+    /**
+     * Tests that getPageIdsRecursive() returns only the input page IDs
+     * without recursion when the depth parameter is zero.
+     */
     #[Test]
     public function getPageIdsRecursiveReturnsInputForDepthZero(): void
     {
@@ -138,6 +178,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame([1, 2], $pageIds);
     }
 
+    /**
+     * Tests that getPageRecord() returns the full record data
+     * including UID and title for an existing page.
+     */
     #[Test]
     public function getPageRecordReturnsRecordData(): void
     {
@@ -148,6 +192,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame('Sub Page', $record['title']);
     }
 
+    /**
+     * Tests that getPageRecord() returns an empty array when the
+     * specified page does not exist in the database.
+     */
     #[Test]
     public function getPageRecordReturnsEmptyForNonExistent(): void
     {
@@ -156,6 +204,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame([], $record);
     }
 
+    /**
+     * Tests that findTitle() returns the title string for an
+     * existing page record identified by its UID.
+     */
     #[Test]
     public function findTitleReturnsPageTitle(): void
     {
@@ -164,6 +216,10 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame('Sub Page', $title);
     }
 
+    /**
+     * Tests that findTitle() returns an empty string when the
+     * specified page does not exist in the database.
+     */
     #[Test]
     public function findTitleReturnsEmptyForNonExistent(): void
     {

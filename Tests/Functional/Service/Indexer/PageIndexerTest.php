@@ -77,6 +77,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
     // enqueueOne
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that enqueueOne() adds a single page record to the indexing
+     * queue with the correct table name, record UID and service UID.
+     */
     #[Test]
     public function enqueueOneAddsPageToQueue(): void
     {
@@ -93,6 +97,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
         self::assertSame(1, (int) $row['service_uid']);
     }
 
+    /**
+     * Tests that enqueueOne() returns zero when the specified page
+     * does not exist in the database.
+     */
     #[Test]
     public function enqueueOneReturnsZeroForNonExistentPage(): void
     {
@@ -103,6 +111,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
         self::assertSame(0, $result);
     }
 
+    /**
+     * Tests that enqueueOne() returns zero for a page with no_search=1,
+     * since such pages are excluded by the PageIndexer constraints.
+     */
     #[Test]
     public function enqueueOneReturnsZeroForNoSearchPage(): void
     {
@@ -114,6 +126,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
         self::assertSame(0, $result);
     }
 
+    /**
+     * Tests that enqueueOne() returns zero for a recycler page
+     * (doktype=255), which is not in the allowed doktype list.
+     */
     #[Test]
     public function enqueueOneReturnsZeroForRecyclerPage(): void
     {
@@ -129,6 +145,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
     // enqueueMultiple / enqueueAll
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that enqueueMultiple() adds multiple page records to
+     * the indexing queue in a single operation.
+     */
     #[Test]
     public function enqueueMultipleAddsMultiplePages(): void
     {
@@ -145,6 +165,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
         self::assertNotFalse($row3);
     }
 
+    /**
+     * Tests that enqueueAll() adds all eligible pages, excluding hidden,
+     * recycler, and no_search pages, to the indexing queue.
+     */
     #[Test]
     public function enqueueAllAddsAllEligiblePages(): void
     {
@@ -161,6 +185,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
     // dequeueOne / dequeueMultiple / dequeueAll
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests that dequeueOne() removes a single page record from
+     * the indexing queue by its record UID.
+     */
     #[Test]
     public function dequeueOneRemovesPageFromQueue(): void
     {
@@ -174,6 +202,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
         self::assertFalse($row);
     }
 
+    /**
+     * Tests that dequeueMultiple() removes only the specified page
+     * records from the queue while leaving others untouched.
+     */
     #[Test]
     public function dequeueMultipleRemovesMultiplePages(): void
     {
@@ -191,6 +223,10 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
         self::assertFalse($row3);
     }
 
+    /**
+     * Tests that dequeueAll() removes all queue items associated with
+     * the indexing service, regardless of individual record UIDs.
+     */
     #[Test]
     public function dequeueAllRemovesAllPagesForService(): void
     {

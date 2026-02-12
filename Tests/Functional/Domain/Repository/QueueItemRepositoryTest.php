@@ -46,6 +46,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         $this->subject = $this->get(QueueItemRepository::class);
     }
 
+    /**
+     * Tests that insert() adds a single record to the queue item table
+     * with the correct table name, record UID and service UID.
+     */
     #[Test]
     public function insertAddsRecordToQueue(): void
     {
@@ -71,6 +75,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(0, (int) $row['priority']);
     }
 
+    /**
+     * Tests that bulkInsert() adds multiple records to the queue
+     * in a single operation with correct field values.
+     */
     #[Test]
     public function bulkInsertAddsMultipleRecords(): void
     {
@@ -112,6 +120,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(3, $count);
     }
 
+    /**
+     * Tests that bulkInsert() returns zero and inserts nothing
+     * when given an empty array of records.
+     */
     #[Test]
     public function bulkInsertReturnsZeroForEmptyArray(): void
     {
@@ -120,6 +132,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(0, $insertedCount);
     }
 
+    /**
+     * Tests that bulkInsert() correctly handles large datasets by
+     * chunking them into multiple insert operations.
+     */
     #[Test]
     public function bulkInsertChunksLargeDatasets(): void
     {
@@ -148,6 +164,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1050, $count);
     }
 
+    /**
+     * Tests that deleteByTableAndRecordUIDs() removes only the specified
+     * records while leaving other records in the queue untouched.
+     */
     #[Test]
     public function deleteByTableAndRecordUIDsRemovesSpecificRecords(): void
     {
@@ -170,6 +190,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(2, (int) $remaining[0]['record_uid']);
     }
 
+    /**
+     * Tests that deleteByTableAndRecordUIDs() removes all records for the
+     * given table when no specific record UIDs are provided.
+     */
     #[Test]
     public function deleteByTableAndRecordUIDsRemovesAllOfTableWhenNoUids(): void
     {
@@ -191,6 +215,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame('tt_content', $remaining[0]['table_name']);
     }
 
+    /**
+     * Tests that deleteByIndexingService() removes all queue records
+     * associated with the given indexing service UID.
+     */
     #[Test]
     public function deleteByIndexingServiceRemovesAllServiceRecords(): void
     {
@@ -216,6 +244,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(2, (int) $remaining[0]['service_uid']);
     }
 
+    /**
+     * Tests that getStatistics() returns the correct record counts
+     * grouped by table name for all items in the queue.
+     */
     #[Test]
     public function getStatisticsReturnsCorrectCounts(): void
     {
@@ -239,6 +271,10 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, $byTable['tt_content']);
     }
 
+    /**
+     * Tests that deleteByTableAndRecordUIDs() respects the optional service
+     * UID filter and only removes records matching that service.
+     */
     #[Test]
     public function deleteByTableAndRecordUIDsRespectsServiceUidFilter(): void
     {
