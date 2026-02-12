@@ -82,15 +82,9 @@ readonly class UpdateAssembledContentElementDocumentEventListener
 
         $document         = $event->getDocument();
         $record           = $event->getRecord();
-        $pageId           = (int)($record['pid'] ?? 0);
-        $contentElementId = (int)($record['uid'] ?? 0);
-
-        // Skip if page or element ID is invalid
-        if ($pageId === 0 || $contentElementId === 0) {
-            return;
-        }
-
+        $pageId           = $record['pid'];
         $site             = $this->getSite($pageId);
+        $contentElementId = $record['uid'];
 
         // Set content element related fields
         $document->setField(

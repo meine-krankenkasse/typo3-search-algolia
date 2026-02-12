@@ -215,8 +215,8 @@ readonly class UpdateAssembledFileDocumentEventListener
             /** @var string|false $content */
             $content = mb_convert_encoding(
                 $content,
-                mb_detect_encoding($content),
-                'UTF-8'
+                'UTF-8',
+                mb_detect_encoding($content)
             );
         }
 
