@@ -157,7 +157,7 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
             )
         );
 
-        if ($record['SYS_LASTCHANGED'] !== 0) {
+        if (($record['SYS_LASTCHANGED'] ?? 0) !== 0) {
             $document->setField(
                 'changed',
                 $record['SYS_LASTCHANGED']
