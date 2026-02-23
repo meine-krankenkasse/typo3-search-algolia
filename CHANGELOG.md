@@ -1,3 +1,13 @@
+# 1.3.1
+
+## MISC
+
+- f333b2a WEB-1410: Sanitize invalid UTF-8 in PDF content
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.3.0
 
 ## MISC
