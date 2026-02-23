@@ -319,7 +319,7 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
             }
         }
 
-        $content = ContentExtractor::cleanHtml($content);
+        $content = ContentExtractor::sanitizeContent($content);
 
         return $content !== '' ? $content : null;
     }

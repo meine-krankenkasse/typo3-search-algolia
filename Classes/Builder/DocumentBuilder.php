@@ -259,7 +259,7 @@ class DocumentBuilder
 
             $this->document->setField(
                 $fieldMapping[$recordFieldName],
-                ContentExtractor::cleanHtml($stringValue)
+                ContentExtractor::sanitizeContent($stringValue)
             );
         }
     }

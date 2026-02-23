@@ -194,7 +194,7 @@ readonly class UpdateAssembledFileDocumentEventListener
         // Parse the PDF file content
         try {
             $pdf     = $parser->parseContent($file->getContents());
-            $content = ContentExtractor::cleanHtml($pdf->getText());
+            $content = ContentExtractor::sanitizeContent($pdf->getText());
         } catch (Exception $exception) {
             $this->logger->warning(
                 'Failed to extract PDF content for indexing',
@@ -206,19 +206,6 @@ readonly class UpdateAssembledFileDocumentEventListener
             );
 
             return null;
-        }
-
-        // Ensure valid UTF-8 encoding to prevent "json_encode error: Malformed UTF-8 characters,
-        // possibly incorrectly encoded". PDF content may use various encodings depending on the
-        // document source.
-        $detectedEncoding = mb_detect_encoding($content);
-
-        if (($detectedEncoding !== false) && ($detectedEncoding !== 'UTF-8')) {
-            $converted = mb_convert_encoding($content, 'UTF-8', $detectedEncoding);
-
-            if ($converted !== false) {
-                $content = $converted;
-            }
         }
 
         return $content !== '' ? $content : null;

@@ -35,13 +35,14 @@ class ContentExtractor
      * 4. Stripping all HTML tags
      * 5. Converting HTML entities to their corresponding characters
      * 6. Normalizing whitespace (replacing multiple spaces, line breaks, tabs with a single space)
-     * 7. Trimming leading and trailing whitespace
+     * 7. Sanitizing invalid UTF-8 byte sequences to prevent json_encode errors
+     * 8. Trimming leading and trailing whitespace
      *
      * @param string $content The HTML content to be cleaned
      *
      * @return string The cleaned plain text content suitable for indexing
      */
-    public static function cleanHtml(string $content): string
+    public static function sanitizeContent(string $content): string
     {
         // Remove JavaScript and internal CSS styles
         $content = (string) preg_replace(
@@ -64,6 +65,11 @@ class ContentExtractor
 
         // Replace multiple spaces, \r, \n and \t with a single space
         $content = (string) preg_replace('/\s+/', ' ', $content);
+
+        // Ensure valid UTF-8 encoding by stripping invalid byte sequences. This prevents
+        // "json_encode error: Malformed UTF-8 characters, possibly incorrectly encoded"
+        // exceptions, e.g. when indexing PDF content extracted by smalot/pdfparser.
+        $content = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
 
         // Remove leading and trailing spaces
         return trim($content);
