@@ -59,6 +59,14 @@
             "typo3/class-alias-loader": true,
             "typo3/cms-composer-installers": true,
             "a9f/fractor-extension-installer": true
+        },
+        "policy": {
+            "advisories": {
+                "ignore": {
+                    "typo3/cms-core": "TYPO3 v12 is EOL; every published 12.4.x release is flagged. Extension is pinned to v12.4 until ported to v13/v14 (WEB-1469).",
+                    "typo3/cms-backend": "TYPO3 v12 is EOL; every published 12.4.x release is flagged. Extension is pinned to v12.4 until ported to v13/v14 (WEB-1469)."
+                }
+            }
         }
     },
     "extra": {
