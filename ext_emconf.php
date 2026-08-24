@@ -7,8 +7,6 @@
  * LICENSE file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 $EM_CONF['typo3_search_algolia'] = [
     'title'          => 'Meine Krankenkasse: TYPO3 Search Algolia',
     'description'    => 'A TYPO3 extension that integrates Algolia search into your website by indexing TYPO3 content for lightning-fast, relevant search results.',

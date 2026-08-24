@@ -3,6 +3,7 @@
     "type": "typo3-cms-extension",
     "description": "A TYPO3 extension that integrates Algolia search into your website by indexing TYPO3 content for lightning-fast, relevant search results.",
     "license": "MIT",
+    "homepage": "https://github.com/meine-krankenkasse/typo3-search-algolia",
     "keywords": [
         "TYPO3",
         "extension",
@@ -16,6 +17,10 @@
             "homepage": "https://www.netresearch.de/"
         }
     ],
+    "support": {
+        "issues": "https://github.com/meine-krankenkasse/typo3-search-algolia/issues",
+        "source": "https://github.com/meine-krankenkasse/typo3-search-algolia"
+    },
     "require": {
         "php": ">=8.3.0 <8.5.0",
         "typo3/cms-core": "^12.4",
