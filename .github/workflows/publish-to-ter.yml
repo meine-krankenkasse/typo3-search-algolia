@@ -18,15 +18,16 @@ jobs:
 
             -   name: Validate tag format
                 run: |
-                    if ! [[ "${GITHUB_REF_NAME}" =~ ^v[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-                      echo "::error::Invalid tag format '${GITHUB_REF_NAME}'. Expected format: v1.2.3"
+                    # This repo's existing tags (1.0.0 .. 1.3.1) have no "v" prefix - match that convention
+                    if ! [[ "${GITHUB_REF_NAME}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+                      echo "::error::Invalid tag format '${GITHUB_REF_NAME}'. Expected format: 1.2.3"
                       exit 1
                     fi
 
             -   name: Extract version
                 id: version
                 run: |
-                    VERSION="${GITHUB_REF_NAME#v}"
+                    VERSION="${GITHUB_REF_NAME}"
                     echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
                     echo "Extracted version: ${VERSION}"
 
