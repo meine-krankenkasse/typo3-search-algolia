@@ -3,6 +3,12 @@ name: Publish new extension version to TER
 on:
     release:
         types: [ published ]
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Git tag to (re)publish, e.g. 1.3.1 (must already exist)'
+                required: true
+                type: string
 
 permissions: {}
 
@@ -24,6 +30,7 @@ jobs:
                 uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     persist-credentials: false
+                    ref: ${{ github.event.inputs.tag || github.ref }}
 
             -   name: Resolve extension key from composer.json
                 id: extkey
@@ -36,20 +43,22 @@ jobs:
                     echo "key=${KEY}" >> "$GITHUB_OUTPUT"
                     echo "Extension key: ${KEY}"
 
-            -   name: Validate tag format
+            -   name: Resolve target version
+                id: version
+                env:
+                    DISPATCH_TAG: ${{ github.event.inputs.tag }}
                 run: |
-                    # This repo's existing tags (1.0.0 .. 1.3.1) have no "v" prefix - match that convention
-                    if ! [[ "${GITHUB_REF_NAME}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-                      echo "::error::Invalid tag format '${GITHUB_REF_NAME}'. Expected format: 1.2.3"
+                    # This repo's existing tags (1.0.0 .. 1.3.1) have no "v" prefix - match that convention.
+                    # DISPATCH_TAG is set on a manual workflow_dispatch re-run (GITHUB_REF_NAME would be the
+                    # branch the workflow was dispatched against, not the tag to publish); empty on a normal
+                    # release-published run, where GITHUB_REF_NAME already is the tag name.
+                    VERSION="${DISPATCH_TAG:-${GITHUB_REF_NAME}}"
+                    if ! [[ "${VERSION}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+                      echo "::error::Invalid tag format '${VERSION}'. Expected format: 1.2.3"
                       exit 1
                     fi
-
-            -   name: Extract version
-                id: version
-                run: |
-                    VERSION="${GITHUB_REF_NAME}"
                     echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-                    echo "Extracted version: ${VERSION}"
+                    echo "Target version: ${VERSION}"
 
             -   name: Validate ext_emconf.php version
                 env:
@@ -69,26 +78,62 @@ jobs:
                     RELEASE_NAME: ${{ github.event.release.name }}
                     RELEASE_URL: ${{ github.event.release.html_url }}
                     VERSION: ${{ steps.version.outputs.version }}
+                    SERVER_URL: ${{ github.server_url }}
+                    REPO: ${{ github.repository }}
                 run: |
-                    if [[ -n "${RELEASE_BODY}" ]]; then
-                      # Character-safe truncation - `head -c` splits multi-byte UTF-8
-                      # sequences (umlauts, em-dashes, emoji) mid-codepoint
-                      COMMENT=$(printf '%s' "${RELEASE_BODY}" | python3 -c 'import sys; sys.stdout.write(sys.stdin.read()[:1000])')
-                    elif [[ -n "${RELEASE_NAME}" ]]; then
+                    # 0. Prefer the CHANGELOG.md section for this version - curated,
+                    # committed, and present even on a workflow_dispatch re-run (which
+                    # has no github.event.release.* context at all). This repo's
+                    # CHANGELOG.md uses a single "# 1.2.3" heading per version (no
+                    # brackets, no date); "## MISC"/"## Contributors" are sub-sections
+                    # within it, not version boundaries, so only a bare "# " prefix
+                    # (not "## ") marks the next version and ends the section.
+                    COMMENT=""
+                    if [[ -f CHANGELOG.md ]]; then
+                      COMMENT=$(awk -v ver="${VERSION}" '
+                        /^# / {
+                          if (found) { exit }
+                          line = $0
+                          sub(/^# */, "", line)
+                          if (line == ver) { found = 1 }
+                          next
+                        }
+                        found { print }
+                      ' CHANGELOG.md | sed -e '/./,$!d')
+                    fi
+
+                    # 1. Otherwise the GitHub release body (empty on workflow_dispatch)
+                    if [[ -z "${COMMENT// }" ]] && [[ -n "${RELEASE_BODY}" ]]; then
+                      COMMENT="${RELEASE_BODY}"
+                    fi
+
+                    # 2. Otherwise the release title
+                    if [[ -z "${COMMENT// }" ]] && [[ -n "${RELEASE_NAME}" ]]; then
                       COMMENT="${RELEASE_NAME}"
-                    else
+                    fi
+
+                    # 3. Bare fallback
+                    if [[ -z "${COMMENT// }" ]]; then
                       COMMENT="Release ${VERSION}"
                     fi
 
+                    # Character-safe truncation - `head -c` splits multi-byte UTF-8
+                    # sequences (umlauts, em-dashes, emoji) mid-codepoint
+                    COMMENT=$(printf '%s' "${COMMENT}" | python3 -c 'import sys; sys.stdout.write(sys.stdin.read()[:1000])')
+
                     # Strip characters not supported in TER XML export
                     COMMENT=$(printf '%s' "${COMMENT}" | sed 's/[#*+=~^|\\<>]//g')
+
+                    if [[ -z "${RELEASE_URL}" ]]; then
+                      RELEASE_URL="${SERVER_URL}/${REPO}/releases/tag/${VERSION}"
+                    fi
 
                     COMMENT="${COMMENT}
 
                     Details: ${RELEASE_URL}"
 
                     # Randomized delimiter - a static "EOF" could be smuggled into
-                    # $GITHUB_OUTPUT by a release body that happens to contain that
+                    # $GITHUB_OUTPUT by a comment source that happens to contain that
                     # exact line, ending the heredoc early
                     DELIMITER="ghadelim_$(openssl rand -hex 8)"
                     {
@@ -102,7 +147,19 @@ jobs:
                 env:
                     KEY: ${{ steps.extkey.outputs.key }}
                     VERSION: ${{ steps.version.outputs.version }}
+                    EVENT_NAME: ${{ github.event_name }}
                 run: |
+                    if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+                      # The whole point of a manual re-run is usually to correct
+                      # something (e.g. the upload comment) on an already-published
+                      # version. TER accepts a re-upload of the same version number
+                      # and just overwrites the stored comment, so forcing past the
+                      # precheck here is safe, not a duplicate-publish risk.
+                      echo "already-published=false" >> "$GITHUB_OUTPUT"
+                      echo "Manual re-run - publishing ${VERSION} regardless of TER state"
+                      exit 0
+                    fi
+
                     URL="https://extensions.typo3.org/extension/download/${KEY}/${VERSION}/zip"
                     STATUS=$(curl -sS -o /dev/null -w '%{http_code}' -I --max-time 15 "${URL}" || echo "000")
                     if [[ "${STATUS}" == "200" ]]; then
