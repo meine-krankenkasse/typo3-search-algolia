@@ -18,6 +18,14 @@ jobs:
             -   name: Checkout repository
                 uses: actions/checkout@v6
 
+            -   name: TER compatibility check
+                run: |
+                    if grep -qE "^[[:space:]]*declare\(strict_types" ext_emconf.php; then
+                      echo "::error file=ext_emconf.php::ext_emconf.php contains strict_types declaration which breaks TER publishing"
+                      exit 1
+                    fi
+                    echo "TER compatibility check passed"
+
             -   name: Setup PHP
                 uses: shivammathur/setup-php@v2
                 with:
