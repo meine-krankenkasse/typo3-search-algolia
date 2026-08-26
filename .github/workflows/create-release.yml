@@ -1,0 +1,88 @@
+name: Create GitHub Release on tag push
+
+on:
+    push:
+        tags:
+            - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions: {}
+
+jobs:
+    release:
+        name: Create GitHub Release
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        permissions:
+            contents: write
+
+        steps:
+            -   name: Harden Runner
+                uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+                with:
+                    egress-policy: audit
+
+            -   name: Checkout repository
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+
+            -   name: Check if a release already exists for this tag
+                id: precheck
+                env:
+                    GH_TOKEN: ${{ github.token }}
+                    TAG: ${{ github.ref_name }}
+                run: |
+                    if gh release view "${TAG}" >/dev/null 2>&1; then
+                      echo "exists=true" >> "$GITHUB_OUTPUT"
+                      echo "Release for ${TAG} already exists - skipping"
+                    else
+                      echo "exists=false" >> "$GITHUB_OUTPUT"
+                    fi
+
+            -   name: Extract release notes from CHANGELOG.md
+                if: steps.precheck.outputs.exists != 'true'
+                id: notes
+                env:
+                    TAG: ${{ github.ref_name }}
+                run: |
+                    # Same "# 1.2.3" heading convention as publish-to-ter.yml's
+                    # comment extraction - a single "# " prefix marks a version,
+                    # "## MISC"/"## Contributors" are sub-sections within it.
+                    # Every line is stripped of a trailing \r first, so a
+                    # CRLF-saved CHANGELOG.md still matches the heading.
+                    NOTES=""
+                    if [[ -f CHANGELOG.md ]]; then
+                      NOTES=$(awk -v ver="${TAG}" '
+                        { sub(/\r$/, "") }
+                        /^# / {
+                          if (found) { exit }
+                          line = $0
+                          sub(/^# */, "", line)
+                          if (line == ver) { found = 1 }
+                          next
+                        }
+                        found { print }
+                      ' CHANGELOG.md | sed -e '/./,$!d')
+                    fi
+
+                    if [[ -z "${NOTES// }" ]]; then
+                      NOTES="Release ${TAG}"
+                    fi
+
+                    # Randomized delimiter - a static "EOF" could be smuggled
+                    # into $GITHUB_OUTPUT by a CHANGELOG section that happens
+                    # to contain that exact line, ending the heredoc early
+                    DELIMITER="ghadelim_$(openssl rand -hex 8)"
+                    {
+                      echo "notes<<${DELIMITER}"
+                      echo "${NOTES}"
+                      echo "${DELIMITER}"
+                    } >> "$GITHUB_OUTPUT"
+
+            -   name: Create GitHub Release
+                if: steps.precheck.outputs.exists != 'true'
+                env:
+                    GH_TOKEN: ${{ github.token }}
+                    TAG: ${{ github.ref_name }}
+                    NOTES: ${{ steps.notes.outputs.notes }}
+                run: gh release create "${TAG}" --title "${TAG}" --notes "${NOTES}"
