@@ -1,3 +1,13 @@
+# 1.3.3
+
+## MISC
+
+- WEB-1469: Update author/company metadata to mkk – meine krankenkasse
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.3.2
 
 ## MISC
