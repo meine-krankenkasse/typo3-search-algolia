@@ -1,3 +1,13 @@
+# 1.3.4
+
+## MISC
+
+- WEB-1469: Update author contact address to digital@meine-krankenkasse.de
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.3.3
 
 ## MISC
