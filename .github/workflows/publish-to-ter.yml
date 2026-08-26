@@ -4,17 +4,37 @@ on:
     release:
         types: [ published ]
 
+permissions: {}
+
 jobs:
     publish:
         name: Publish new version to TER
         runs-on: ubuntu-latest
-        env:
-            TYPO3_EXTENSION_KEY: ${{ secrets.TYPO3_EXTENSION_KEY }}
-            TYPO3_API_TOKEN: ${{ secrets.TYPO3_TER_ACCESS_TOKEN }}
+        timeout-minutes: 20
+        permissions:
+            contents: read
 
         steps:
+            -   name: Harden Runner
+                uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+                with:
+                    egress-policy: audit
+
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+
+            -   name: Resolve extension key from composer.json
+                id: extkey
+                run: |
+                    KEY=$(jq -r '.extra["typo3/cms"]["extension-key"] // empty' composer.json)
+                    if [[ -z "${KEY}" ]]; then
+                      echo "::error file=composer.json::Missing extension-key in extra.typo3/cms"
+                      exit 1
+                    fi
+                    echo "key=${KEY}" >> "$GITHUB_OUTPUT"
+                    echo "Extension key: ${KEY}"
 
             -   name: Validate tag format
                 run: |
@@ -48,30 +68,53 @@ jobs:
                     RELEASE_BODY: ${{ github.event.release.body }}
                     RELEASE_NAME: ${{ github.event.release.name }}
                     RELEASE_URL: ${{ github.event.release.html_url }}
+                    VERSION: ${{ steps.version.outputs.version }}
                 run: |
                     if [[ -n "${RELEASE_BODY}" ]]; then
-                      COMMENT=$(echo "${RELEASE_BODY}" | head -c 1000)
+                      # Character-safe truncation - `head -c` splits multi-byte UTF-8
+                      # sequences (umlauts, em-dashes, emoji) mid-codepoint
+                      COMMENT=$(printf '%s' "${RELEASE_BODY}" | python3 -c 'import sys; sys.stdout.write(sys.stdin.read()[:1000])')
                     elif [[ -n "${RELEASE_NAME}" ]]; then
                       COMMENT="${RELEASE_NAME}"
                     else
-                      COMMENT="Release ${{ steps.version.outputs.version }}"
+                      COMMENT="Release ${VERSION}"
                     fi
 
                     # Strip characters not supported in TER XML export
-                    COMMENT=$(echo "${COMMENT}" | sed 's/[#*+=~^|\\<>]//g')
+                    COMMENT=$(printf '%s' "${COMMENT}" | sed 's/[#*+=~^|\\<>]//g')
 
                     COMMENT="${COMMENT}
 
                     Details: ${RELEASE_URL}"
 
+                    # Randomized delimiter - a static "EOF" could be smuggled into
+                    # $GITHUB_OUTPUT by a release body that happens to contain that
+                    # exact line, ending the heredoc early
+                    DELIMITER="ghadelim_$(openssl rand -hex 8)"
                     {
-                      echo "comment<<EOF"
+                      echo "comment<<${DELIMITER}"
                       echo "${COMMENT}"
-                      echo "EOF"
+                      echo "${DELIMITER}"
                     } >> "$GITHUB_OUTPUT"
 
+            -   name: Check if version is already on TER
+                id: precheck
+                env:
+                    KEY: ${{ steps.extkey.outputs.key }}
+                    VERSION: ${{ steps.version.outputs.version }}
+                run: |
+                    URL="https://extensions.typo3.org/extension/download/${KEY}/${VERSION}/zip"
+                    STATUS=$(curl -sS -o /dev/null -w '%{http_code}' -I --max-time 15 "${URL}" || echo "000")
+                    if [[ "${STATUS}" == "200" ]]; then
+                      echo "already-published=true" >> "$GITHUB_OUTPUT"
+                      echo "Version ${VERSION} is already on TER - skipping publish"
+                    else
+                      echo "already-published=false" >> "$GITHUB_OUTPUT"
+                      echo "TER precheck status for ${VERSION}: ${STATUS} (will publish)"
+                    fi
+
             -   name: Setup PHP
-                uses: shivammathur/setup-php@v2
+                uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
                 with:
                     php-version: '8.3'
                     extensions: intl, mbstring, json, zip, curl
@@ -81,17 +124,55 @@ jobs:
                 run: composer global require typo3/tailor --prefer-dist --no-progress
 
             -   name: Publish to TER
+                if: steps.precheck.outputs.already-published != 'true'
+                env:
+                    EXTENSION_KEY: ${{ steps.extkey.outputs.key }}
+                    TYPO3_API_TOKEN: ${{ secrets.TYPO3_TER_ACCESS_TOKEN }}
+                    VERSION: ${{ steps.version.outputs.version }}
+                    COMMENT: ${{ steps.comment.outputs.comment }}
                 run: |
                     TAILOR="$(composer global config bin-dir --absolute)/tailor"
-                    "${TAILOR}" set-version "${{ steps.version.outputs.version }}"
-                    "${TAILOR}" ter:publish --comment "${{ steps.comment.outputs.comment }}" "${{ steps.version.outputs.version }}"
+                    "${TAILOR}" ter:publish --comment="${COMMENT}" "${VERSION}" "${EXTENSION_KEY}"
+
+            -   name: Verify TER serves the version
+                env:
+                    KEY: ${{ steps.extkey.outputs.key }}
+                    VERSION: ${{ steps.version.outputs.version }}
+                run: |
+                    URL="https://extensions.typo3.org/extension/download/${KEY}/${VERSION}/zip"
+                    TIMEOUT_MINUTES=10
+                    POLL_INTERVAL=30
+                    DEADLINE=$(( $(date +%s) + TIMEOUT_MINUTES * 60 ))
+                    ATTEMPT=0
+                    while true; do
+                      ATTEMPT=$((ATTEMPT + 1))
+                      STATUS=$(curl -sS -o /dev/null -w '%{http_code}' -I --max-time 15 "${URL}" || echo "000")
+                      if [[ "${STATUS}" == "200" ]]; then
+                        echo "TER serves ${VERSION} (attempt ${ATTEMPT})"
+                        exit 0
+                      fi
+                      if [[ $(date +%s) -ge ${DEADLINE} ]]; then
+                        echo "::error::Timed out waiting for TER to serve ${VERSION} (last status: ${STATUS})"
+                        exit 1
+                      fi
+                      echo "Attempt ${ATTEMPT}: status ${STATUS}, retrying in ${POLL_INTERVAL}s"
+                      sleep "${POLL_INTERVAL}"
+                    done
 
             -   name: Update TER metadata
+                env:
+                    KEY: ${{ steps.extkey.outputs.key }}
+                    TYPO3_API_TOKEN: ${{ secrets.TYPO3_TER_ACCESS_TOKEN }}
                 run: |
                     TAILOR="$(composer global config bin-dir --absolute)/tailor"
+                    # --manual intentionally points to GitHub, not left empty: this
+                    # extension's Documentation/ has no guides.xml/RST, so
+                    # docs.typo3.org never renders it and the auto-link would 404
+                    # (same situation as netresearch/t3x-universal-messenger's
+                    # skip-docs flag).
                     "${TAILOR}" ter:update \
                       --composer="meine-krankenkasse/typo3-search-algolia" \
                       --manual="https://github.com/meine-krankenkasse/typo3-search-algolia" \
                       --issues="https://github.com/meine-krankenkasse/typo3-search-algolia/issues" \
                       --repository="https://github.com/meine-krankenkasse/typo3-search-algolia" \
-                      "${TYPO3_EXTENSION_KEY}"
+                      "${KEY}"
