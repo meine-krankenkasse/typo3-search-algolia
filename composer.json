@@ -2,7 +2,7 @@
     "name": "meine-krankenkasse/typo3-search-algolia",
     "type": "typo3-cms-extension",
     "description": "A TYPO3 extension that integrates Algolia search into your website by indexing TYPO3 content for lightning-fast, relevant search results.",
-    "license": "MIT",
+    "license": "GPL-3.0-or-later",
     "homepage": "https://github.com/meine-krankenkasse/typo3-search-algolia",
     "keywords": [
         "TYPO3",
