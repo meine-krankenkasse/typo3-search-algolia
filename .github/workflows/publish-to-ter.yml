@@ -1,6 +1,19 @@
 name: Publish new extension version to TER
 
 on:
+    # push: tags is the primary trigger. create-release.yml creates the
+    # GitHub Release using the default GITHUB_TOKEN, and GitHub does not
+    # fire *any* downstream workflow triggers (including release:
+    # published) for events caused by that token - only workflow_dispatch
+    # and repository_dispatch are exempt from that restriction. See:
+    # https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
+    # release: published is kept as a secondary trigger for the case where
+    # someone manually creates/publishes a release via the UI for a tag
+    # that was never auto-published - the idempotency precheck below makes
+    # having both triggers active safe (a re-publish attempt is skipped).
+    push:
+        tags:
+            - '[0-9]+.[0-9]+.[0-9]+'
     release:
         types: [ published ]
     workflow_dispatch:
