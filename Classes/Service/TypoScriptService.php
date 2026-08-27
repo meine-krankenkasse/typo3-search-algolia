@@ -12,11 +12,11 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\Exception\CliFallbackTypoScriptUnreadableException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use Override;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use RuntimeException;
 use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -26,6 +26,8 @@ use TYPO3\CMS\Extbase\Configuration\Exception\NoServerRequestGivenException;
 use function file_get_contents;
 use function is_array;
 use function is_string;
+use function restore_error_handler;
+use function set_error_handler;
 
 /**
  * Service for accessing TypoScript configuration values.
@@ -141,12 +143,19 @@ final class TypoScriptService implements TypoScriptServiceInterface, LoggerAware
         );
 
         // The read failure is deliberately checked and reported via the exception
-        // below, so PHP's own low-level warning for it is suppressed here to avoid
-        // reporting the same single failure twice.
-        $rawTypoScript = @file_get_contents($setupPath);
+        // below, so PHP's own low-level warning for it is suppressed here (via a
+        // scoped error handler, not the `@` operator) to avoid reporting the same
+        // single failure twice.
+        set_error_handler(static fn (): bool => true);
+
+        try {
+            $rawTypoScript = file_get_contents($setupPath);
+        } finally {
+            restore_error_handler();
+        }
 
         if ($rawTypoScript === false) {
-            throw new RuntimeException(
+            throw new CliFallbackTypoScriptUnreadableException(
                 'Unable to read the bundled TypoScript setup at "' . $setupPath . '".'
             );
         }

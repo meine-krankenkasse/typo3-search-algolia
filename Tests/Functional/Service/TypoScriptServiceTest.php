@@ -11,12 +11,11 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Service;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Exception\CliFallbackTypoScriptUnreadableException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\Attributes\WithoutErrorHandler;
-use RuntimeException;
 use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
@@ -97,8 +96,9 @@ final class TypoScriptServiceTest extends AbstractFunctionalTestCase
      * Proven behaviourally (not via reflection into private state): the
      * fixture file is deleted between the two calls. If the fallback
      * re-parsed on the second call, it would throw (a missing file makes
-     * file_get_contents() return false, which raises a RuntimeException,
-     * see getTypoScriptConfigurationThrowsWhenTheFallbackSetupIsUnreadableOnFirstCall()
+     * file_get_contents() return false, which raises a
+     * CliFallbackTypoScriptUnreadableException, see
+     * getTypoScriptConfigurationThrowsWhenTheFallbackSetupIsUnreadableOnFirstCall()
      * below). A passing second call therefore proves the result came from
      * the memoized cache, not a fresh parse.
      */
@@ -127,25 +127,25 @@ final class TypoScriptServiceTest extends AbstractFunctionalTestCase
     }
 
     /**
-     * Tests that getTypoScriptConfiguration() throws a RuntimeException, rather
-     * than silently degrading to an empty configuration, when the CLI fallback's
-     * setup file cannot be read on the very first call (before any memoization
-     * has happened).
+     * Tests that getTypoScriptConfiguration() throws a
+     * CliFallbackTypoScriptUnreadableException, rather than silently degrading
+     * to an empty configuration, when the CLI fallback's setup file cannot be
+     * read on the very first call (before any memoization has happened).
      *
-     * #[WithoutErrorHandler] is required: PHPUnit's own error handler flags any
-     * PHP-level warning as risky regardless of the @-suppression on the SUT's
-     * file_get_contents() call (that suppression only works against PHP's
-     * built-in handler, which is what this attribute falls back to).
+     * No #[WithoutErrorHandler] needed here: the SUT suppresses the underlying
+     * file_get_contents() warning via its own scoped set_error_handler()/
+     * restore_error_handler() pair (see TypoScriptService::getCliFallbackTypoScript()),
+     * which fully intercepts the warning before PHPUnit's own error handler
+     * ever sees it, unlike a bare @-suppression.
      */
     #[Test]
-    #[WithoutErrorHandler]
     public function getTypoScriptConfigurationThrowsWhenTheFallbackSetupIsUnreadableOnFirstCall(): void
     {
         $subject = $this->createSubjectWithFallbackPath(
             sys_get_temp_dir() . '/typo3-search-algolia-test-does-not-exist.typoscript'
         );
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(CliFallbackTypoScriptUnreadableException::class);
 
         $subject->getFieldMappingByType('pages');
     }
