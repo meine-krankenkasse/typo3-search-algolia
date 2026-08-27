@@ -70,7 +70,7 @@ class FileIndexerTest extends TestCase
     private function createTypoScriptService(): TypoScriptService
     {
         return new TypoScriptService(
-            $this->createMock(ConfigurationManagerInterface::class),
+            self::createStub(ConfigurationManagerInterface::class),
             new TypoScriptStringFactory(
                 self::createStub(ContainerInterface::class),
                 self::createStub(TokenizerInterface::class),

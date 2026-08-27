@@ -61,7 +61,7 @@ class FileEligibilityTraitTest extends TestCase
      */
     private function registerMetaDataAspectMock(array $metaData): void
     {
-        $metaDataMock = $this->createMock(MetaDataAspect::class);
+        $metaDataMock = self::createStub(MetaDataAspect::class);
         $metaDataMock
             ->method('get')
             ->willReturn($metaData);
@@ -76,7 +76,7 @@ class FileEligibilityTraitTest extends TestCase
      */
     private function stubCachedMetaData(MockObject&File $fileMock, array $metaData): void
     {
-        $metaDataMock = $this->createMock(MetaDataAspect::class);
+        $metaDataMock = self::createStub(MetaDataAspect::class);
         $metaDataMock
             ->method('get')
             ->willReturn($metaData);
