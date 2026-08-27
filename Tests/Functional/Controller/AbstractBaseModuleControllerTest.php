@@ -19,10 +19,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\ExtbaseRequestParameters;
 use TYPO3\CMS\Extbase\Mvc\RequestInterface;
 use TYPO3Fluid\Fluid\View\Exception\InvalidTemplateResourceException;
@@ -30,14 +28,25 @@ use TYPO3Fluid\Fluid\View\Exception\InvalidTemplateResourceException;
 /**
  * Functional tests for AbstractBaseModuleController.
  *
- * Covers the errorAction() controller-name resolution fixed in 37992fc, found
- * only by actually loading the extension into a real running TYPO3 13.4.34
- * instance: the concrete controller's own template ("QueueModule/Error"), not
- * this abstract base class's name, must be resolved from the request. As a
- * functional test, this resolves a real ModuleTemplate/Fluid view through the
- * real DI container instead of mocking it (ModuleTemplate is a final TYPO3
- * class and cannot be mocked at all - and mocking it was exactly what let the
- * original bug ship unnoticed, per the fix commit's own message).
+ * As functional tests, these resolve a real ModuleTemplate/Fluid view through
+ * the real DI container instead of mocking it (ModuleTemplate is a final
+ * TYPO3 class and cannot be mocked at all - and mocking it was exactly what
+ * let the original bug in 37992fc ship unnoticed, per that fix commit's own
+ * message).
+ *
+ * errorActionResolvesTheRequestedControllerNameIntoTheTemplatePath() is the
+ * actual regression proof for 37992fc: it names a controller whose Error
+ * template does not exist and asserts the resulting exception names exactly
+ * that controller, proving the request's controller name (not the abstract
+ * base class's own name) drives template resolution.
+ * errorActionRendersTheConcreteControllersOwnErrorTemplate() is a
+ * complementary smoke test that the real, shipped QueueModule/Error.html
+ * template resolves and renders without error - it alone does not
+ * discriminate the bug, since AdministrationModule/Error.html and
+ * QueueModule/Error.html are byte-identical and either would render
+ * successfully.
+ * errorActionFallsBackToAbstractBaseModuleErrorTemplateWithoutExtbaseAttribute()
+ * covers the other branch (no ExtbaseRequestParameters attribute at all).
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -55,17 +64,13 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
         // which a plain functional test bootstrap does not populate on its own.
         $GLOBALS['LANG'] = $this->get(LanguageServiceFactory::class)->create('default');
 
-        // ModuleTemplate's doc header also reads $GLOBALS['BE_USER'] (via
-        // getModuleData(), which needs an initialized user session), again not
-        // set up by a plain functional test bootstrap.
+        // ModuleTemplate::prepareRender() also reads $GLOBALS['BE_USER'] (via
+        // BackendUtility::getUpdateSignalDetails()), which needs an
+        // authenticated user session, again not set up by a plain functional
+        // test bootstrap.
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/be_users.csv');
 
-        $backendUser = GeneralUtility::makeInstance(BackendUserAuthentication::class);
-        $backendUser->createUserSession(
-            $this->getBackendUserRecordFromDatabase(1) ?? []
-        );
-
-        $GLOBALS['BE_USER'] = $backendUser;
+        $this->setUpBackendUser(1);
     }
 
     private function createSubject(): AbstractBaseModuleControllerTestSubject
@@ -88,7 +93,7 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
             'packageName' => 'meine-krankenkasse/typo3-search-algolia',
         ]);
 
-        $requestMock = self::createMock(RequestInterface::class);
+        $requestMock = self::createStub(RequestInterface::class);
         $requestMock
             ->method('getAttribute')
             ->willReturnMap([
@@ -106,10 +111,44 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
     }
 
     /**
-     * Tests that errorAction() renders the concrete controller's own error
-     * template (Resources/Private/Templates/QueueModule/Error.html) when the
-     * request carries an ExtbaseRequestParameters attribute naming that
-     * controller, resolved through a real Fluid view.
+     * Tests that errorAction() resolves the template name from the request's
+     * ExtbaseRequestParameters controller name, not from this abstract base
+     * class's own name ("AbstractBaseModule", the original bug's hardcoded
+     * value). Uses a controller name with no matching Error template on disk
+     * so the resulting exception message names exactly that controller,
+     * proving the requested name - not a fallback - drove resolution. This
+     * is the actual regression proof for 37992fc; a real controller name
+     * like "QueueModule" cannot serve that purpose here because its
+     * Error.html is byte-identical to AdministrationModule/Error.html, so
+     * either would render successfully regardless of which one was picked.
+     */
+    #[Test]
+    public function errorActionResolvesTheRequestedControllerNameIntoTheTemplatePath(): void
+    {
+        $extbaseRequestParameters = (new ExtbaseRequestParameters())
+            ->setControllerName('NonExistentModule');
+
+        $request = $this->createModuleRequest($extbaseRequestParameters);
+
+        $subject = $this->createSubject();
+        $subject->setRequestForTest($request);
+        $subject->setModuleTemplateForTest(
+            $this->get(ModuleTemplateFactory::class)->create($request)
+        );
+
+        $this->expectException(InvalidTemplateResourceException::class);
+        $this->expectExceptionMessageMatches('#NonExistentModule/Error#');
+
+        $subject->callErrorAction();
+    }
+
+    /**
+     * Smoke test that the real, shipped QueueModule/Error.html template
+     * actually exists and renders successfully through a real Fluid view.
+     * Does not by itself discriminate the bug fixed in 37992fc, see the
+     * class docblock;
+     * errorActionResolvesTheRequestedControllerNameIntoTheTemplatePath()
+     * carries that proof.
      */
     #[Test]
     public function errorActionRendersTheConcreteControllersOwnErrorTemplate(): void
