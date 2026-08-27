@@ -403,7 +403,7 @@ class AlgoliaSearchEngineTest extends TestCase
                 'test_index',
                 self::callback(static fn (array $fields): bool => isset($fields['objectID'])
                     && $fields['objectID'] === 'pages-42'
-                    && $fields['title'] === 'Test')
+                    && $fields['title'] === 'Test'),
             )
             ->willReturn($responseMock);
 

@@ -68,8 +68,8 @@ class AfterFileAddedEventListener extends AbstractFileEventListener
             ->dispatch(
                 new DataHandlerRecordUpdateEvent(
                     'sys_file_metadata',
-                    $metadataUid
-                )
+                    $metadataUid,
+                ),
             );
     }
 }

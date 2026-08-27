@@ -59,7 +59,7 @@ class AfterFileRenamedEventListenerTest extends TestCase
             ->method('dispatch')
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
-                    && $event->getRecordUid() === 789
+                    && $event->getRecordUid() === 789,
             ));
 
         $fileRenamedEvent = new AfterFileRenamedEvent($fileMock, 'old_name.pdf');

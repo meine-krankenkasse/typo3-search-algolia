@@ -64,7 +64,7 @@ class AfterFileCopiedEventListenerTest extends TestCase
             ->method('dispatch')
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
-                    && $event->getRecordUid() === 456
+                    && $event->getRecordUid() === 456,
             ));
 
         $folderMock      = $this->createMock(Folder::class);

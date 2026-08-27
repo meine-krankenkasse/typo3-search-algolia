@@ -229,7 +229,7 @@ class QueueProvider extends AbstractProvider
             $collectionIds = GeneralUtility::intExplode(
                 ',',
                 $indexingService->getFileCollections(),
-                true
+                true,
             );
 
             if ($this->fileCollectionService->isInAnyCollection($this->record, $collectionIds)) {

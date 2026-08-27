@@ -108,7 +108,7 @@ class TcaItemsProcessorFunctions
 
         usort(
             $fieldDefinition['items'],
-            static fn (array $a, array $b): int => ((int) $a['value']) <=> ((int) $b['value'])
+            static fn (array $a, array $b): int => ((int) $a['value']) <=> ((int) $b['value']),
         );
     }
 

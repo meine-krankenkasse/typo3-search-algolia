@@ -100,7 +100,7 @@ class BeforeFileDeletedEventListener extends AbstractFileEventListener
                 new DataHandlerRecordDeleteEvent(
                     'sys_file_metadata',
                     $metadataUid,
-                )
+                ),
             );
     }
 }

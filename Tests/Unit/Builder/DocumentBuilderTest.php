@@ -78,7 +78,7 @@ class DocumentBuilderTest extends TestCase
 
         $this->builder = new DocumentBuilder(
             $this->eventDispatcherMock,
-            $typoScriptService
+            $typoScriptService,
         );
     }
 

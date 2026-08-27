@@ -47,7 +47,7 @@ class AfterDocumentAssembledEventTest extends TestCase
             $documentMock,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         self::assertSame($documentMock, $event->getDocument());

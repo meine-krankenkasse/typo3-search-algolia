@@ -88,7 +88,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         $rootPageId = $this->subject->getRecordRootPageId(
             ['uid' => 2, 'pid' => 1],
             'pages',
-            2
+            2,
         );
 
         self::assertSame(1, $rootPageId);
@@ -104,7 +104,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         $rootPageId = $this->subject->getRecordRootPageId(
             ['uid' => 3, 'pid' => 2],
             'pages',
-            3
+            3,
         );
 
         self::assertSame(1, $rootPageId);
@@ -121,7 +121,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         $rootPageId = $this->subject->getRecordRootPageId(
             ['uid' => 1, 'pid' => 2],
             'tt_content',
-            1
+            1,
         );
 
         self::assertSame(1, $rootPageId);
@@ -139,7 +139,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         $this->subject->getRecordRootPageId(
             ['uid' => 999, 'pid' => 888],
             'tt_content',
-            999
+            999,
         );
     }
 
@@ -155,7 +155,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         $rootPageId = $this->subject->getRecordRootPageId(
             ['uid' => 1, 'pid' => 0],
             'pages',
-            1
+            1,
         );
 
         self::assertSame(1, $rootPageId);
@@ -338,7 +338,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
             $indexerMock,
             'pages',
             42,
-            true
+            true,
         );
     }
 
@@ -366,7 +366,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
             $indexerMock,
             'pages',
             42,
-            false
+            false,
         );
     }
 
@@ -407,7 +407,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
             $indexerMock,
             'pages',
             [1, 2, 3],
-            true
+            true,
         );
     }
 
@@ -442,7 +442,7 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
             $indexerMock,
             'pages',
             42,
-            true
+            true,
         );
     }
 }

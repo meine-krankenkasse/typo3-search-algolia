@@ -107,7 +107,7 @@ abstract class AbstractBaseModuleController extends ActionController
         $this->moduleTemplate->addFlashMessage(
             $this->translate($key),
             $this->translate('error.title'),
-            $severity
+            $severity,
         );
 
         return new ForwardResponse('error');
@@ -128,7 +128,7 @@ abstract class AbstractBaseModuleController extends ActionController
         $this->moduleTemplate->addFlashMessage(
             $exception->getMessage(),
             $this->translate('error.title'),
-            $severity
+            $severity,
         );
 
         return new ForwardResponse('error');
@@ -248,7 +248,7 @@ abstract class AbstractBaseModuleController extends ActionController
         if ($route instanceof Route) {
             $route->setOption(
                 'packageName',
-                'meine-krankenkasse/typo3-search-algolia'
+                'meine-krankenkasse/typo3-search-algolia',
             );
         }
     }
@@ -292,7 +292,7 @@ abstract class AbstractBaseModuleController extends ActionController
         return LocalizationUtility::translate(
             $key,
             Constants::EXTENSION_NAME,
-            $arguments
+            $arguments,
         ) ?? '';
     }
 }

@@ -139,7 +139,7 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
         $subject = $this->createSubject();
         $subject->setRequestForTest($request);
         $subject->setModuleTemplateForTest(
-            $this->get(ModuleTemplateFactory::class)->create($request)
+            $this->get(ModuleTemplateFactory::class)->create($request),
         );
 
         $this->expectException(InvalidTemplateResourceException::class);
@@ -167,7 +167,7 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
         $subject = $this->createSubject();
         $subject->setRequestForTest($request);
         $subject->setModuleTemplateForTest(
-            $this->get(ModuleTemplateFactory::class)->create($request)
+            $this->get(ModuleTemplateFactory::class)->create($request),
         );
 
         $response = $subject->callErrorAction();
@@ -193,7 +193,7 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
         $subject = $this->createSubject();
         $subject->setRequestForTest($request);
         $subject->setModuleTemplateForTest(
-            $this->get(ModuleTemplateFactory::class)->create($request)
+            $this->get(ModuleTemplateFactory::class)->create($request),
         );
 
         $this->expectException(InvalidTemplateResourceException::class);

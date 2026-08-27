@@ -82,7 +82,7 @@ class RecordHandlerTest extends TestCase
             $this->createMock(IndexerFactory::class),
             $pageRepository,
             $this->indexingServiceRepositoryMock,
-            $contentRepository
+            $contentRepository,
         );
     }
 
@@ -133,7 +133,7 @@ class RecordHandlerTest extends TestCase
             $indexerMock,
             'pages',
             42,
-            true
+            true,
         );
     }
 
@@ -162,7 +162,7 @@ class RecordHandlerTest extends TestCase
             $indexerMock,
             'pages',
             42,
-            false
+            false,
         );
     }
 
@@ -212,7 +212,7 @@ class RecordHandlerTest extends TestCase
             $indexerMock,
             'pages',
             [1, 2, 3],
-            true
+            true,
         );
     }
 

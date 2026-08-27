@@ -109,7 +109,7 @@ class RecordUpdateEventListener
         $pageRecord = $this->pageRepository
             ->getPageRecord(
                 $this->event->getTable(),
-                $this->event->getRecordUid()
+                $this->event->getRecordUid(),
             );
 
         // Determine the root page ID for the event record
@@ -117,7 +117,7 @@ class RecordUpdateEventListener
             ->getRecordRootPageId(
                 $pageRecord,
                 $this->event->getTable(),
-                $this->event->getRecordUid()
+                $this->event->getRecordUid(),
             );
 
         $isRecordEnabled = $this->isRecordEnabled(
@@ -129,7 +129,7 @@ class RecordUpdateEventListener
         $this->processRecordUpdate(
             $rootPageId,
             $this->event->getRecordUid(),
-            $isRecordEnabled
+            $isRecordEnabled,
         );
 
         // Update the page if required
@@ -139,7 +139,7 @@ class RecordUpdateEventListener
             $pageId = $this->recordRepository
                 ->findPid(
                     ContentIndexer::TABLE,
-                    $this->event->getRecordUid()
+                    $this->event->getRecordUid(),
                 );
 
             // Process page update
@@ -155,13 +155,13 @@ class RecordUpdateEventListener
             $this->recordHandler
                 ->processContentElementsOfPage(
                     $this->event->getRecordUid(),
-                    !$isRecordEnabled
+                    !$isRecordEnabled,
                 );
 
             $isSubpageRecordEnabled = $this->isSubpageUpdateRequired(
                 $this->event->getTable(),
                 $this->event->getRecordUid(),
-                $this->event->getFields()
+                $this->event->getFields(),
             );
 
             if ($isSubpageRecordEnabled) {
@@ -173,21 +173,21 @@ class RecordUpdateEventListener
                         ],
                         Constants::MAX_PAGE_TREE_DEPTH,
                         false,
-                        true
+                        true,
                     );
 
                 if ($subPageIds !== []) {
                     $this->processRecordUpdates(
                         $rootPageId,
                         $subPageIds,
-                        $isRecordEnabled
+                        $isRecordEnabled,
                     );
 
                     foreach ($subPageIds as $subPageId) {
                         $subpageRecord = $this->pageRepository
                             ->getPageRecord(
                                 $this->event->getTable(),
-                                $subPageId
+                                $subPageId,
                             );
 
                         // Subpage record is only enabled if the parent page record is also enabled
@@ -200,7 +200,7 @@ class RecordUpdateEventListener
                         $this->recordHandler
                             ->processContentElementsOfPage(
                                 $subPageId,
-                                !$isSubpageRecordEnabled
+                                !$isSubpageRecordEnabled,
                             );
                     }
                 }
@@ -289,7 +289,7 @@ class RecordUpdateEventListener
                     $indexerInstance,
                     $this->event->getTable(),
                     $recordUid,
-                    !$isRecordEnabled
+                    !$isRecordEnabled,
                 );
 
             // Put the record into the queue to update the index again
@@ -338,7 +338,7 @@ class RecordUpdateEventListener
                     $indexerInstance,
                     $this->event->getTable(),
                     $recordUids,
-                    !$isRecordEnabled
+                    !$isRecordEnabled,
                 );
 
             // Put the record into the queue to update the index again

@@ -61,7 +61,7 @@ class AfterFileAddedEventListenerTest extends TestCase
             ->method('dispatch')
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
-                    && $event->getRecordUid() === 123
+                    && $event->getRecordUid() === 123,
             ));
 
         $folderMock     = $this->createMock(Folder::class);

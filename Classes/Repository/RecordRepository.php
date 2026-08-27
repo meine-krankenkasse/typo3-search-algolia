@@ -82,9 +82,9 @@ readonly class RecordRepository implements RecordRepositoryInterface
                     'uid',
                     $queryBuilder->createNamedParameter(
                         $recordUid,
-                        Connection::PARAM_INT
-                    )
-                )
+                        Connection::PARAM_INT,
+                    ),
+                ),
             )
             ->executeQuery()
             ->fetchAssociative();

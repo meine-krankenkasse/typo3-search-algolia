@@ -57,7 +57,7 @@ class TotalCountViewHelper extends AbstractViewHelper
         $this->registerArgument(
             'statistics',
             'array',
-            'The queue item statistics array'
+            'The queue item statistics array',
         );
     }
 

@@ -151,7 +151,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         $this->io->title($this->getName() ?? '');
 
         $this->indexItems(
-            (int) $input->getOption('documentsToIndex')
+            (int) $input->getOption('documentsToIndex'),
         );
 
         return self::SUCCESS;
@@ -291,7 +291,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                     $queryBuilder->expr()->eq(
                         'uid',
                         $item->getRecordUid(),
-                    )
+                    ),
                 )
                 ->executeQuery()
                 ->fetchAssociative();

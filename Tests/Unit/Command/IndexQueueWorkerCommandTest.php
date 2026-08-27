@@ -278,7 +278,7 @@ class IndexQueueWorkerCommandTest extends TestCase
         $failingIndexerMock
             ->method('indexRecord')
             ->willThrowException(
-                new CliFallbackTypoScriptUnreadableException('Unable to read the bundled TypoScript setup.')
+                new CliFallbackTypoScriptUnreadableException('Unable to read the bundled TypoScript setup.'),
             );
 
         $succeedingIndexerMock = self::createStub(IndexerInterface::class);

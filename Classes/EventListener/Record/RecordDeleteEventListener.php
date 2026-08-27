@@ -97,7 +97,7 @@ class RecordDeleteEventListener
         $pageRecord = $this->pageRepository
             ->getPageRecord(
                 $this->event->getTable(),
-                $this->event->getRecordUid()
+                $this->event->getRecordUid(),
             );
 
         // Determine the root page ID for the event record
@@ -105,7 +105,7 @@ class RecordDeleteEventListener
             ->getRecordRootPageId(
                 $pageRecord,
                 $this->event->getTable(),
-                $this->event->getRecordUid()
+                $this->event->getRecordUid(),
             );
 
         // Remove record from queue and index
@@ -116,7 +116,7 @@ class RecordDeleteEventListener
             $pageId = $this->recordRepository
                 ->findPid(
                     ContentIndexer::TABLE,
-                    $this->event->getRecordUid()
+                    $this->event->getRecordUid(),
                 );
 
             // Process page update
@@ -132,7 +132,7 @@ class RecordDeleteEventListener
             $this->recordHandler
                 ->processContentElementsOfPage(
                     $this->event->getRecordUid(),
-                    true
+                    true,
                 );
         }
     }
@@ -172,7 +172,7 @@ class RecordDeleteEventListener
                     $indexerInstance,
                     $this->event->getTable(),
                     $this->event->getRecordUid(),
-                    true
+                    true,
                 );
         }
     }

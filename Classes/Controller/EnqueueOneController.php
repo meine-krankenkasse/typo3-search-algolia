@@ -73,7 +73,7 @@ readonly class EnqueueOneController
         if (!$file instanceof FileInterface) {
             throw new InvalidFileException(
                 'Referenced target "' . $identifier . '" could not be resolved to a valid file',
-                1744874148
+                1744874148,
             );
         }
 
@@ -85,8 +85,8 @@ readonly class EnqueueOneController
                 ->dispatch(
                     new DataHandlerRecordUpdateEvent(
                         'sys_file_metadata',
-                        $metadataUid
-                    )
+                        $metadataUid,
+                    ),
                 );
 
             $view->addFlashMessage(
@@ -94,10 +94,10 @@ readonly class EnqueueOneController
                     'flash_message.success.message.enqueueOne',
                     [
                         $file->getName(),
-                    ]
+                    ],
                 ),
                 $this->translate('flash_message.success.title'),
-                ContextualFeedbackSeverity::INFO
+                ContextualFeedbackSeverity::INFO,
             );
         }
 
@@ -136,7 +136,7 @@ readonly class EnqueueOneController
         return LocalizationUtility::translate(
             $key,
             Constants::EXTENSION_NAME,
-            $arguments
+            $arguments,
         ) ?? '';
     }
 }

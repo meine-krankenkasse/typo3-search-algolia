@@ -106,7 +106,7 @@ final class TypoScriptServiceTest extends AbstractFunctionalTestCase
     public function getTypoScriptConfigurationMemoizesTheCliFallbackParseResult(): void
     {
         $fixturePath = $this->createTemporaryTypoScriptFixture(
-            'module.tx_typo3searchalgolia.indexer.pages.fields.title = title'
+            'module.tx_typo3searchalgolia.indexer.pages.fields.title = title',
         );
 
         try {
@@ -142,7 +142,7 @@ final class TypoScriptServiceTest extends AbstractFunctionalTestCase
     public function getTypoScriptConfigurationThrowsWhenTheFallbackSetupIsUnreadableOnFirstCall(): void
     {
         $subject = $this->createSubjectWithFallbackPath(
-            sys_get_temp_dir() . '/typo3-search-algolia-test-does-not-exist.typoscript'
+            sys_get_temp_dir() . '/typo3-search-algolia-test-does-not-exist.typoscript',
         );
 
         $this->expectException(CliFallbackTypoScriptUnreadableException::class);

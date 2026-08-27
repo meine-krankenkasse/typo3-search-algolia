@@ -72,8 +72,8 @@ class AfterFileMovedEventListener extends AbstractFileEventListener
                 new DataHandlerRecordMoveEvent(
                     'sys_file_metadata',
                     $metadataUid,
-                    0
-                )
+                    0,
+                ),
             );
     }
 }

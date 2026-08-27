@@ -80,7 +80,7 @@ readonly class AfterRecordPublishedEventListener
         /** @var \TYPO3\CMS\Workspaces\Event\AfterRecordPublishedEvent $event */
         $this->eventDispatcher
             ->dispatch(
-                new DataHandlerRecordUpdateEvent($event->getTable(), $event->getRecordId())
+                new DataHandlerRecordUpdateEvent($event->getTable(), $event->getRecordId()),
             );
     }
 }

@@ -132,8 +132,8 @@ abstract class AbstractFunctionalTestCase extends FunctionalTestCase
             ->where(
                 $queryBuilder->expr()->eq(
                     $fieldName,
-                    $queryBuilder->createNamedParameter($fieldValue)
-                )
+                    $queryBuilder->createNamedParameter($fieldValue),
+                ),
             )
             ->executeQuery()
             ->fetchAssociative();

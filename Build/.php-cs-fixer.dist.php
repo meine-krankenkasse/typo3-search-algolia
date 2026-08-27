@@ -36,6 +36,14 @@ return (new PhpCsFixer\Config())
         '@Symfony'                        => true,
 
         // Additional custom rules
+        // @PER-CS2x0 includes 'arguments' in trailing_comma_in_multiline, but
+        // @Symfony (applied after it in this rule set) overrides the same
+        // fixer with a narrower element list that drops 'arguments' again,
+        // so multi-line function/method CALLS silently never got a trailing
+        // comma enforced. Restore the full @PER-CS2x0 element list explicitly.
+        'trailing_comma_in_multiline'     => [
+            'elements' => ['arguments', 'array_destructuring', 'arrays', 'match', 'parameters'],
+        ],
         'declare_strict_types'            => true,
         'concat_space'                    => [
             'spacing' => 'one',

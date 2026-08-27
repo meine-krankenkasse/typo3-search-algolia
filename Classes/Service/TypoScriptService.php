@@ -134,7 +134,7 @@ final class TypoScriptService implements TypoScriptServiceInterface, LoggerAware
         $this->logger?->warning(
             'Resolving TypoScript configuration via the CLI fallback (the bundled '
             . 'setup.typoscript only); project-level TypoScript overrides and any '
-            . '[condition] blocks are not honored in this context.'
+            . '[condition] blocks are not honored in this context.',
         );
 
         $setupPath = $this->cliFallbackSetupPath ?? (
@@ -156,7 +156,7 @@ final class TypoScriptService implements TypoScriptServiceInterface, LoggerAware
 
         if ($rawTypoScript === false) {
             throw new CliFallbackTypoScriptUnreadableException(
-                'Unable to read the bundled TypoScript setup at "' . $setupPath . '".'
+                'Unable to read the bundled TypoScript setup at "' . $setupPath . '".',
             );
         }
 

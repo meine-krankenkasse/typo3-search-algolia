@@ -58,7 +58,7 @@ class IconViewHelper extends AbstractViewHelper
         $this->registerArgument(
             'type',
             'string',
-            'The indexer type'
+            'The indexer type',
         );
     }
 

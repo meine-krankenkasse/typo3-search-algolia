@@ -59,7 +59,7 @@ class UpdateAssembledContentElementDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledContentElementDocumentEventListener($siteFinderMock);
@@ -100,7 +100,7 @@ class UpdateAssembledContentElementDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledContentElementDocumentEventListener($siteFinderMock);
@@ -130,7 +130,7 @@ class UpdateAssembledContentElementDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledContentElementDocumentEventListener($siteFinderMock);

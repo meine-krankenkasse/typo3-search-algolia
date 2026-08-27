@@ -161,7 +161,7 @@ class DocumentBuilder
         $this->document = GeneralUtility::makeInstance(
             Document::class,
             $indexer,
-            $this->record
+            $this->record,
         );
 
         $tableName = $indexer->getTable();
@@ -181,7 +181,7 @@ class DocumentBuilder
             $this->document
                 ->setField(
                     'created',
-                    $this->record[$GLOBALS['TCA'][$tableName]['ctrl']['crdate']]
+                    $this->record[$GLOBALS['TCA'][$tableName]['ctrl']['crdate']],
                 );
         }
 
@@ -193,7 +193,7 @@ class DocumentBuilder
             $this->document
                 ->setField(
                     'changed',
-                    $this->record[$GLOBALS['TCA'][$tableName]['ctrl']['tstamp']]
+                    $this->record[$GLOBALS['TCA'][$tableName]['ctrl']['tstamp']],
                 );
         }
 
@@ -206,8 +206,8 @@ class DocumentBuilder
                     $this->document,
                     $indexer,
                     $this->indexingService,
-                    $this->record
-                )
+                    $this->record,
+                ),
             );
 
         return $this;
@@ -259,7 +259,7 @@ class DocumentBuilder
 
             $this->document->setField(
                 $fieldMapping[$recordFieldName],
-                ContentExtractor::sanitizeContent($stringValue)
+                ContentExtractor::sanitizeContent($stringValue),
             );
         }
     }

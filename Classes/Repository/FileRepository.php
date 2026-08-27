@@ -73,26 +73,26 @@ readonly class FileRepository
                 'f.name',
                 'f.identifier',
                 'f.extension',
-                'f.mime_type'
+                'f.mime_type',
             )
             ->from(
                 'sys_file',
-                'f'
+                'f',
             )
             ->join(
                 'f',
                 'sys_file_metadata',
                 'm',
-                'm.file = f.uid'
+                'm.file = f.uid',
             )
             ->where(
                 $queryBuilder->expr()->eq(
                     'm.uid',
                     $queryBuilder->createNamedParameter(
                         $metadataUid,
-                        Connection::PARAM_INT
-                    )
-                )
+                        Connection::PARAM_INT,
+                    ),
+                ),
             )
             ->executeQuery()
             ->fetchAssociative();
@@ -130,50 +130,50 @@ readonly class FileRepository
         return $queryBuilder
             ->distinct()
             ->select(
-                'c.uid'
+                'c.uid',
             )
             ->from(
                 'sys_file_reference',
-                'r'
+                'r',
             )
             ->join(
                 'r',
                 'sys_file_metadata',
                 'm',
-                'r.uid_local = m.file'
+                'r.uid_local = m.file',
             )
             ->join(
                 'r',
                 'tt_content',
                 'c',
-                'r.uid_foreign = c.uid'
+                'r.uid_foreign = c.uid',
             )
             ->where(
                 $queryBuilder->expr()->eq(
                     'm.uid',
                     $queryBuilder->createNamedParameter(
                         $metadataUid,
-                        Connection::PARAM_INT
-                    )
+                        Connection::PARAM_INT,
+                    ),
                 ),
                 $queryBuilder->expr()->eq(
                     'r.tablenames',
-                    $queryBuilder->createNamedParameter('tt_content')
+                    $queryBuilder->createNamedParameter('tt_content'),
                 ),
                 $queryBuilder->expr()->eq(
                     'r.deleted',
                     $queryBuilder->createNamedParameter(
                         0,
-                        Connection::PARAM_INT
-                    )
+                        Connection::PARAM_INT,
+                    ),
                 ),
                 $queryBuilder->expr()->eq(
                     'c.deleted',
                     $queryBuilder->createNamedParameter(
                         0,
-                        Connection::PARAM_INT
-                    )
-                )
+                        Connection::PARAM_INT,
+                    ),
+                ),
             )
             ->executeQuery()
             ->fetchAllAssociative();
@@ -204,9 +204,9 @@ readonly class FileRepository
                     'uid',
                     $queryBuilder->createNamedParameter(
                         $metadataUid,
-                        Connection::PARAM_INT
-                    )
-                )
+                        Connection::PARAM_INT,
+                    ),
+                ),
             )
             ->executeQuery()
             ->fetchOne();
@@ -242,26 +242,26 @@ readonly class FileRepository
             ->where(
                 $queryBuilder->expr()->eq(
                     'tablenames',
-                    $queryBuilder->createNamedParameter($tableName)
+                    $queryBuilder->createNamedParameter($tableName),
                 ),
                 $queryBuilder->expr()->eq(
                     'fieldname',
-                    $queryBuilder->createNamedParameter('files')
+                    $queryBuilder->createNamedParameter('files'),
                 ),
                 $queryBuilder->expr()->eq(
                     'uid_local',
                     $queryBuilder->createNamedParameter(
                         $fileUid,
-                        Connection::PARAM_INT
-                    )
+                        Connection::PARAM_INT,
+                    ),
                 ),
                 $queryBuilder->expr()->in(
                     'uid_foreign',
                     $queryBuilder->createNamedParameter(
                         $foreignUids,
-                        ArrayParameterType::INTEGER
-                    )
-                )
+                        ArrayParameterType::INTEGER,
+                    ),
+                ),
             )
             ->setMaxResults(1)
             ->executeQuery()

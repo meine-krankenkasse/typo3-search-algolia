@@ -73,7 +73,7 @@ class QueueModuleController extends AbstractBaseModuleController
     ) {
         parent::__construct(
             $moduleTemplateFactory,
-            $iconFactory
+            $iconFactory,
         );
     }
 
@@ -120,7 +120,7 @@ class QueueModuleController extends AbstractBaseModuleController
                 $this->iconFactory->getIcon(
                     'actions-plus',
                     IconSize::SMALL,
-                )
+                ),
             )
             ->setHref($this->getCreateNewRecordUrl());
 
@@ -152,7 +152,7 @@ class QueueModuleController extends AbstractBaseModuleController
                         ],
                     ],
                     'returnUrl' => $this->request->getAttribute('normalizedParams')?->getRequestUri(),
-                ]
+                ],
             );
     }
 
@@ -195,7 +195,7 @@ class QueueModuleController extends AbstractBaseModuleController
 
             $this->queueItemRepository
                 ->deleteByTableAndRecordUIDs(
-                    $tableName
+                    $tableName,
                 );
         }
 
@@ -238,7 +238,7 @@ class QueueModuleController extends AbstractBaseModuleController
                         $this->addFlashMessage(
                             $exception->getMessage(),
                             $this->translate('flash_message.error.title'),
-                            ContextualFeedbackSeverity::ERROR
+                            ContextualFeedbackSeverity::ERROR,
                         );
                     }
                 }
@@ -248,26 +248,26 @@ class QueueModuleController extends AbstractBaseModuleController
                         'index_queue.flash_message.body',
                         [
                             $itemCount,
-                        ]
+                        ],
                     ),
-                    $this->translate('index_queue.flash_message.title')
+                    $this->translate('index_queue.flash_message.title'),
                 );
             }
         }
 
         $this->moduleTemplate->assign(
             'indexingServices',
-            $this->indexingServiceRepository->findAll()
+            $this->indexingServiceRepository->findAll(),
         );
 
         $this->moduleTemplate->assign(
             'queueStatistics',
-            $this->queueItemRepository->getStatistics()
+            $this->queueItemRepository->getStatistics(),
         );
 
         $this->moduleTemplate->assign(
             'lastExecutionTime',
-            $this->queueStatusService->getLastExecutionTime()
+            $this->queueStatusService->getLastExecutionTime(),
         );
 
         return $this->moduleTemplate->renderResponse('QueueModule/Index');

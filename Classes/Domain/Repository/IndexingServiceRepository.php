@@ -88,8 +88,8 @@ class IndexingServiceRepository extends Repository
         $query->matching(
             $query->in(
                 'uid',
-                $indexerUIDs
-            )
+                $indexerUIDs,
+            ),
         );
 
         return $query->execute();
@@ -124,8 +124,8 @@ class IndexingServiceRepository extends Repository
         $query->matching(
             $query->equals(
                 'type',
-                $tableName
-            )
+                $tableName,
+            ),
         );
 
         return $query->execute();

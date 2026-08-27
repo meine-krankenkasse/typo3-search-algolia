@@ -33,10 +33,10 @@ ExtensionManagementUtility::addTCAcolumns(
                 ],
             ],
         ],
-    ]
+    ],
 );
 
 ExtensionManagementUtility::addToAllTCAtypes(
     'sys_file_metadata',
-    '--div--;LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:sys_file_metadata.tabs.behaviour,no_search'
+    '--div--;LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:sys_file_metadata.tabs.behaviour,no_search',
 );

@@ -55,7 +55,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         self::assertSame([], $document->getFields());
@@ -71,7 +71,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $document->setField('title', 'Test Title');
@@ -89,7 +89,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $document->setField('title', 'Original');
@@ -108,7 +108,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $document->setField('title', 'Test');
@@ -127,7 +127,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $result = $document->setField('title', 'Test');
@@ -146,7 +146,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $document->setField('title', 'Test');
@@ -167,7 +167,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $document->setField('title', 'Test');
@@ -186,7 +186,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $result = $document->removeField('anything');
@@ -205,7 +205,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $document
@@ -219,7 +219,7 @@ class DocumentTest extends TestCase
                 'content' => 'Body',
                 'url'     => 'https://example.com',
             ],
-            $document->getFields()
+            $document->getFields(),
         );
     }
 
@@ -233,7 +233,7 @@ class DocumentTest extends TestCase
     {
         $document = new Document(
             $this->createMock(IndexerInterface::class),
-            []
+            [],
         );
 
         $document

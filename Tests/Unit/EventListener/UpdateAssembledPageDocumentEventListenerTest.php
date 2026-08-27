@@ -72,7 +72,7 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledPageDocumentEventListener(
@@ -131,7 +131,7 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledPageDocumentEventListener(
@@ -180,7 +180,7 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledPageDocumentEventListener(
@@ -256,7 +256,7 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledPageDocumentEventListener(
@@ -322,7 +322,7 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledPageDocumentEventListener(

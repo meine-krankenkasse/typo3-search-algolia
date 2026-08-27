@@ -58,7 +58,7 @@ readonly class QueueStatusService implements QueueStatusServiceInterface
         $this->registry->set(
             Constants::EXTENSION_NAME,
             'last-exec-time',
-            $lastExecutionTime
+            $lastExecutionTime,
         );
     }
 

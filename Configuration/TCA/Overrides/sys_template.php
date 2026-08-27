@@ -19,6 +19,6 @@ call_user_func(static function (): void {
     ExtensionManagementUtility::addStaticFile(
         Constants::EXTENSION_NAME,
         'Configuration/TypoScript',
-        'MKK: TYPO3 Search Algolia'
+        'MKK: TYPO3 Search Algolia',
     );
 });

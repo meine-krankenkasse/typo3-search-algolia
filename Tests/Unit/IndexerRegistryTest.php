@@ -61,7 +61,7 @@ class IndexerRegistryTest extends TestCase
             PageIndexer::class,
             'pages',
             'Page Indexer',
-            'apps-pagetree-page-default'
+            'apps-pagetree-page-default',
         );
 
         $indexers = IndexerRegistry::getRegisteredIndexers();
@@ -84,7 +84,7 @@ class IndexerRegistryTest extends TestCase
         IndexerRegistry::register(
             PageIndexer::class,
             'pages',
-            'Page Indexer'
+            'Page Indexer',
         );
 
         $indexers = IndexerRegistry::getRegisteredIndexers();
@@ -105,14 +105,14 @@ class IndexerRegistryTest extends TestCase
             PageIndexer::class,
             'pages',
             'Page Indexer',
-            'apps-pagetree-page-default'
+            'apps-pagetree-page-default',
         );
 
         IndexerRegistry::register(
             ContentIndexer::class,
             'tt_content',
             'Content Indexer',
-            'content-text'
+            'content-text',
         );
 
         $indexers = IndexerRegistry::getRegisteredIndexers();
@@ -134,7 +134,7 @@ class IndexerRegistryTest extends TestCase
             PageIndexer::class,
             'pages',
             'Page Indexer',
-            'apps-pagetree-page-default'
+            'apps-pagetree-page-default',
         );
 
         self::assertSame('apps-pagetree-page-default', IndexerRegistry::getIndexerIcon('pages'));
@@ -152,7 +152,7 @@ class IndexerRegistryTest extends TestCase
             PageIndexer::class,
             'pages',
             'Page Indexer',
-            'apps-pagetree-page-default'
+            'apps-pagetree-page-default',
         );
 
         self::assertSame('', IndexerRegistry::getIndexerIcon('unknown_table'));
@@ -169,7 +169,7 @@ class IndexerRegistryTest extends TestCase
         IndexerRegistry::register(
             PageIndexer::class,
             'pages',
-            'Page Indexer'
+            'Page Indexer',
         );
 
         self::assertSame('', IndexerRegistry::getIndexerIcon('pages'));

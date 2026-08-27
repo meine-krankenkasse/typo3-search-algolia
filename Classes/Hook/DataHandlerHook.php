@@ -133,7 +133,7 @@ class DataHandlerHook
 
         $this->eventDispatcher
             ->dispatch(
-                new DataHandlerRecordUpdateEvent($table, $recordUid, $fields)
+                new DataHandlerRecordUpdateEvent($table, $recordUid, $fields),
             );
     }
 
@@ -174,7 +174,7 @@ class DataHandlerHook
         if ($command === 'delete') {
             $this->eventDispatcher
                 ->dispatch(
-                    new DataHandlerRecordDeleteEvent($table, $recordUid)
+                    new DataHandlerRecordDeleteEvent($table, $recordUid),
                 );
         }
     }
@@ -224,11 +224,11 @@ class DataHandlerHook
             $event = new DataHandlerRecordMoveEvent(
                 $table,
                 $recordUid,
-                (int) $commandValue
+                (int) $commandValue,
             );
 
             $event->setPreviousPid(
-                $this->recordMovements[$table][(int) $commandValue] ?? null
+                $this->recordMovements[$table][(int) $commandValue] ?? null,
             );
 
             $this->eventDispatcher->dispatch($event);
@@ -237,7 +237,7 @@ class DataHandlerHook
         if ($command === 'undelete') {
             $this->eventDispatcher
                 ->dispatch(
-                    new DataHandlerRecordUpdateEvent($table, $recordUid)
+                    new DataHandlerRecordUpdateEvent($table, $recordUid),
                 );
         }
     }

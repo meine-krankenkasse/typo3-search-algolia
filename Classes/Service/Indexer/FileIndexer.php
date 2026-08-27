@@ -95,7 +95,7 @@ class FileIndexer extends AbstractIndexer
             $pageRepository,
             $searchEngineFactory,
             $queueItemRepository,
-            $documentBuilder
+            $documentBuilder,
         );
     }
 
@@ -173,7 +173,7 @@ class FileIndexer extends AbstractIndexer
         $collectionIds = GeneralUtility::intExplode(
             ',',
             $this->indexingService?->getFileCollections() ?? '',
-            true
+            true,
         );
 
         if (!$this->fileCollectionService->isInAnyCollection($file, $collectionIds)) {
@@ -207,7 +207,7 @@ class FileIndexer extends AbstractIndexer
         $collectionIds = GeneralUtility::intExplode(
             ',',
             $this->indexingService?->getFileCollections() ?? '',
-            true
+            true,
         );
 
         $collections = $this

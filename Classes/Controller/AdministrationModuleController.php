@@ -64,7 +64,7 @@ class AdministrationModuleController extends AbstractBaseModuleController
     ) {
         parent::__construct(
             $moduleTemplateFactory,
-            $iconFactory
+            $iconFactory,
         );
     }
 
@@ -106,13 +106,13 @@ class AdministrationModuleController extends AbstractBaseModuleController
 
         $this->moduleTemplate->assign(
             'searchEnginesInfo',
-            $searchEnginesInfo
+            $searchEnginesInfo,
         );
 
         $this->moduleTemplate->assign(
             'moduleUrl',
             $this->getBackendUriBuilder()
-                ->buildUriFromRoute('mkk_typo3_search_administration')
+                ->buildUriFromRoute('mkk_typo3_search_administration'),
         );
 
         return $this->moduleTemplate->renderResponse('AdministrationModule/Index');
@@ -163,7 +163,7 @@ class AdministrationModuleController extends AbstractBaseModuleController
             $this->addFlashMessage(
                 $exception->getMessage(),
                 $this->translate('flash_message.error.title'),
-                ContextualFeedbackSeverity::ERROR
+                ContextualFeedbackSeverity::ERROR,
             );
         }
 
@@ -173,9 +173,9 @@ class AdministrationModuleController extends AbstractBaseModuleController
                     'flash_message.success.message.clearIndex',
                     [
                         $identifier,
-                    ]
+                    ],
                 ),
-                $this->translate('flash_message.success.title')
+                $this->translate('flash_message.success.title'),
             );
         }
 

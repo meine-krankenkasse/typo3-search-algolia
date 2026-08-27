@@ -137,13 +137,13 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
         // Set page-related fields
         $document->setField(
             'site',
-            $this->getSiteDomain($site)
+            $this->getSiteDomain($site),
         );
 
         // Get all assigned categories
         $categories = $this->categoryRepository->findAssignedToRecord(
             $this->event->getIndexer()->getTable(),
-            $pageId
+            $pageId,
         );
 
         // Add categories
@@ -155,16 +155,16 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
                     array_column(
                         $categories,
                         'title',
-                        'uid'
-                    )
-                )
-            )
+                        'uid',
+                    ),
+                ),
+            ),
         );
 
         if (($record['SYS_LASTCHANGED'] ?? 0) !== 0) {
             $document->setField(
                 'changed',
-                $record['SYS_LASTCHANGED']
+                $record['SYS_LASTCHANGED'],
             );
         }
 
@@ -173,8 +173,8 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
                 'url',
                 $this->getPageUrl(
                     $site,
-                    $pageId
-                )
+                    $pageId,
+                ),
             );
         }
 
@@ -182,7 +182,7 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
             try {
                 $document->setField(
                     'content',
-                    $this->getPageContent($pageId)
+                    $this->getPageContent($pageId),
                 );
             } catch (Exception $exception) {
                 $this->logger?->warning(
@@ -190,7 +190,7 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
                     [
                         'pageId'    => $pageId,
                         'exception' => $exception->getMessage(),
-                    ]
+                    ],
                 );
             }
         }
@@ -302,14 +302,14 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
         $contentElementTypes = GeneralUtility::trimExplode(
             ',',
             $this->event->getIndexingService()->getContentElementTypes(),
-            true
+            true,
         );
 
         $rows = $this->contentRepository
             ->findAllByPid(
                 $pageId,
                 array_keys($contentElementFields),
-                $contentElementTypes
+                $contentElementTypes,
             );
 
         $content = '';

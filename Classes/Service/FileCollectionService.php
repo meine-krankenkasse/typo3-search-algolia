@@ -115,7 +115,7 @@ final readonly class FileCollectionService
         $staticCollectionUids = $this->getCollectionValuesByType(
             $collectionRows,
             self::TYPE_STATIC,
-            'uid'
+            'uid',
         );
 
         if ($staticCollectionUids === []) {
@@ -172,12 +172,12 @@ final readonly class FileCollectionService
                 if ($isRecursive) {
                     return str_starts_with(
                         $storagePrefixedFileIdentifier,
-                        $folderIdentifier
+                        $folderIdentifier,
                     );
                 }
 
                 return $storagePrefixedParentFolderIdentifier === $folderIdentifier;
-            }
+            },
         );
     }
 
@@ -198,7 +198,7 @@ final readonly class FileCollectionService
         $categoryUids = $this->getCollectionValuesByType(
             $collectionRows,
             self::TYPE_CATEGORY,
-            'category'
+            'category',
         );
 
         if ($categoryUids === []) {
@@ -216,7 +216,7 @@ final readonly class FileCollectionService
             ->hasCategoryReference(
                 $metadataUid,
                 'sys_file_metadata',
-                $categoryUids
+                $categoryUids,
             );
     }
 
@@ -237,10 +237,10 @@ final readonly class FileCollectionService
                     static fn (array $collectionRow): int => (int) $collectionRow[$field],
                     array_filter(
                         $collectionRows,
-                        static fn (array $collectionRow): bool => ($collectionRow['type'] === $type) && (($collectionRow[$field] ?? 0) > 0)
-                    )
-                )
-            )
+                        static fn (array $collectionRow): bool => ($collectionRow['type'] === $type) && (($collectionRow[$field] ?? 0) > 0),
+                    ),
+                ),
+            ),
         );
     }
 }

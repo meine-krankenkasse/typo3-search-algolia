@@ -61,7 +61,7 @@ class BeforeFileDeletedEventListenerTest extends TestCase
             ->method('dispatch')
             ->with(self::callback(
                 static fn (DataHandlerRecordDeleteEvent $event): bool => $event->getTable() === 'sys_file_metadata'
-                    && $event->getRecordUid() === 456
+                    && $event->getRecordUid() === 456,
             ));
 
         $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);

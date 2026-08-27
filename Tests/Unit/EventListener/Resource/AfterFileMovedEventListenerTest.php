@@ -64,7 +64,7 @@ class AfterFileMovedEventListenerTest extends TestCase
             ->with(self::callback(
                 static fn (DataHandlerRecordMoveEvent $event): bool => $event->getTable() === 'sys_file_metadata'
                     && $event->getRecordUid() === 123
-                    && $event->getTargetPid() === 0
+                    && $event->getTargetPid() === 0,
             ));
 
         $folderMock         = $this->createMock(Folder::class);

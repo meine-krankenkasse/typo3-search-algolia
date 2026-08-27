@@ -131,7 +131,7 @@ abstract class AbstractIndexer implements IndexerInterface
             ->getDocument();
 
         $searchEngineService->indexOpen(
-            $indexingService->getSearchEngine()->getIndexName()
+            $indexingService->getSearchEngine()->getIndexName(),
         );
 
         $result = $searchEngineService->documentUpdate($document);
@@ -321,7 +321,7 @@ abstract class AbstractIndexer implements IndexerInterface
 
         return $this->queueItemRepository
             ->bulkInsert(
-                $this->initQueueItemRecords($recordUids)
+                $this->initQueueItemRecords($recordUids),
             );
     }
 
@@ -345,7 +345,7 @@ abstract class AbstractIndexer implements IndexerInterface
 
         return $this->queueItemRepository
             ->bulkInsert(
-                $this->initQueueItemRecords()
+                $this->initQueueItemRecords(),
             );
     }
 

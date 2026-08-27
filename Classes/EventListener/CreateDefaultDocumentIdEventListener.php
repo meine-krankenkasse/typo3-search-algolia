@@ -64,7 +64,7 @@ readonly class CreateDefaultDocumentIdEventListener
     public function __invoke(CreateUniqueDocumentIdEvent $event): void
     {
         $event->setDocumentId(
-            Constants::EXTENSION_NAME . ':' . $event->getTableName() . ':' . $event->getRecordUid()
+            Constants::EXTENSION_NAME . ':' . $event->getTableName() . ':' . $event->getRecordUid(),
         );
     }
 }

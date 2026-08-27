@@ -63,7 +63,7 @@ class AfterFileReplacedEventListenerTest extends TestCase
             ->method('dispatch')
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
-                    && $event->getRecordUid() === 321
+                    && $event->getRecordUid() === 321,
             ));
 
         $fileReplacedEvent = new AfterFileReplacedEvent($fileMock, '/tmp/local_file.pdf');

@@ -60,30 +60,30 @@ readonly class CategoryRepository implements CategoryLookupInterface
             ->select('sc.*')
             ->from(
                 'sys_category',
-                'sc'
+                'sc',
             )
             ->leftJoin(
                 'sc',
                 'sys_category_record_mm',
                 'mm',
-                'mm.uid_local = sc.uid'
+                'mm.uid_local = sc.uid',
             )
             ->where(
                 $queryBuilder->expr()->eq(
                     'mm.uid_foreign',
                     $queryBuilder->createNamedParameter(
                         $uid,
-                        Connection::PARAM_INT
-                    )
+                        Connection::PARAM_INT,
+                    ),
                 ),
                 $queryBuilder->expr()->eq(
                     'mm.tablenames',
-                    $queryBuilder->createNamedParameter($tableName)
+                    $queryBuilder->createNamedParameter($tableName),
                 ),
                 $queryBuilder->expr()->eq(
                     'mm.fieldname',
-                    $queryBuilder->quote('categories')
-                )
+                    $queryBuilder->quote('categories'),
+                ),
             )
             ->orderBy('sc.title')
             ->executeQuery()
@@ -111,8 +111,8 @@ readonly class CategoryRepository implements CategoryLookupInterface
             ->where(
                 $queryBuilder->expr()->eq(
                     'uid',
-                    $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)
-                )
+                    $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT),
+                ),
             )
             ->executeQuery()
             ->fetchAssociative();
@@ -146,26 +146,26 @@ readonly class CategoryRepository implements CategoryLookupInterface
             ->where(
                 $queryBuilder->expr()->eq(
                     'tablenames',
-                    $queryBuilder->createNamedParameter($tableName)
+                    $queryBuilder->createNamedParameter($tableName),
                 ),
                 $queryBuilder->expr()->eq(
                     'fieldname',
-                    $queryBuilder->createNamedParameter('categories')
+                    $queryBuilder->createNamedParameter('categories'),
                 ),
                 $queryBuilder->expr()->eq(
                     'uid_foreign',
                     $queryBuilder->createNamedParameter(
                         $uid,
-                        Connection::PARAM_INT
-                    )
+                        Connection::PARAM_INT,
+                    ),
                 ),
                 $queryBuilder->expr()->in(
                     'uid_local',
                     $queryBuilder->createNamedParameter(
                         $categoryUids,
-                        ArrayParameterType::INTEGER
-                    )
-                )
+                        ArrayParameterType::INTEGER,
+                    ),
+                ),
             )
             ->setMaxResults(1)
             ->executeQuery()

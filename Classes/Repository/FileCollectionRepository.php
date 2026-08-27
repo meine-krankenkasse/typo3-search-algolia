@@ -104,7 +104,7 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
                 'type',
                 'folder_identifier',
                 'recursive',
-                'category'
+                'category',
             )
             ->from($this->table)
             ->where(
@@ -112,9 +112,9 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
                     'uid',
                     $queryBuilder->createNamedParameter(
                         $collectionIds,
-                        ArrayParameterType::INTEGER
-                    )
-                )
+                        ArrayParameterType::INTEGER,
+                    ),
+                ),
             )
             ->executeQuery()
             ->fetchAllAssociative();

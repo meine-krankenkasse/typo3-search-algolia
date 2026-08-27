@@ -43,7 +43,7 @@ class QueueStatusServiceTest extends TestCase
             ->with(
                 Constants::EXTENSION_NAME,
                 'last-exec-time',
-                1700000000
+                1700000000,
             );
 
         $service = new QueueStatusService($registryMock);
