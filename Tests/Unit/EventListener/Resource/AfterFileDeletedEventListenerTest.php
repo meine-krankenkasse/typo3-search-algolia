@@ -21,7 +21,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use TYPO3\CMS\Core\Resource\Event\AfterFileDeletedEvent;
+use TYPO3\CMS\Core\Resource\Event\BeforeFileDeletedEvent;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 
@@ -64,7 +64,7 @@ class AfterFileDeletedEventListenerTest extends TestCase
                     && $event->getRecordUid() === 456
             ));
 
-        $fileDeletedEvent = new AfterFileDeletedEvent($fileMock);
+        $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
         $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
@@ -93,7 +93,7 @@ class AfterFileDeletedEventListenerTest extends TestCase
             ->expects(self::never())
             ->method('dispatch');
 
-        $fileDeletedEvent = new AfterFileDeletedEvent($fileMock);
+        $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
         $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
@@ -101,7 +101,8 @@ class AfterFileDeletedEventListenerTest extends TestCase
 
     /**
      * Tests that invoking the listener returns early without attempting to get the
-     * metadata UID or dispatch any event when the file is already marked as deleted.
+     * metadata UID or dispatch any event when the file is already marked as deleted
+     * (defensive guard against a re-entrant or otherwise already-processed deletion).
      * Verifies that both getMetadataUid() and dispatch() are never called for a
      * deleted File instance.
      */
@@ -125,7 +126,7 @@ class AfterFileDeletedEventListenerTest extends TestCase
             ->expects(self::never())
             ->method('dispatch');
 
-        $fileDeletedEvent = new AfterFileDeletedEvent($fileMock);
+        $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
         $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
