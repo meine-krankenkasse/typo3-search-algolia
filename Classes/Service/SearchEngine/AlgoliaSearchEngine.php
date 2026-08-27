@@ -317,7 +317,11 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
         } catch (Exception $exception) {
             // Rate limit
             if ($exception->getCode() === 429) {
-                throw new RateLimitException($exception->getMessage(), $exception->getCode(), $exception);
+                throw new RateLimitException(
+                    $exception->getMessage(),
+                    $exception->getCode(),
+                    $exception,
+                );
             }
         }
 

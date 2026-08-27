@@ -76,12 +76,20 @@ abstract class AbstractFunctionalTestCase extends FunctionalTestCase
                 // PDO::sqliteCreateFunction() is deprecated since PHP 8.5.0 in favour
                 // of the driver-specific Pdo\Sqlite::createFunction() (available since
                 // PHP 8.4.0, when the PDO driver-specific subclasses were introduced).
-                $pdo->createFunction('GREATEST', max(...), -1);
+                $pdo->createFunction(
+                    'GREATEST',
+                    max(...),
+                    -1,
+                );
             } elseif (
                 ($pdo instanceof PDO)
                 && ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite')
             ) {
-                $pdo->sqliteCreateFunction('GREATEST', max(...), -1);
+                $pdo->sqliteCreateFunction(
+                    'GREATEST',
+                    max(...),
+                    -1,
+                );
             }
         }
     }
