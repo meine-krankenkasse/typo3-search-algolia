@@ -54,7 +54,7 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
      * @param FileCollectionRegistry $fileCollectionRegistry The TYPO3 file collection registry
      */
     public function __construct(
-        private readonly ConnectionPool $connectionPool,
+        private ConnectionPool $connectionPool,
         FileCollectionRegistry $fileCollectionRegistry,
     ) {
         parent::__construct($this->connectionPool, $fileCollectionRegistry);

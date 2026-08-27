@@ -36,7 +36,7 @@ class BeforeTcaOverridesEventListener
     /**
      * The console command identifier as registered in Configuration/Services.yaml.
      */
-    private const COMMAND_IDENTIFIER = 'mkk:queue:index:worker';
+    private const string COMMAND_IDENTIFIER = 'mkk:queue:index:worker';
 
     public function __invoke(BeforeTcaOverridesEvent $event): void
     {
