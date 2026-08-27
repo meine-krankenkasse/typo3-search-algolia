@@ -142,6 +142,42 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
     }
 
     /**
+     * Tests that the listener dequeues a sys_file_metadata record when a
+     * DataHandlerRecordDeleteEvent is dispatched for it - the chain that
+     * BeforeFileDeletedEventListener triggers when a file is deleted (50e1ef4).
+     * Unlike 'pages'/'tt_content', indexing services of type 'sys_file_metadata'
+     * are matched regardless of page-tree root (files are not part of the page
+     * tree), see RecordHandler::getResponsibleRecordIndexer().
+     */
+    #[Test]
+    public function invokeDequeuesFileMetadataRecord(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/sys_file.csv');
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/sys_file_metadata.csv');
+
+        $indexerMock = $this->createMock(IndexerInterface::class);
+        $indexerMock
+            ->method('getTable')
+            ->willReturn('sys_file_metadata');
+        $indexerMock
+            ->method('withIndexingService')
+            ->willReturn($indexerMock);
+        $indexerMock
+            ->expects(self::atLeastOnce())
+            ->method('dequeueOne')
+            ->with(10)
+            ->willReturn($indexerMock);
+
+        $this->indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->willReturn($indexerMock);
+
+        $event = new DataHandlerRecordDeleteEvent('sys_file_metadata', 10);
+
+        ($this->subject)($event);
+    }
+
+    /**
      * Tests that the listener throws a PageNotFoundException when the
      * delete event references a record that does not exist in the database.
      */
