@@ -25,6 +25,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -48,6 +49,8 @@ use function count;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(IndexQueueWorkerCommand::class)]
+#[UsesClass(QueueItem::class)]
+#[UsesClass(IndexingService::class)]
 class IndexQueueWorkerCommandTest extends TestCase
 {
     private MockObject&PersistenceManagerInterface $persistenceManagerMock;
