@@ -22,6 +22,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use Override;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -224,6 +225,18 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 if (!str_contains($exception->getMessage(), 'Record is too big')) {
                     throw $exception;
                 }
+            } catch (RuntimeException $exception) {
+                // An environment-level failure (e.g. the bundled TypoScript setup could
+                // not be read, see TypoScriptService::getCliFallbackTypoScript()) must not
+                // abort the whole batch. Log it and move on; this item is not removed from
+                // the queue, so it is retried on the next run.
+                $this->logger?->error(
+                    'Skipping queue item due to an environment-level failure: ' . $exception->getMessage(),
+                    [
+                        'tableName' => $item->getTableName(),
+                        'recordUid' => $item->getRecordUid(),
+                    ]
+                );
             }
 
             $progressBar->advance();
