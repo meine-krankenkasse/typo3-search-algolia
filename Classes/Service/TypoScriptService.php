@@ -15,6 +15,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use Override;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
+use TYPO3\CMS\Extbase\Configuration\Exception\NoServerRequestGivenException;
 
 use function is_array;
 use function is_string;
@@ -63,10 +64,18 @@ readonly class TypoScriptService implements TypoScriptServiceInterface
     #[Override]
     public function getTypoScriptConfiguration(): array
     {
-        $typoscriptConfiguration = $this->configurationManager
-            ->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
+        try {
+            $typoscriptConfiguration = $this->configurationManager
+                ->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
+        } catch (NoServerRequestGivenException) {
+            // No request is bound in CLI/scheduler context (e.g. the index queue worker
+            // command), so TypoScript cannot be resolved there. Field mapping overrides
+            // and other TypoScript-driven settings simply do not apply in that context;
+            // indexers fall back to their own hardcoded defaults.
+            return [];
+        }
 
-        return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'];
+        return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'] ?? [];
     }
 
     /**
