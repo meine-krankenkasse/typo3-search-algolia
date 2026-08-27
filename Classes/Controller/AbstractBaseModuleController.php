@@ -27,6 +27,7 @@ use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Http\ForwardResponse;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Extbase\Mvc\ExtbaseRequestParameters;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 use function is_array;
@@ -79,7 +80,16 @@ abstract class AbstractBaseModuleController extends ActionController
     #[Override]
     protected function errorAction(): ResponseInterface
     {
-        return $this->moduleTemplate->renderResponse('AbstractBaseModule/Error');
+        // The template lives under the concrete controller's own name (e.g.
+        // "QueueModule/Error"), not this abstract base class's name, so the
+        // controller name must be resolved from the request at runtime.
+        $extbaseRequestParameters = $this->request->getAttribute('extbase');
+
+        $controllerName = $extbaseRequestParameters instanceof ExtbaseRequestParameters
+            ? $extbaseRequestParameters->getControllerName()
+            : 'AbstractBaseModule';
+
+        return $this->moduleTemplate->renderResponse($controllerName . '/Error');
     }
 
     /**
