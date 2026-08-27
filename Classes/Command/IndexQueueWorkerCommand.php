@@ -122,7 +122,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             'd',
             InputOption::VALUE_OPTIONAL,
             'The number of documents to index per run',
-            100
+            100,
         );
     }
 
@@ -211,7 +211,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 if ($indexingService instanceof IndexingService) {
                     $indexerInstance?->indexRecord(
                         $indexingService,
-                        $record
+                        $record,
                     );
                 }
 
@@ -246,7 +246,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             $this->registry->set(
                 Constants::EXTENSION_NAME,
                 'index-queue-worker-progress',
-                $progressBar->getProgressPercent()
+                $progressBar->getProgressPercent(),
             );
         }
 
@@ -290,7 +290,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 ->where(
                     $queryBuilder->expr()->eq(
                         'uid',
-                        $item->getRecordUid()
+                        $item->getRecordUid(),
                     )
                 )
                 ->executeQuery()

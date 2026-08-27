@@ -119,7 +119,7 @@ class QueueModuleController extends AbstractBaseModuleController
             ->setIcon(
                 $this->iconFactory->getIcon(
                     'actions-plus',
-                    IconSize::SMALL
+                    IconSize::SMALL,
                 )
             )
             ->setHref($this->getCreateNewRecordUrl());

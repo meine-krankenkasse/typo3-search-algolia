@@ -62,7 +62,7 @@ final class TypoScriptServiceTest extends AbstractFunctionalTestCase
                 'author'      => 'author',
                 'keywords'    => 'keywords',
             ],
-            $subject->getFieldMappingByType('pages')
+            $subject->getFieldMappingByType('pages'),
         );
     }
 
