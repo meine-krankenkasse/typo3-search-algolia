@@ -21,6 +21,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Backend\Template\Components\ComponentFactory;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
@@ -62,6 +63,7 @@ class QueueModuleController extends AbstractBaseModuleController
      * @param IndexingServiceRepository   $indexingServiceRepository Repository for accessing indexing service configurations
      * @param QueueItemRepository         $queueItemRepository       Repository for managing queue items
      * @param QueueStatusServiceInterface $queueStatusService        Service for tracking indexing execution status
+     * @param ComponentFactory            $componentFactory          Factory for creating document header components (e.g. buttons)
      */
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
@@ -70,6 +72,7 @@ class QueueModuleController extends AbstractBaseModuleController
         private readonly IndexingServiceRepository $indexingServiceRepository,
         private readonly QueueItemRepository $queueItemRepository,
         private readonly QueueStatusServiceInterface $queueStatusService,
+        private readonly ComponentFactory $componentFactory,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -113,7 +116,7 @@ class QueueModuleController extends AbstractBaseModuleController
             ->getDocHeaderComponent()
             ->getButtonBar();
 
-        $newButton = $buttonBar->makeLinkButton()
+        $newButton = $this->componentFactory->createLinkButton()
             ->setTitle($this->translate('index_queue.docheader.button.new'))
             ->setShowLabelText(true)
             ->setIcon(

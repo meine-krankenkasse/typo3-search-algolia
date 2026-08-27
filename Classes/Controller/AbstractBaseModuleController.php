@@ -210,7 +210,7 @@ abstract class AbstractBaseModuleController extends ActionController
         if ($pageRecord !== false) {
             $moduleTemplate
                 ->getDocHeaderComponent()
-                ->setMetaInformation($pageRecord);
+                ->setPageBreadcrumb($pageRecord);
         }
 
         $additionalQueryParams = [

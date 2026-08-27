@@ -16,9 +16,10 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
+use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
@@ -81,6 +82,7 @@ class DataHandlerHook
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly PageRepository $pageRepository,
+        private readonly TcaSchemaFactory $tcaSchemaFactory,
     ) {
     }
 
@@ -315,7 +317,8 @@ class DataHandlerHook
     {
         if (
             !ExtensionManagementUtility::isLoaded('workspaces')
-            || !BackendUtility::isTableWorkspaceEnabled($tableName)
+            || !$this->tcaSchemaFactory->has($tableName)
+            || !$this->tcaSchemaFactory->get($tableName)->hasCapability(TcaSchemaCapability::Workspace)
         ) {
             return false;
         }
