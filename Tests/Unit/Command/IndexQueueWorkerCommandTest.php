@@ -174,7 +174,10 @@ class IndexQueueWorkerCommandTest extends TestCase
     {
         $this->registryMock
             ->method('get')
-            ->with(Constants::EXTENSION_NAME, 'index-queue-worker-progress')
+            ->with(
+                Constants::EXTENSION_NAME,
+                'index-queue-worker-progress',
+            )
             ->willReturn(null);
 
         $command = $this->createCommand();
@@ -191,7 +194,10 @@ class IndexQueueWorkerCommandTest extends TestCase
     {
         $this->registryMock
             ->method('get')
-            ->with(Constants::EXTENSION_NAME, 'index-queue-worker-progress')
+            ->with(
+                Constants::EXTENSION_NAME,
+                'index-queue-worker-progress',
+            )
             ->willReturn(0.5);
 
         $command = $this->createCommand();
@@ -208,7 +214,10 @@ class IndexQueueWorkerCommandTest extends TestCase
     {
         $this->registryMock
             ->method('get')
-            ->with(Constants::EXTENSION_NAME, 'index-queue-worker-progress')
+            ->with(
+                Constants::EXTENSION_NAME,
+                'index-queue-worker-progress',
+            )
             ->willReturn(1);
 
         $command = $this->createCommand();
@@ -275,7 +284,10 @@ class IndexQueueWorkerCommandTest extends TestCase
         $this->indexerFactoryMock
             ->method('makeInstanceByType')
             ->with('pages')
-            ->willReturnOnConsecutiveCalls($failingIndexerMock, $succeedingIndexerMock);
+            ->willReturnOnConsecutiveCalls(
+                $failingIndexerMock,
+                $succeedingIndexerMock,
+            );
 
         // The failing item must NOT be removed from the queue (it is retried on
         // the next run); only the succeeding one is.
@@ -302,8 +314,8 @@ class IndexQueueWorkerCommandTest extends TestCase
                 self::callback(
                     static fn (array $context): bool => ($context['tableName'] ?? null) === 'pages'
                         && ($context['recordUid'] ?? null) === 1
-                        && ($context['message'] ?? null) === 'Unable to read the bundled TypoScript setup.'
-                )
+                        && ($context['message'] ?? null) === 'Unable to read the bundled TypoScript setup.',
+                ),
             );
 
         $command = $this->createCommand();

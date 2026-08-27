@@ -99,7 +99,7 @@ class BeforeFileDeletedEventListener extends AbstractFileEventListener
             ->dispatch(
                 new DataHandlerRecordDeleteEvent(
                     'sys_file_metadata',
-                    $metadataUid
+                    $metadataUid,
                 )
             );
     }

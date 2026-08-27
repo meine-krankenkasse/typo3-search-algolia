@@ -33,13 +33,13 @@ final class ArchitectureTest
         return PHPat::rule()
             ->classes(
                 Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model'),
-                Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Model')
+                Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Model'),
             )
             ->shouldNot()
             ->dependOn()
             ->classes(
                 Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository'),
-                Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Repository')
+                Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Repository'),
             )
             ->because('domain models must remain persistence-ignorant.');
     }
@@ -53,7 +53,7 @@ final class ArchitectureTest
         return PHPat::rule()
             ->classes(
                 Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model'),
-                Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Model')
+                Selector::inNamespace('MeineKrankenkasse\Typo3SearchAlgolia\Model'),
             )
             ->shouldNot()
             ->dependOn()

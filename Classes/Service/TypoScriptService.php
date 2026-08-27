@@ -223,7 +223,7 @@ final class TypoScriptService implements TypoScriptServiceInterface, LoggerAware
         return GeneralUtility::trimExplode(
             ',',
             $typoscriptConfiguration['indexer'][FileIndexer::TABLE]['extensions'],
-            true
+            true,
         );
     }
 }

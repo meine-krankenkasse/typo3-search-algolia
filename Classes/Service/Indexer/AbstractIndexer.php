@@ -583,7 +583,7 @@ abstract class AbstractIndexer implements IndexerInterface
         // Merge all page IDs and filter out empty values
         return array_filter(
             array_merge(...$pageIds),
-            static fn (int $pageId): bool => $pageId !== 0
+            static fn (int $pageId): bool => $pageId !== 0,
         );
     }
 

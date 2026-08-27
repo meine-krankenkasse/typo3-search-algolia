@@ -236,7 +236,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                         'message'   => $exception->getMessage(),
                         'tableName' => $item->getTableName(),
                         'recordUid' => $item->getRecordUid(),
-                    ]
+                    ],
                 );
             }
 
