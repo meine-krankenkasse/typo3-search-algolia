@@ -1,3 +1,36 @@
+# 2.0.0
+
+## BREAKING
+
+- WEB-1351: Require TYPO3 v13.4
+- WEB-1351: Drop TYPO3 v12.4 support
+- WEB-1351: Rename EventListener\Resource\AfterFileDeletedEventListener to BeforeFileDeletedEventListener
+- WEB-1351: The renamed listener now listens on BeforeFileDeletedEvent instead of AfterFileDeletedEvent
+- WEB-1351: Update any XClass/Services.yaml override that references the old listener class name
+
+## MISC
+
+- WEB-1351: Port extension to TYPO3 v13.4
+- WEB-1351: Support PHP 8.5
+- WEB-1351: Fix file upload never getting auto-enqueued for indexing
+- WEB-1351: Fix deleted files never being removed from the search index
+- WEB-1351: Favor under-inclusion on file deletion
+- WEB-1351: A failed deletion or a recycler folder can now remove a still-recoverable file's document from the index
+- WEB-1351: Fix wrong template path in shared errorAction()
+- WEB-1351: Fix wrong allowed table in l10n_parent TCA config
+- WEB-1351: Remove dead/colliding Bootstrap classes from the Queue form
+- WEB-1351: Fix XLIFF CDATA whitespace regression in the queue statistics label
+- WEB-1351: Gracefully degrade TypoScript config lookup outside a request context
+- WEB-1351: Resolve TypoScript field mapping in CLI context instead of degrading silently
+- WEB-1351: Add mutation testing with Infection
+- WEB-1351: Add architecture tests with phpat
+- WEB-1351: Add copy/paste detection with jscpd
+- WEB-1351: Upgrade base php-cs-fixer ruleset from @PER-CS2x0 to @PER-CS3x0
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.3.4
 
 ## MISC

@@ -21,8 +21,8 @@ relevant search results.
 - Support for excluding specific content from search
 
 ## Requirements
-- TYPO3 v12.4
-- PHP >=8.3 and <8.5
+- TYPO3 v13.4
+- PHP >=8.3 and <8.6
 - Algolia account with API credentials
 
 ## Quick Start
