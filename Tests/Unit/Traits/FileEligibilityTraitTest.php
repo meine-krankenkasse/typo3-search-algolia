@@ -14,7 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Traits;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Traits\Fixtures\FileEligibilityTraitTestSubject;
 use MeineKrankenkasse\Typo3SearchAlgolia\Traits\FileEligibilityTrait;
 use Override;
-use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Resource\File;
@@ -28,7 +28,7 @@ use TYPO3\CMS\Core\Resource\MetaDataAspect;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-#[CoversClass(FileEligibilityTrait::class)]
+#[CoversTrait(FileEligibilityTrait::class)]
 class FileEligibilityTraitTest extends TestCase
 {
     private FileEligibilityTraitTestSubject $subject;

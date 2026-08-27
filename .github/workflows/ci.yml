@@ -30,6 +30,7 @@ jobs:
                 uses: shivammathur/setup-php@v2
                 with:
                     php-version: ${{ matrix.php }}
+                    coverage: pcov
 
             -   name: Validate composer.json and composer.lock
                 run: composer validate
@@ -77,3 +78,7 @@ jobs:
             -   name: Fractor
                 if: ${{ success() }}
                 run: composer ci:test:php:fractor
+
+            -   name: Mutation testing
+                if: ${{ success() }}
+                run: composer ci:test:php:mutation
