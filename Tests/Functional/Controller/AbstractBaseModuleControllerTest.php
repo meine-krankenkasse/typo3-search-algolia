@@ -41,10 +41,13 @@ use TYPO3Fluid\Fluid\View\Exception\InvalidTemplateResourceException;
  * base class's own name) drives template resolution.
  * errorActionRendersTheConcreteControllersOwnErrorTemplate() is a
  * complementary smoke test that the real, shipped QueueModule/Error.html
- * template resolves and renders without error - it alone does not
- * discriminate the bug, since AdministrationModule/Error.html and
- * QueueModule/Error.html are byte-identical and either would render
- * successfully.
+ * template resolves and renders without error - it also errors against the
+ * pre-37992fc code (missing AbstractBaseModule/Error.html), but would NOT
+ * catch a near-miss regression where the resolved name is wrong-but-still-an-
+ * existing-template (e.g. hardcoded to 'AdministrationModule/Error' instead
+ * of resolved dynamically) - that scenario is only caught by
+ * errorActionResolvesTheRequestedControllerNameIntoTheTemplatePath(), which
+ * uses a name with no matching template at all.
  * errorActionFallsBackToAbstractBaseModuleErrorTemplateWithoutExtbaseAttribute()
  * covers the other branch (no ExtbaseRequestParameters attribute at all).
  *
@@ -89,9 +92,12 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
      */
     private function createModuleRequest(?ExtbaseRequestParameters $extbaseRequestParameters): RequestInterface
     {
-        $route = new Route('/module/typo3-search-algolia/queue', [
-            'packageName' => 'meine-krankenkasse/typo3-search-algolia',
-        ]);
+        $route = new Route(
+            '/module/typo3-search-algolia/queue',
+            [
+                'packageName' => 'meine-krankenkasse/typo3-search-algolia',
+            ],
+        );
 
         $requestMock = self::createStub(RequestInterface::class);
         $requestMock

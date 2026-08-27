@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Configuration;
 
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -29,6 +30,8 @@ use function dirname;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
+// Exercises TCA config arrays, not a class.
+#[CoversNothing]
 final class TcaTest extends TestCase
 {
     /**
@@ -54,7 +57,7 @@ final class TcaTest extends TestCase
 
         self::assertSame(
             $tableName,
-            $tca['columns']['l10n_parent']['config']['allowed'] ?? null
+            $tca['columns']['l10n_parent']['config']['allowed'] ?? null,
         );
     }
 }
