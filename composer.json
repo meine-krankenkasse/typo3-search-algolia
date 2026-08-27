@@ -33,16 +33,16 @@
         "symfony/polyfill-php84": "^1.33"
     },
     "require-dev": {
-        "a9f/typo3-fractor": "^0.5",
+        "a9f/typo3-fractor": "^1.0",
         "friendsofphp/php-cs-fixer": "^3.65",
         "overtrue/phplint": "^9.5",
-        "phpstan/phpstan": "^1.0 || ^2.0",
-        "phpstan/phpstan-deprecation-rules": "^1.0 || ^2.0",
-        "phpstan/phpstan-phpunit": "^1.0 || ^2.0",
-        "phpstan/phpstan-strict-rules": "^1.0 || ^2.0",
-        "saschaegerer/phpstan-typo3": "^1.0 || ^2.0",
-        "ssch/typo3-rector": "^2.0 || ^3.0",
-        "typo3/testing-framework": "^8.0 || ^9.0"
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "saschaegerer/phpstan-typo3": "^2.0",
+        "ssch/typo3-rector": "^3.0",
+        "typo3/testing-framework": "^9.0"
     },
     "suggest": {
         "typo3/cms-workspaces": "Required for workspace support and automatic reindexing when publishing workspace records"
