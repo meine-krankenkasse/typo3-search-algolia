@@ -14,6 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 use Doctrine\DBAL\ArrayParameterType;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\Collection\AbstractFileCollection;
+use TYPO3\CMS\Core\Resource\Collection\FileCollectionRegistry;
 
 /**
  * Repository for accessing and filtering file collections stored in the database.
@@ -31,7 +32,7 @@ use TYPO3\CMS\Core\Resource\Collection\AbstractFileCollection;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRepository
+readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRepository
 {
     /**
      * Initializes the repository with the database connection pool.
@@ -39,13 +40,20 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
      * This constructor injects the TYPO3 connection pool that is used
      * throughout the repository for database operations. The connection
      * pool provides access to the database connections needed for
-     * retrieving file collections.
+     * retrieving file collections. The parent constructor is called
+     * explicitly because the parent's own methods (e.g. the inherited
+     * queryMultipleRecords() used by findAllByCollectionUids()) rely on
+     * its own private $connectionPool/$fileCollectionRegistry properties,
+     * which stay uninitialized otherwise.
      *
-     * @param ConnectionPool $connectionPool The TYPO3 database connection pool
+     * @param ConnectionPool         $connectionPool         The TYPO3 database connection pool
+     * @param FileCollectionRegistry $fileCollectionRegistry The TYPO3 file collection registry
      */
     public function __construct(
         private readonly ConnectionPool $connectionPool,
+        FileCollectionRegistry $fileCollectionRegistry,
     ) {
+        parent::__construct($this->connectionPool, $fileCollectionRegistry);
     }
 
     /**
@@ -66,7 +74,7 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
     public function findAllByCollectionUids(array $collectionIds = []): array
     {
         $queryBuilder = $this->connectionPool
-            ->getQueryBuilderForTable($this->table);
+            ->getQueryBuilderForTable('sys_file_collection');
 
         $constraints = [];
 
@@ -95,7 +103,7 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
         }
 
         $queryBuilder = $this->connectionPool
-            ->getQueryBuilderForTable($this->table);
+            ->getQueryBuilderForTable('sys_file_collection');
 
         /** @var list<array{uid: int, type: string, folder_identifier: string, recursive: int, category: int}> $rows */
         $rows = $queryBuilder
@@ -106,7 +114,7 @@ class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRe
                 'recursive',
                 'category',
             )
-            ->from($this->table)
+            ->from('sys_file_collection')
             ->where(
                 $queryBuilder->expr()->in(
                     'uid',
