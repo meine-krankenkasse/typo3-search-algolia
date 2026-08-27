@@ -36,6 +36,7 @@
         "a9f/typo3-fractor": "^1.0",
         "friendsofphp/php-cs-fixer": "^3.65",
         "overtrue/phplint": "^9.5",
+        "phpat/phpat": "^0.12.4",
         "phpstan/phpstan": "^2.0",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
