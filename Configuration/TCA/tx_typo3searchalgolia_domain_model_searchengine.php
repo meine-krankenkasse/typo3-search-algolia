@@ -28,20 +28,16 @@ return [
         'transOrigDiffSourceField' => 'l10n_diffsource',
         'translationSource'        => 'l10n_source',
         'default_sortby'           => 'title ASC',
-        'searchFields'             => 'title, description',
         'enablecolumns'            => [
             'disabled' => 'hidden',
         ],
     ],
-    'interface' => [
-        'maxSingleDBListItems' => 50,
-    ],
     'types' => [
         '1' => [
             'showitem' => '
-                --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:general,
+                --div--;core.form.tabs:general,
                     --palette--;;standard,
-                --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.access,
+                --div--;core.form.tabs:access,
                     --palette--;;visibility,
             ',
         ],
@@ -52,7 +48,7 @@ return [
             'showitem' => 'title, --linebreak--, description, --linebreak--, engine, --linebreak--, index_name',
         ],
         'visibility' => [
-            'label'    => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.palettes.visibility',
+            'label'    => 'core.form.palettes:visibility',
             'showitem' => 'hidden',
         ],
     ],
@@ -94,13 +90,13 @@ return [
         'crdate' => [
             'label'  => 'crdate',
             'config' => [
-                'type' => 'datetime',
+                'type' => 'datetime', 'searchable' => false,
             ],
         ],
         'tstamp' => [
             'label'  => 'tstamp',
             'config' => [
-                'type' => 'datetime',
+                'type' => 'datetime', 'searchable' => false,
             ],
         ],
         'starttime' => [
@@ -112,6 +108,7 @@ return [
                 'behaviour' => [
                     'allowLanguageSynchronization' => true,
                 ],
+                'searchable' => false,
             ],
         ],
         'endtime' => [
@@ -133,6 +130,7 @@ return [
                 'behaviour' => [
                     'allowLanguageSynchronization' => true,
                 ],
+                'searchable' => false,
             ],
         ],
         'hidden' => [
@@ -190,10 +188,11 @@ return [
             'label'       => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_searchengine.index_name',
             'description' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:tx_typo3searchalgolia_domain_model_searchengine.index_name.description',
             'config'      => [
-                'type'     => 'input',
-                'size'     => 40,
-                'eval'     => 'trim',
-                'required' => true,
+                'type'       => 'input',
+                'size'       => 40,
+                'eval'       => 'trim',
+                'required'   => true,
+                'searchable' => false,
             ],
         ],
     ],
