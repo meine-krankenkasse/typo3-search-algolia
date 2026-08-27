@@ -72,7 +72,7 @@ class IndexingServiceRepository extends Repository
      *
      * @param int[] $indexerUIDs Array of indexing service UIDs to retrieve
      *
-     * @return QueryResultInterface<IndexingService> Collection of matching indexing service objects
+     * @return QueryResultInterface<int, IndexingService> Collection of matching indexing service objects
      *
      * @throws InvalidQueryException If the query cannot be executed properly
      */
@@ -110,7 +110,7 @@ class IndexingServiceRepository extends Repository
      *
      * @param string $tableName The database table name to find indexing services for
      *
-     * @return QueryResultInterface<IndexingService> Collection of matching indexing service objects
+     * @return QueryResultInterface<int, IndexingService> Collection of matching indexing service objects
      */
     public function findAllByTableName(string $tableName): QueryResultInterface
     {

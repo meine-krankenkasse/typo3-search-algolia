@@ -24,6 +24,7 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Folder;
+use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -47,6 +48,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class QueueProvider extends AbstractProvider
 {
     use FileEligibilityTrait;
+
     /**
      * The current file or folder object being processed.
      *
@@ -54,7 +56,7 @@ class QueueProvider extends AbstractProvider
      * is being generated for. It's initialized in the initialize() method
      * and used throughout the class to determine what actions are available.
      */
-    private Folder|File|null $record = null;
+    private Folder|File|ProcessedFile|null $record = null;
 
     /**
      * Configuration for the context menu items provided by this class.

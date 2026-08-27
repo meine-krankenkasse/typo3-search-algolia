@@ -55,6 +55,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
+
     /**
      * The current document assembled event being processed.
      *

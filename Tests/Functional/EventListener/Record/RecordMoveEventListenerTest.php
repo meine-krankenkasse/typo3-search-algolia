@@ -152,9 +152,9 @@ final class RecordMoveEventListenerTest extends AbstractFunctionalTestCase
         // previousPid is null by default, targetPid differs from null
         $event = new DataHandlerRecordMoveEvent('pages', 2, 3);
 
-        // Should not throw - null !== 3, so move is processed
-        ($this->subject)($event);
+        self::expectNotToPerformAssertions();
 
-        self::assertTrue(true);
+        // null !== 3, so move is processed
+        ($this->subject)($event);
     }
 }

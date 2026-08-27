@@ -77,8 +77,6 @@ class DataHandlerHook
      *
      * @param EventDispatcherInterface $eventDispatcher The event dispatcher to dispatch events to listeners
      * @param PageRepository           $pageRepository  The repository for fetching and managing page records
-     *
-     * @return void
      */
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,

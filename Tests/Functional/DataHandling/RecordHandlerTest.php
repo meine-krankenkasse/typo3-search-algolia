@@ -291,10 +291,9 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
             ->method('makeInstanceByType')
             ->willReturn(null);
 
-        // Should not throw
-        $this->subject->updateRecordInQueue(1, 'pages', 2);
+        self::expectNotToPerformAssertions();
 
-        self::assertTrue(true);
+        $this->subject->updateRecordInQueue(1, 'pages', 2);
     }
 
     // -----------------------------------------------------------------------
@@ -436,7 +435,8 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
             ->method('makeInstanceBySearchEngineModel')
             ->willReturn(null);
 
-        // Should not throw, deleteRecordFromSearchEngine returns early
+        // deleteRecordFromSearchEngine() returns early; dequeueOne() above
+        // verifies the record was still removed from the queue.
         $this->subject->deleteRecord(
             $indexingServiceMock,
             $indexerMock,
@@ -444,7 +444,5 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
             42,
             true
         );
-
-        self::assertTrue(true);
     }
 }

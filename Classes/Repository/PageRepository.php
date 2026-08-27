@@ -183,7 +183,7 @@ readonly class PageRepository implements PageRepositoryInterface
      * This method traverses the page tree starting from a specific page and
      * collects all subpages down to the specified depth. It automatically:
      * - Excludes the starting page itself from the results
-     * - Filters out system pages (recycler and backend user section pages)
+     * - Filters out system pages (backend user section pages)
      * - Respects workspace and deletion restrictions
      * - Optionally filters out hidden pages
      *
@@ -244,7 +244,6 @@ readonly class PageRepository implements PageRepositoryInterface
                     $queryBuilder->expr()->notIn(
                         'doktype',
                         [
-                            \TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_RECYCLER,
                             \TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_BE_USER_SECTION,
                         ]
                     )

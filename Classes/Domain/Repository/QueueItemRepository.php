@@ -111,7 +111,7 @@ class QueueItemRepository extends Repository
      *
      * @param int $limit The maximum number of queue items to retrieve
      *
-     * @return QueryResultInterface<QueueItem> Collection of queue items ready for processing
+     * @return QueryResultInterface<int, QueueItem> Collection of queue items ready for processing
      */
     public function findAllLimited(int $limit): QueryResultInterface
     {

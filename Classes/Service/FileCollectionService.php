@@ -53,8 +53,6 @@ final readonly class FileCollectionService
      * @param FileCollectionRepository $fileCollectionRepository Repository for handling file collection operations.
      * @param FileRepository           $fileRepository           Repository for handling file-related operations.
      * @param CategoryRepository       $categoryRepository       Repository for handling category-related operations.
-     *
-     * @return void
      */
     public function __construct(
         private FileCollectionRepository $fileCollectionRepository,
@@ -145,13 +143,7 @@ final readonly class FileCollectionService
      */
     private function hasFolderCollectionMatch(File $file, array $collectionRows): bool
     {
-        $storage = $file->getStorage();
-
-        if ($storage === null) {
-            return false;
-        }
-
-        $storageUid = $storage->getUid();
+        $storageUid = $file->getStorage()->getUid();
 
         // Example: "1:/Dokumente/foo.pdf"
         $storagePrefixedFileIdentifier = $storageUid . ':' . $file->getIdentifier();

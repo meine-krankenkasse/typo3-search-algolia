@@ -53,8 +53,6 @@ class RecordMoveEventListener
      *
      * @param RecordHandler  $recordHandler  The handler for managing records.
      * @param PageRepository $pageRepository The repository for managing page data.
-     *
-     * @return void
      */
     public function __construct(
         private readonly RecordHandler $recordHandler,

@@ -115,7 +115,7 @@ class AdministrationModuleController extends AbstractBaseModuleController
                 ->buildUriFromRoute('mkk_typo3_search_administration')
         );
 
-        return $this->moduleTemplate->renderResponse();
+        return $this->moduleTemplate->renderResponse('AdministrationModule/Index');
     }
 
     /**

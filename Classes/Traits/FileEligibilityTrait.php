@@ -43,7 +43,7 @@ trait FileEligibilityTrait
             return false;
         }
 
-        return ($file->isIndexed() === true)
+        return $file->isIndexed()
             && $this->isExtensionAllowed($file, $allowedFileExtensions)
             && $file->getMetaData()->offsetExists('uid')
             && $this->isIndexable($file);

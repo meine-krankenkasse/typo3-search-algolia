@@ -59,8 +59,6 @@ class RecordDeleteEventListener
      * @param RecordHandler    $recordHandler    Instance of RecordHandler to manage records.
      * @param RecordRepository $recordRepository Instance of RecordRepository for data storage operations related to records.
      * @param PageRepository   $pageRepository   Instance of PageRepository for handling pages.
-     *
-     * @return void
      */
     public function __construct(
         private readonly RecordHandler $recordHandler,

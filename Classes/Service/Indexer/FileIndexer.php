@@ -49,6 +49,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class FileIndexer extends AbstractIndexer
 {
     use FileEligibilityTrait;
+
     /**
      * The database table name for file metadata.
      *

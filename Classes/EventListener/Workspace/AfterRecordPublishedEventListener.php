@@ -39,8 +39,6 @@ readonly class AfterRecordPublishedEventListener
      * Constructor method for initializing the class.
      *
      * @param EventDispatcherInterface $eventDispatcher An instance of EventDispatcherInterface for event handling
-     *
-     * @return void
      */
     public function __construct(
         protected EventDispatcherInterface $eventDispatcher,

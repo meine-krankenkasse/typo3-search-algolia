@@ -1,24 +1,34 @@
 parameters:
 	ignoreErrors:
 		-
-			message: """
-				#^Call to deprecated method setIgnoreEncryption\\(\\) of class Smalot\\\\PdfParser\\\\Config\\:
+			message: '#^Parameter &\$fieldDefinition by\-ref type of method MeineKrankenkasse\\Typo3SearchAlgolia\\Backend\\TcaItemsProcessorFunctions\:\:populateAvailablePageTypes\(\) expects array\<string, mixed\>, array given\.$#'
+			identifier: parameterByRef.type
+			count: 3
+			path: ../Classes/Backend/TcaItemsProcessorFunctions.php
+
+		-
+			message: '''
+				#^Call to deprecated method setIgnoreEncryption\(\) of class Smalot\\PdfParser\\Config\:
 				this is a temporary workaround, don't rely on it$#
-			"""
+			'''
+			identifier: method.deprecated
 			count: 1
 			path: ../Classes/EventListener/UpdateAssembledFileDocumentEventListener.php
 
 		-
-			message: "#^Call to method getRecordId\\(\\) on an unknown class TYPO3\\\\CMS\\\\Workspaces\\\\Event\\\\AfterRecordPublishedEvent\\.$#"
+			message: '#^Call to method getRecordId\(\) on an unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
+			identifier: class.notFound
 			count: 1
 			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php
 
 		-
-			message: "#^Call to method getTable\\(\\) on an unknown class TYPO3\\\\CMS\\\\Workspaces\\\\Event\\\\AfterRecordPublishedEvent\\.$#"
+			message: '#^Call to method getTable\(\) on an unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
+			identifier: class.notFound
 			count: 1
 			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php
 
 		-
-			message: "#^PHPDoc tag @var for variable \\$event contains unknown class TYPO3\\\\CMS\\\\Workspaces\\\\Event\\\\AfterRecordPublishedEvent\\.$#"
+			message: '#^PHPDoc tag @var for variable \$event contains unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
+			identifier: class.notFound
 			count: 1
 			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php

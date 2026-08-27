@@ -79,7 +79,7 @@ abstract class AbstractBaseModuleController extends ActionController
     #[Override]
     protected function errorAction(): ResponseInterface
     {
-        return $this->moduleTemplate->renderResponse();
+        return $this->moduleTemplate->renderResponse('AbstractBaseModule/Error');
     }
 
     /**

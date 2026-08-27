@@ -24,6 +24,6 @@ return FractorConfiguration::configure()
     )
     ->withSets(
         [
-            Typo3LevelSetList::UP_TO_TYPO3_12,
+            Typo3LevelSetList::UP_TO_TYPO3_13,
         ]
     );
