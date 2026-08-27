@@ -27,6 +27,7 @@ use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use TYPO3\CMS\Core\Exception\Page\PageNotFoundException;
 
 /**
@@ -47,7 +48,7 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
 
     private MockObject&IndexerInterface $indexerMock;
 
-    private MockObject&SearchEngineFactory $searchEngineFactoryMock;
+    private Stub&SearchEngineFactory $searchEngineFactoryMock;
 
     private RecordDeleteEventListener $subject;
 
@@ -74,7 +75,7 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
             ->willReturn($this->indexerMock);
 
         $this->indexerFactoryMock      = $this->createMock(IndexerFactory::class);
-        $this->searchEngineFactoryMock = $this->createMock(SearchEngineFactory::class);
+        $this->searchEngineFactoryMock = self::createStub(SearchEngineFactory::class);
 
         // IndexingServiceRepository via DI uses Extbase persistence
         $indexingServiceRepository = $this->get(IndexingServiceRepository::class);
