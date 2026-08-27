@@ -11,12 +11,16 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use Override;
+use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\Configuration\Exception\NoServerRequestGivenException;
 
+use function file_get_contents;
 use function is_array;
 use function is_string;
 
@@ -45,10 +49,13 @@ readonly class TypoScriptService implements TypoScriptServiceInterface
      * Initializes the service with the TYPO3 configuration manager
      * for accessing TypoScript settings.
      *
-     * @param ConfigurationManagerInterface $configurationManager The TYPO3 configuration manager
+     * @param ConfigurationManagerInterface $configurationManager    The TYPO3 configuration manager
+     * @param TypoScriptStringFactory       $typoScriptStringFactory Factory used to parse the extension's own
+     *                                                               bundled TypoScript when no request is bound
      */
     public function __construct(
         private ConfigurationManagerInterface $configurationManager,
+        private TypoScriptStringFactory $typoScriptStringFactory,
     ) {
     }
 
@@ -69,10 +76,20 @@ readonly class TypoScriptService implements TypoScriptServiceInterface
                 ->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
         } catch (NoServerRequestGivenException) {
             // No request is bound in CLI/scheduler context (e.g. the index queue worker
-            // command), so TypoScript cannot be resolved there. Field mapping overrides
-            // and other TypoScript-driven settings simply do not apply in that context;
-            // indexers fall back to their own hardcoded defaults.
-            return [];
+            // command), so site TypoScript cannot be resolved the normal request-bound way.
+            // Parse the extension's own bundled setup.typoscript directly instead, which
+            // covers the module.tx_typo3searchalgolia field mappings this service reads.
+            // Note: a project-level TypoScript override of these settings does not apply
+            // in this fallback, only the extension's shipped defaults are used here.
+            $typoscriptConfiguration = $this->typoScriptStringFactory
+                ->parseFromStringWithIncludes(
+                    'typo3-search-algolia-cli-fallback',
+                    (string) file_get_contents(
+                        ExtensionManagementUtility::extPath(Constants::EXTENSION_NAME)
+                        . 'Configuration/TypoScript/setup.typoscript'
+                    )
+                )
+                ->toArray();
         }
 
         return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'] ?? [];

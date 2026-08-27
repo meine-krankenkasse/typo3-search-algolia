@@ -32,11 +32,14 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use ReflectionProperty;
 use RuntimeException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\TypoScript\Tokenizer\TokenizerInterface;
+use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 /**
@@ -60,6 +63,21 @@ class FileIndexerTest extends TestCase
 {
     private FileIndexer $subject;
 
+    /**
+     * Creates a TypoScriptService instance with stub collaborators, since these
+     * tests exercise indexer behaviour, not TypoScript resolution itself.
+     */
+    private function createTypoScriptService(): TypoScriptService
+    {
+        return new TypoScriptService(
+            $this->createMock(ConfigurationManagerInterface::class),
+            new TypoScriptStringFactory(
+                self::createStub(ContainerInterface::class),
+                self::createStub(TokenizerInterface::class),
+            ),
+        );
+    }
+
     #[Override]
     protected function setUp(): void
     {
@@ -80,9 +98,7 @@ class FileIndexerTest extends TestCase
             $this->createMock(ResourceFactory::class),
             $fileCollectionRepository,
             $fileRepository,
-            new TypoScriptService(
-                $this->createMock(ConfigurationManagerInterface::class),
-            ),
+            $this->createTypoScriptService(),
             new FileCollectionService(
                 $fileCollectionRepository,
                 $fileRepository,
@@ -214,9 +230,7 @@ class FileIndexerTest extends TestCase
             $this->createMock(ResourceFactory::class),
             $fileCollectionRepository,
             $fileRepository,
-            new TypoScriptService(
-                $this->createMock(ConfigurationManagerInterface::class),
-            ),
+            $this->createTypoScriptService(),
             new FileCollectionService(
                 $fileCollectionRepository,
                 $fileRepository,

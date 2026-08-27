@@ -15,10 +15,22 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
+use TYPO3\CMS\Core\TypoScript\Tokenizer\TokenizerInterface;
+use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 /**
  * Unit tests for TypoScriptService.
+ *
+ * These tests cover the request-bound path (ConfigurationManagerInterface mocked
+ * to return a fixed TypoScript array). The NoServerRequestGivenException fallback
+ * added for CLI/scheduler context is NOT covered here: it parses real TypoScript
+ * via TypoScriptStringFactory, whose collaborators (RootNode, and the factory
+ * itself) are final classes PHPUnit cannot double, and meaningfully exercising the
+ * real tokenizer/AST pipeline needs the DI container. That path is covered by
+ * MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Service\TypoScriptServiceTest
+ * instead, which resolves the service from the real container without a bound request.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -31,6 +43,10 @@ class TypoScriptServiceTest extends TestCase
      * Creates a TypoScriptService instance with a mocked ConfigurationManager
      * that returns the given TypoScript configuration.
      *
+     * The TypoScriptStringFactory collaborator is a real instance built from stub
+     * dependencies: it is never invoked on this (request-bound, non-throwing) path,
+     * so its own collaborators never need to do real work.
+     *
      * @param array<string, mixed> $typoScriptConfig The raw TypoScript config (with dots)
      */
     private function createSubjectWithConfig(array $typoScriptConfig): TypoScriptService
@@ -41,7 +57,12 @@ class TypoScriptServiceTest extends TestCase
             ->with(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT)
             ->willReturn($typoScriptConfig);
 
-        return new TypoScriptService($configurationManagerMock);
+        $typoScriptStringFactory = new TypoScriptStringFactory(
+            self::createStub(ContainerInterface::class),
+            self::createStub(TokenizerInterface::class),
+        );
+
+        return new TypoScriptService($configurationManagerMock, $typoScriptStringFactory);
     }
 
     /**
