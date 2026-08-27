@@ -12,9 +12,13 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
 use Doctrine\DBAL\ArrayParameterType;
+use TYPO3\CMS\Core\Collection\CollectionInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\Collection\AbstractFileCollection;
 use TYPO3\CMS\Core\Resource\Collection\FileCollectionRegistry;
+
+use function array_filter;
+use function array_values;
 
 /**
  * Repository for accessing and filtering file collections stored in the database.
@@ -67,6 +71,13 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
      * that have been configured for indexing in the indexing service settings.
      * These collections define which files should be included in the search index.
      *
+     * The parent's queryMultipleRecords() is typed to the generic CollectionInterface
+     * since TYPO3 v14, but every 'sys_file_collection' record resolves through
+     * FileCollectionRegistry to an AbstractFileCollection subclass by TYPO3's own
+     * convention. Narrow it back here rather than trusting the widened interface,
+     * since callers (e.g. FileIndexer) rely on AbstractFileCollection-specific
+     * methods like loadContents().
+     *
      * @param int[] $collectionIds Array of file collection UIDs to retrieve
      *
      * @return AbstractFileCollection[] Array of file collection objects
@@ -82,7 +93,14 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
             $constraints[] = $queryBuilder->expr()->in('uid', $collectionIds);
         }
 
-        return $this->queryMultipleRecords($constraints) ?? [];
+        $collections = $this->queryMultipleRecords($constraints) ?? [];
+
+        return array_values(
+            array_filter(
+                $collections,
+                static fn (CollectionInterface $collection): bool => $collection instanceof AbstractFileCollection,
+            ),
+        );
     }
 
     /**
