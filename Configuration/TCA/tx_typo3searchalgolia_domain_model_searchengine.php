@@ -90,13 +90,15 @@ return [
         'crdate' => [
             'label'  => 'crdate',
             'config' => [
-                'type' => 'datetime', 'searchable' => false,
+                'type'       => 'datetime',
+                'searchable' => false,
             ],
         ],
         'tstamp' => [
             'label'  => 'tstamp',
             'config' => [
-                'type' => 'datetime', 'searchable' => false,
+                'type'       => 'datetime',
+                'searchable' => false,
             ],
         ],
         'starttime' => [
