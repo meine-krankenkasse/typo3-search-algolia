@@ -44,7 +44,7 @@ use function is_string;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class TypoScriptService implements TypoScriptServiceInterface, LoggerAwareInterface
+final class TypoScriptService implements TypoScriptServiceInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
@@ -69,10 +69,17 @@ class TypoScriptService implements TypoScriptServiceInterface, LoggerAwareInterf
      * @param ConfigurationManagerInterface $configurationManager    The TYPO3 configuration manager
      * @param TypoScriptStringFactory       $typoScriptStringFactory Factory used to parse the extension's own
      *                                                               bundled TypoScript when no request is bound
+     * @param string|null                   $cliFallbackSetupPath    Overrides the path to the bundled
+     *                                                               setup.typoscript used by the CLI fallback.
+     *                                                               Not wired in Services.yaml, exists only so
+     *                                                               tests can point this at a throwaway fixture
+     *                                                               instead of mutating the extension's real,
+     *                                                               source-checked-out setup.typoscript file.
      */
     public function __construct(
         private readonly ConfigurationManagerInterface $configurationManager,
         private readonly TypoScriptStringFactory $typoScriptStringFactory,
+        private readonly ?string $cliFallbackSetupPath = null,
     ) {
     }
 
@@ -104,10 +111,7 @@ class TypoScriptService implements TypoScriptServiceInterface, LoggerAwareInterf
      * e.g. the index queue worker command) and the normal request-bound
      * ConfigurationManager cannot resolve site TypoScript.
      *
-     * Known limitations of this fallback, both currently inert (verified: no
-     * project-level TypoScript override of module.tx_typo3searchalgolia exists
-     * anywhere in this installation, and the shipped setup.typoscript has no
-     * [condition] blocks), but relevant to keep in mind for future changes:
+     * Known, durable limitations of this fallback:
      * - A project-level TypoScript override of these settings does not apply
      *   here. parseFromStringWithIncludes() parses only this one file, not the
      *   site's full sys_template cascade the request-bound path would resolve.
@@ -131,10 +135,15 @@ class TypoScriptService implements TypoScriptServiceInterface, LoggerAwareInterf
             . '[condition] blocks are not honored in this context.'
         );
 
-        $setupPath = ExtensionManagementUtility::extPath(Constants::EXTENSION_NAME)
-            . 'Configuration/TypoScript/setup.typoscript';
+        $setupPath = $this->cliFallbackSetupPath ?? (
+            ExtensionManagementUtility::extPath(Constants::EXTENSION_NAME)
+            . 'Configuration/TypoScript/setup.typoscript'
+        );
 
-        $rawTypoScript = file_get_contents($setupPath);
+        // The read failure is deliberately checked and reported via the exception
+        // below, so PHP's own low-level warning for it is suppressed here to avoid
+        // reporting the same single failure twice.
+        $rawTypoScript = @file_get_contents($setupPath);
 
         if ($rawTypoScript === false) {
             throw new RuntimeException(
@@ -143,7 +152,10 @@ class TypoScriptService implements TypoScriptServiceInterface, LoggerAwareInterf
         }
 
         return $this->cliFallbackTypoScript = $this->typoScriptStringFactory
-            ->parseFromStringWithIncludes('typo3-search-algolia-cli-fallback', $rawTypoScript)
+            ->parseFromStringWithIncludes(
+                'typo3-search-algolia-cli-fallback',
+                $rawTypoScript,
+            )
             ->toArray();
     }
 
