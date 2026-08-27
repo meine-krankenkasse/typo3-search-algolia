@@ -96,7 +96,7 @@ readonly class RecordHandler implements RecordHandlerInterface
         foreach ($indexingServices as $indexingService) {
             $indexerInstance = $this->getResponsibleRecordIndexer(
                 $indexingService,
-                $rootPageId
+                $rootPageId,
             );
 
             if (!($indexerInstance instanceof IndexerInterface)) {
@@ -170,7 +170,7 @@ readonly class RecordHandler implements RecordHandlerInterface
     {
         $indexerInstanceGenerator = $this->createIndexerGenerator(
             $rootPageId,
-            PageIndexer::TABLE
+            PageIndexer::TABLE,
         );
 
         foreach ($indexerInstanceGenerator as $indexerInstance) {
@@ -254,7 +254,7 @@ readonly class RecordHandler implements RecordHandlerInterface
                     $indexerInstance,
                     $indexerInstance->getTable(),
                     $contentElementUids,
-                    true
+                    true,
                 );
             } else {
                 $indexerInstance
@@ -333,14 +333,14 @@ readonly class RecordHandler implements RecordHandlerInterface
             $pageRecord = $this->pageRepository
                 ->getPageRecord(
                     'tx_typo3searchalgolia_domain_model_indexingservice',
-                    (int) $indexingService->getUid()
+                    (int) $indexingService->getUid(),
                 );
 
             // Determine the root page ID for the indexing service
             $indexingServiceRootPageId = $this->getRecordRootPageId(
                 $pageRecord,
                 'tx_typo3searchalgolia_domain_model_indexingservice',
-                (int) $indexingService->getUid()
+                (int) $indexingService->getUid(),
             );
 
             // Ignore this indexing service because the root page IDs do not match,
@@ -396,7 +396,7 @@ readonly class RecordHandler implements RecordHandlerInterface
             $this->deleteRecordFromSearchEngine(
                 $indexingService->getSearchEngine(),
                 $tableName,
-                $recordUid
+                $recordUid,
             );
         }
     }
@@ -443,7 +443,7 @@ readonly class RecordHandler implements RecordHandlerInterface
             $this->deleteRecordsFromSearchEngine(
                 $indexingService->getSearchEngine(),
                 $tableName,
-                $recordUids
+                $recordUids,
             );
         }
     }
@@ -486,7 +486,7 @@ readonly class RecordHandler implements RecordHandlerInterface
             ->withIndexName($searchEngine->getIndexName())
             ->deleteFromIndex(
                 $tableName,
-                $recordUid
+                $recordUid,
             );
     }
 
@@ -530,7 +530,7 @@ readonly class RecordHandler implements RecordHandlerInterface
                 ->withIndexName($searchEngine->getIndexName())
                 ->deleteFromIndex(
                     $tableName,
-                    $recordUid
+                    $recordUid,
                 );
         }
     }

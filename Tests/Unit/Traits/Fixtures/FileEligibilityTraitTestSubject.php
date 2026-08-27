@@ -37,8 +37,11 @@ class FileEligibilityTraitTestSubject
         return $this->isExtensionAllowed($file, $fileExtensions);
     }
 
-    public function callIsIndexable(FileInterface $file): bool
+    /**
+     * @param array<string, int|float|string|null> $metaData
+     */
+    public function callIsIndexable(array $metaData): bool
     {
-        return $this->isIndexable($file);
+        return $this->isIndexable($metaData);
     }
 }

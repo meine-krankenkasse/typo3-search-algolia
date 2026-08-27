@@ -14,6 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional;
 use Doctrine\DBAL\Connection as DoctrineConnection;
 use Override;
 use PDO;
+use Pdo\Sqlite;
 use ReflectionProperty;
 use TYPO3\CMS\Core\Database\Driver\DriverConnection;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -55,9 +56,9 @@ abstract class AbstractFunctionalTestCase extends FunctionalTestCase
      * Registers custom SQLite functions that are available in MySQL but not in SQLite.
      *
      * This is necessary because the production code uses MySQL-specific functions
-     * like GREATEST() which are not natively available in SQLite. The TYPO3
-     * DriverConnection wrapper does not support getNativeConnection(), so we use
-     * reflection to access the underlying PDO handle.
+     * like GREATEST() which are not natively available in SQLite. The connection
+     * pool only exposes the Doctrine DBAL wrapper, so reflection is used to reach
+     * the underlying driver connection and its native PDO handle.
      */
     #[Override]
     protected function setUp(): void
@@ -69,10 +70,26 @@ abstract class AbstractFunctionalTestCase extends FunctionalTestCase
         $driverConnection = $reflProperty->getValue($connection);
 
         if ($driverConnection instanceof DriverConnection) {
-            $pdo = $driverConnection->getWrappedConnection();
+            $pdo = $driverConnection->getNativeConnection();
 
-            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-                $pdo->sqliteCreateFunction('GREATEST', max(...), -1);
+            if ($pdo instanceof Sqlite) {
+                // PDO::sqliteCreateFunction() is deprecated since PHP 8.5.0 in favour
+                // of the driver-specific Pdo\Sqlite::createFunction() (available since
+                // PHP 8.4.0, when the PDO driver-specific subclasses were introduced).
+                $pdo->createFunction(
+                    'GREATEST',
+                    max(...),
+                    -1,
+                );
+            } elseif (
+                ($pdo instanceof PDO)
+                && ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite')
+            ) {
+                $pdo->sqliteCreateFunction(
+                    'GREATEST',
+                    max(...),
+                    -1,
+                );
             }
         }
     }
@@ -115,8 +132,8 @@ abstract class AbstractFunctionalTestCase extends FunctionalTestCase
             ->where(
                 $queryBuilder->expr()->eq(
                     $fieldName,
-                    $queryBuilder->createNamedParameter($fieldValue)
-                )
+                    $queryBuilder->createNamedParameter($fieldValue),
+                ),
             )
             ->executeQuery()
             ->fetchAssociative();

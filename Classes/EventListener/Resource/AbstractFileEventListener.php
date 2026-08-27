@@ -32,7 +32,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-abstract class AbstractAfterFileEventListener
+abstract class AbstractFileEventListener
 {
     /**
      * Initializes the file event listener with required dependencies.
@@ -53,7 +53,7 @@ abstract class AbstractAfterFileEventListener
      */
     public function __construct(
         protected readonly EventDispatcherInterface $eventDispatcher,
-        protected FileHandler $fileHandler,
+        protected readonly FileHandler $fileHandler,
     ) {
     }
 }

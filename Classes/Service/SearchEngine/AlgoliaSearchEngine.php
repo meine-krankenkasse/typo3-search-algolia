@@ -108,7 +108,7 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
         ) {
             throw new MissingConfigurationException(
                 'Please provide a valid application ID and API key for the Algolia Search Engine.',
-                1743580689
+                1743580689,
             );
         }
 
@@ -133,7 +133,7 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
         try {
             $this->client = $this->searchClientFactory->create(
                 $this->appId,
-                $this->apiKey
+                $this->apiKey,
             );
 
             return true;
@@ -258,7 +258,7 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
                 $indexName,
                 (new OperationIndexParams())
                     ->setOperation((new OperationType())::MOVE)
-                    ->setDestination($destination)
+                    ->setDestination($destination),
             );
 
         if (is_array($responseData)) {
@@ -317,7 +317,11 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
         } catch (Exception $exception) {
             // Rate limit
             if ($exception->getCode() === 429) {
-                throw new RateLimitException($exception->getMessage(), $exception->getCode());
+                throw new RateLimitException(
+                    $exception->getMessage(),
+                    $exception->getCode(),
+                    $exception,
+                );
             }
         }
 
@@ -343,8 +347,8 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
                 new CreateUniqueDocumentIdEvent(
                     $this,
                     $document->getIndexer()->getTable(),
-                    $document->getRecord()['uid']
-                )
+                    $document->getRecord()['uid'],
+                ),
             );
 
         return $documentIdEvent->getDocumentId();
@@ -374,13 +378,13 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
         // Add the unique ID
         $document->setField(
             'objectID',
-            $this->getUniqueDocumentId($document)
+            $this->getUniqueDocumentId($document),
         );
 
         $responseData = $this->client
             ->saveObject(
                 $this->indexName,
-                $document->getFields()
+                $document->getFields(),
             );
 
         if (is_array($responseData)) {
@@ -434,7 +438,7 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
         $responseData = $this->client
             ->deleteObject(
                 $this->indexName,
-                $documentId
+                $documentId,
             );
 
         if (is_array($responseData)) {

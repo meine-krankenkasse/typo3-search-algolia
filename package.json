@@ -1,0 +1,11 @@
+{
+    "name": "meine-krankenkasse/typo3-search-algolia",
+    "private": true,
+    "description": "Dev tooling for the typo3-search-algolia extension (code duplication detection).",
+    "scripts": {
+        "ci:test:jscpd": "jscpd --config Build/.jscpd.json"
+    },
+    "devDependencies": {
+        "jscpd": "^5.0.16"
+    }
+}

@@ -72,7 +72,7 @@ readonly class ContentRepository implements ContentRepositoryInterface
         $content = $queryBuilder
             ->select(
                 'c.header',
-                'c.pid AS page_uid'
+                'c.pid AS page_uid',
             )
             ->from('tt_content', 'c')
             ->where(
@@ -80,9 +80,9 @@ readonly class ContentRepository implements ContentRepositoryInterface
                     'c.uid',
                     $queryBuilder->createNamedParameter(
                         $uid,
-                        Connection::PARAM_INT
-                    )
-                )
+                        Connection::PARAM_INT,
+                    ),
+                ),
             )
             ->executeQuery()
             ->fetchAssociative();
@@ -126,7 +126,7 @@ readonly class ContentRepository implements ContentRepositoryInterface
         $constraints = [
             $queryBuilder->expr()->eq(
                 'pid',
-                $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)
+                $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT),
             ),
         ];
 
@@ -134,7 +134,7 @@ readonly class ContentRepository implements ContentRepositoryInterface
             // Filter by CType
             $constraints[] = $queryBuilder->expr()->in(
                 'CType',
-                $queryBuilder->quoteArrayBasedValueListToStringList($contentElementTypes)
+                $queryBuilder->quoteArrayBasedValueListToStringList($contentElementTypes),
             );
         }
 

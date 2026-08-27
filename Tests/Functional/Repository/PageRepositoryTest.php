@@ -93,7 +93,7 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
 
     /**
      * Tests that getPageIdsRecursive() returns all sub-pages within
-     * the page tree, excluding recycler pages (doktype=255).
+     * the page tree, excluding Backend User Section pages (doktype=6).
      */
     #[Test]
     public function getPageIdsRecursiveReturnsAllSubPages(): void
@@ -102,7 +102,7 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
 
         sort($pageIds);
 
-        // Should include root (1), sub (2), deep (3), hidden (4) but not recycler (5, doktype=255)
+        // Should include root (1), sub (2), deep (3), hidden (4) but not the Backend User Section (5, doktype=6)
         self::assertContains(1, $pageIds);
         self::assertContains(2, $pageIds);
         self::assertContains(3, $pageIds);
@@ -142,15 +142,15 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
     }
 
     /**
-     * Tests that getPageIdsRecursive() always excludes recycler
-     * pages (doktype=255) from the result set.
+     * Tests that getPageIdsRecursive() always excludes Backend User
+     * Section pages (doktype=6) from the result set.
      */
     #[Test]
-    public function getPageIdsRecursiveExcludesRecycler(): void
+    public function getPageIdsRecursiveExcludesBackendUserSection(): void
     {
         $pageIds = $this->subject->getPageIdsRecursive([1], 99);
 
-        // Recycler (uid=5, doktype=255) always excluded
+        // Backend User Section (uid=5, doktype=6) always excluded
         self::assertNotContains(5, $pageIds);
     }
 

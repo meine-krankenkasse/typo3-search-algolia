@@ -13,6 +13,8 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Traits;
 
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
+use TYPO3\CMS\Core\Resource\MetaDataAspect;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function in_array;
 
@@ -43,10 +45,22 @@ trait FileEligibilityTrait
             return false;
         }
 
-        return ($file->isIndexed() === true)
-            && $this->isExtensionAllowed($file, $allowedFileExtensions)
-            && $file->getMetaData()->offsetExists('uid')
-            && $this->isIndexable($file);
+        if (!$file->isIndexed() || !$this->isExtensionAllowed($file, $allowedFileExtensions)) {
+            return false;
+        }
+
+        $metaData = $file->getMetaData()->get();
+
+        if (!isset($metaData['no_search'])) {
+            // Right after a file was just added, its (cached) metadata aspect only carries
+            // the subset of fields extracted during upload (e.g. width/height/uid), not the
+            // full sys_file_metadata row (e.g. no_search). Only in that case, reload a fresh
+            // aspect instead of silently rejecting the file for a field that simply hasn't
+            // been read yet.
+            $metaData = GeneralUtility::makeInstance(MetaDataAspect::class, $file)->get();
+        }
+
+        return isset($metaData['uid']) && $this->isIndexable($metaData);
     }
 
     /**
@@ -65,13 +79,13 @@ trait FileEligibilityTrait
     /**
      * Determines if a file should be included in the search index.
      *
-     * @param FileInterface $file The file to check
+     * @param array<string, int|float|string|null> $metaData The file's complete metadata record
      *
      * @return bool True if the file should be indexed, false otherwise
      */
-    protected function isIndexable(FileInterface $file): bool
+    protected function isIndexable(array $metaData): bool
     {
-        return $file->hasProperty('no_search')
-            && ((int) $file->getProperty('no_search') === 0);
+        return isset($metaData['no_search'])
+            && ((int) $metaData['no_search'] === 0);
     }
 }

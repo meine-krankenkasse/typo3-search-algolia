@@ -29,7 +29,7 @@ call_user_func(static function (): void {
     ExtensionManagementUtility::addTypoScript(
         Constants::EXTENSION_NAME,
         'setup',
-        '@import "EXT:typo3_search_algolia/Configuration/TypoScript/setup.typoscript"'
+        '@import "EXT:typo3_search_algolia/Configuration/TypoScript/setup.typoscript"',
     );
 
     ExtensionManagementUtility::addService(
@@ -46,7 +46,7 @@ call_user_func(static function (): void {
             'os'          => '',
             'exec'        => '',
             'className'   => AlgoliaSearchEngine::class,
-        ]
+        ],
     );
 
     // Indexer registration
@@ -54,7 +54,7 @@ call_user_func(static function (): void {
         PageIndexer::class,
         PageIndexer::TABLE,
         'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.pages.title',
-        'apps-pagetree-page-default'
+        'apps-pagetree-page-default',
     );
 
     IndexerRegistry::register(
@@ -76,7 +76,7 @@ call_user_func(static function (): void {
             NewsIndexer::class,
             NewsIndexer::TABLE,
             'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang.xlf:indexer.tx_news_domain_model_news.title',
-            'content-news'
+            'content-news',
         );
     }
 

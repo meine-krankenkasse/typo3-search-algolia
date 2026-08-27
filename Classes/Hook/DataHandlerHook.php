@@ -77,8 +77,6 @@ class DataHandlerHook
      *
      * @param EventDispatcherInterface $eventDispatcher The event dispatcher to dispatch events to listeners
      * @param PageRepository           $pageRepository  The repository for fetching and managing page records
-     *
-     * @return void
      */
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
@@ -135,7 +133,7 @@ class DataHandlerHook
 
         $this->eventDispatcher
             ->dispatch(
-                new DataHandlerRecordUpdateEvent($table, $recordUid, $fields)
+                new DataHandlerRecordUpdateEvent($table, $recordUid, $fields),
             );
     }
 
@@ -176,7 +174,7 @@ class DataHandlerHook
         if ($command === 'delete') {
             $this->eventDispatcher
                 ->dispatch(
-                    new DataHandlerRecordDeleteEvent($table, $recordUid)
+                    new DataHandlerRecordDeleteEvent($table, $recordUid),
                 );
         }
     }
@@ -226,11 +224,11 @@ class DataHandlerHook
             $event = new DataHandlerRecordMoveEvent(
                 $table,
                 $recordUid,
-                (int) $commandValue
+                (int) $commandValue,
             );
 
             $event->setPreviousPid(
-                $this->recordMovements[$table][(int) $commandValue] ?? null
+                $this->recordMovements[$table][(int) $commandValue] ?? null,
             );
 
             $this->eventDispatcher->dispatch($event);
@@ -239,7 +237,7 @@ class DataHandlerHook
         if ($command === 'undelete') {
             $this->eventDispatcher
                 ->dispatch(
-                    new DataHandlerRecordUpdateEvent($table, $recordUid)
+                    new DataHandlerRecordUpdateEvent($table, $recordUid),
                 );
         }
     }

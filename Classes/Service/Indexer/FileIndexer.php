@@ -49,6 +49,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class FileIndexer extends AbstractIndexer
 {
     use FileEligibilityTrait;
+
     /**
      * The database table name for file metadata.
      *
@@ -94,7 +95,7 @@ class FileIndexer extends AbstractIndexer
             $pageRepository,
             $searchEngineFactory,
             $queueItemRepository,
-            $documentBuilder
+            $documentBuilder,
         );
     }
 
@@ -172,7 +173,7 @@ class FileIndexer extends AbstractIndexer
         $collectionIds = GeneralUtility::intExplode(
             ',',
             $this->indexingService?->getFileCollections() ?? '',
-            true
+            true,
         );
 
         if (!$this->fileCollectionService->isInAnyCollection($file, $collectionIds)) {
@@ -206,15 +207,16 @@ class FileIndexer extends AbstractIndexer
         $collectionIds = GeneralUtility::intExplode(
             ',',
             $this->indexingService?->getFileCollections() ?? '',
-            true
+            true,
         );
 
         $collections = $this
             ->fileCollectionRepository
             ->findAllByCollectionUids($collectionIds);
 
-        $serviceUid = $this->indexingService?->getUid() ?? 0;
-        $items      = [];
+        $serviceUid            = $this->indexingService?->getUid() ?? 0;
+        $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
+        $items                 = [];
 
         foreach ($collections as $collection) {
             // Load content of the collection
@@ -222,7 +224,7 @@ class FileIndexer extends AbstractIndexer
 
             /** @var File $file */
             foreach ($collection as $file) {
-                if (!$this->isEligible($file, $this->typoScriptService->getAllowedFileExtensions())) {
+                if (!$this->isEligible($file, $allowedFileExtensions)) {
                     continue;
                 }
 

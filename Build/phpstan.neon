@@ -2,7 +2,14 @@ includes:
     - %currentWorkingDirectory%/.build/vendor/phpstan/phpstan-strict-rules/rules.neon
     - %currentWorkingDirectory%/.build/vendor/phpstan/phpstan-deprecation-rules/rules.neon
     - %currentWorkingDirectory%/.build/vendor/saschaegerer/phpstan-typo3/extension.neon
+    - %currentWorkingDirectory%/.build/vendor/phpat/phpat/extension.neon
     - %currentWorkingDirectory%/Build/phpstan-baseline.neon
+
+services:
+    -
+        class: MeineKrankenkasse\Typo3SearchAlgolia\Tests\Architecture\ArchitectureTest
+        tags:
+            - phpat.test
 
 parameters:
     # You can currently choose from 11 levels (0 is the loosest and 10 is the strictest).
@@ -29,3 +36,21 @@ parameters:
     typo3:
         requestGetAttributeMapping:
             route: TYPO3\CMS\Backend\Routing\Route|null
+
+    # Name the offending rule in phpat failure output, otherwise a violation
+    # only says "class X extends class Y", not which of the 5 rules in
+    # ArchitectureTest.php fired.
+    phpat:
+        show_rule_names: true
+
+    ignoreErrors:
+        # Pdo\Sqlite only exists on PHP 8.4+ (our phpVersion floor is 8.3),
+        # but PHPStan can only resolve the class when it itself runs on an
+        # interpreter where it really exists (8.4/8.5), so this shows up on
+        # some PHP versions in the test matrix and not on others. The
+        # instanceof check guarding it is verified runtime-safe on PHP 8.3
+        # (instanceof against a non-existent class evaluates to false there).
+        -
+            message: '#(Class|unknown class) Pdo\\Sqlite#'
+            path: %currentWorkingDirectory%/Tests/Functional/AbstractFunctionalTestCase.php
+            reportUnmatched: false

@@ -30,8 +30,6 @@ class Constants
      * This constant defines the unique identifier for the extension within TYPO3.
      * It is used for accessing extension configuration, registering services,
      * and as a namespace for extension-specific settings in the TYPO3 configuration.
-     *
-     * @var string
      */
     public const string EXTENSION_NAME = 'typo3_search_algolia';
 
@@ -40,8 +38,6 @@ class Constants
      *
      * This constant defines the maximum number of levels to traverse when
      * recursively collecting subpages for indexing operations.
-     *
-     * @var int
      */
     public const int MAX_PAGE_TREE_DEPTH = 99;
 }

@@ -33,7 +33,7 @@ use TYPO3\CMS\Core\Resource\Event\AfterFileMovedEvent;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class AfterFileMovedEventListener extends AbstractAfterFileEventListener
+class AfterFileMovedEventListener extends AbstractFileEventListener
 {
     /**
      * Processes the file moved event and triggers updating of the file's metadata in the search index.
@@ -72,8 +72,8 @@ class AfterFileMovedEventListener extends AbstractAfterFileEventListener
                 new DataHandlerRecordMoveEvent(
                     'sys_file_metadata',
                     $metadataUid,
-                    0
-                )
+                    0,
+                ),
             );
     }
 }

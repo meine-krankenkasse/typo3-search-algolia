@@ -13,29 +13,29 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener\Resource
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\FileHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractAfterFileEventListener;
-use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileDeletedEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractFileEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\BeforeFileDeletedEventListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use TYPO3\CMS\Core\Resource\Event\AfterFileDeletedEvent;
+use TYPO3\CMS\Core\Resource\Event\BeforeFileDeletedEvent;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 
 /**
- * Unit tests for AfterFileDeletedEventListener.
+ * Unit tests for BeforeFileDeletedEventListener.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-#[CoversClass(AbstractAfterFileEventListener::class)]
-#[CoversClass(AfterFileDeletedEventListener::class)]
+#[CoversClass(AbstractFileEventListener::class)]
+#[CoversClass(BeforeFileDeletedEventListener::class)]
 #[UsesClass(DataHandlerRecordDeleteEvent::class)]
-class AfterFileDeletedEventListenerTest extends TestCase
+class BeforeFileDeletedEventListenerTest extends TestCase
 {
     /**
      * Tests that invoking the listener dispatches a DataHandlerRecordDeleteEvent when
@@ -61,12 +61,12 @@ class AfterFileDeletedEventListenerTest extends TestCase
             ->method('dispatch')
             ->with(self::callback(
                 static fn (DataHandlerRecordDeleteEvent $event): bool => $event->getTable() === 'sys_file_metadata'
-                    && $event->getRecordUid() === 456
+                    && $event->getRecordUid() === 456,
             ));
 
-        $fileDeletedEvent = new AfterFileDeletedEvent($fileMock);
+        $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
-        $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
+        $listener = new BeforeFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
     }
 
@@ -93,15 +93,16 @@ class AfterFileDeletedEventListenerTest extends TestCase
             ->expects(self::never())
             ->method('dispatch');
 
-        $fileDeletedEvent = new AfterFileDeletedEvent($fileMock);
+        $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
-        $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
+        $listener = new BeforeFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
     }
 
     /**
      * Tests that invoking the listener returns early without attempting to get the
-     * metadata UID or dispatch any event when the file is already marked as deleted.
+     * metadata UID or dispatch any event when the file is already marked as deleted
+     * (defensive guard against a re-entrant or otherwise already-processed deletion).
      * Verifies that both getMetadataUid() and dispatch() are never called for a
      * deleted File instance.
      */
@@ -125,9 +126,9 @@ class AfterFileDeletedEventListenerTest extends TestCase
             ->expects(self::never())
             ->method('dispatch');
 
-        $fileDeletedEvent = new AfterFileDeletedEvent($fileMock);
+        $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
-        $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
+        $listener = new BeforeFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
     }
 }

@@ -1,0 +1,22 @@
+{
+    "$schema": "https://raw.githubusercontent.com/kucherenko/jscpd/master/apps/jscpd/src/config.schema.json",
+    "path": [
+        "../Classes",
+        "../Configuration"
+    ],
+    "ignore": [
+        "**/*.min.js"
+    ],
+    "format": [
+        "php",
+        "typoscript",
+        "yaml"
+    ],
+    "reporters": [
+        "consoleFull"
+    ],
+    "output": "../.build/jscpd",
+    "threshold": 21,
+    "gitignore": true,
+    "absolute": false
+}

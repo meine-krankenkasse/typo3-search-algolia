@@ -80,7 +80,7 @@ class TcaItemsProcessorFunctions
     /**
      * This method retrieves all available page types from the TYPO3 core and adds them as options to
      * a selection field in the TYPO3 backend. It filters out certain system page types that are not
-     * suitable for indexing (recycler pages, backend user section pages, and spacer pages).
+     * suitable for indexing (backend user section pages and spacer pages).
      *
      * The resulting list is sorted by page type value to provide a consistent
      * ordering in the selection field.
@@ -99,7 +99,6 @@ class TcaItemsProcessorFunctions
         foreach ($fieldDefinition['items'] as $key => $item) {
             // Remove some page types
             switch ((int) $item['value']) {
-                case PageRepository::DOKTYPE_RECYCLER:
                 case PageRepository::DOKTYPE_BE_USER_SECTION:
                 case PageRepository::DOKTYPE_SPACER:
                     unset($fieldDefinition['items'][$key]);
@@ -109,7 +108,7 @@ class TcaItemsProcessorFunctions
 
         usort(
             $fieldDefinition['items'],
-            static fn (array $a, array $b): int => ((int) $a['value']) <=> ((int) $b['value'])
+            static fn (array $a, array $b): int => ((int) $a['value']) <=> ((int) $b['value']),
         );
     }
 

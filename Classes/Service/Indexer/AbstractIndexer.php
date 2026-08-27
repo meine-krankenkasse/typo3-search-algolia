@@ -131,7 +131,7 @@ abstract class AbstractIndexer implements IndexerInterface
             ->getDocument();
 
         $searchEngineService->indexOpen(
-            $indexingService->getSearchEngine()->getIndexName()
+            $indexingService->getSearchEngine()->getIndexName(),
         );
 
         $result = $searchEngineService->documentUpdate($document);
@@ -321,7 +321,7 @@ abstract class AbstractIndexer implements IndexerInterface
 
         return $this->queueItemRepository
             ->bulkInsert(
-                $this->initQueueItemRecords($recordUids)
+                $this->initQueueItemRecords($recordUids),
             );
     }
 
@@ -345,7 +345,7 @@ abstract class AbstractIndexer implements IndexerInterface
 
         return $this->queueItemRepository
             ->bulkInsert(
-                $this->initQueueItemRecords()
+                $this->initQueueItemRecords(),
             );
     }
 
@@ -409,7 +409,7 @@ abstract class AbstractIndexer implements IndexerInterface
         $constraints = array_merge(
             [],
             $this->getPagesQueryConstraint($queryBuilder),
-            $this->getAdditionalQueryConstraints($queryBuilder)
+            $this->getAdditionalQueryConstraints($queryBuilder),
         );
 
         if ($recordUids !== []) {
@@ -557,14 +557,14 @@ abstract class AbstractIndexer implements IndexerInterface
         $pagesSingle = GeneralUtility::intExplode(
             ',',
             $this->indexingService?->getPagesSingle() ?? '',
-            true
+            true,
         );
 
         // Get recursively selected page trees
         $pagesRecursive = GeneralUtility::intExplode(
             ',',
             $this->indexingService?->getPagesRecursive() ?? '',
-            true
+            true,
         );
 
         // Recursively determine all associated pages and subpages
@@ -577,12 +577,13 @@ abstract class AbstractIndexer implements IndexerInterface
                 // Include the parent pages
                 true,
                 // Whether to exclude hidden pages
-                $this->excludeHiddenPages
+                $this->excludeHiddenPages,
             );
 
         // Merge all page IDs and filter out empty values
         return array_filter(
-            array_merge(...$pageIds)
+            array_merge(...$pageIds),
+            static fn (int $pageId): bool => $pageId !== 0,
         );
     }
 

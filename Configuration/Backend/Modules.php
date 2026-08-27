@@ -32,7 +32,7 @@ return [
         'labels'                                   => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang_mod_search.xlf',
         'extensionName'                            => 'Typo3SearchAlgolia',
         'inheritNavigationComponentFromMainModule' => false,
-        'navigationComponent'                      => '@typo3/backend/page-tree/page-tree-element',
+        'navigationComponent'                      => '@typo3/backend/tree/page-tree-element',
     ],
     // MKK search sub modules
     'mkk_typo3_search_administration' => [

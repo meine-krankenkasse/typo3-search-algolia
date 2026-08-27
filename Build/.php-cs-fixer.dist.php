@@ -32,10 +32,35 @@ return (new PhpCsFixer\Config())
     ->setUnsupportedPhpVersionAllowed(true)
     ->setRules([
         '@PSR12'                          => true,
-        '@PER-CS2x0'                      => true,
+        '@PER-CS3x0'                      => true,
         '@Symfony'                        => true,
 
+        // @PER-CS3x0's operator_linebreak default (all binary operators) is
+        // narrowed by @Symfony below to only_booleans => true. Left as-is
+        // deliberately, no override for operator_linebreak follows, unlike
+        // trailing_comma_in_multiline below, this narrowing is not an
+        // oversight. Checked against friendsofphp/php-cs-fixer 3.95
+        // (RuleSet/Sets/PERCS3x0Set.php, SymfonySet.php,
+        // Fixer/Operator/OperatorLinebreakFixer.php) on 2026-08-27,
+        // re-derive from those sources if this stops matching a future
+        // major version.
+
         // Additional custom rules
+        // @PER-CS2x0 includes 'arguments' in trailing_comma_in_multiline, but
+        // @Symfony (applied after it in this rule set) overrides the same
+        // fixer with a narrower element list that drops 'arguments' again,
+        // so multi-line function/method CALLS silently never got a trailing
+        // comma enforced. Restore the full @PER-CS2x0 element list explicitly,
+        // including 'after_heredoc' (this rule overrides, not merges, so both
+        // options must be repeated here). Checked against
+        // friendsofphp/php-cs-fixer 3.95 (RuleSet/Sets/PERCS2x0Set.php,
+        // SymfonySet.php, Fixer/ControlStructure/TrailingCommaInMultilineFixer.php)
+        // on 2026-08-27, re-derive from those sources if this stops matching
+        // a future major version.
+        'trailing_comma_in_multiline'     => [
+            'elements'      => ['arguments', 'array_destructuring', 'arrays', 'match', 'parameters'],
+            'after_heredoc' => true,
+        ],
         'declare_strict_types'            => true,
         'concat_space'                    => [
             'spacing' => 'one',

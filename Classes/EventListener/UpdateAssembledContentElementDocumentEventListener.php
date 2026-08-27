@@ -92,7 +92,7 @@ readonly class UpdateAssembledContentElementDocumentEventListener
         // Set content element related fields
         $document->setField(
             'site',
-            $this->getSiteDomain($site)
+            $this->getSiteDomain($site),
         );
 
         if ($site instanceof Site) {
@@ -101,8 +101,8 @@ readonly class UpdateAssembledContentElementDocumentEventListener
                 $this->getPageUrl(
                     $site,
                     $pageId,
-                    $contentElementId
-                )
+                    $contentElementId,
+                ),
             );
         }
     }
@@ -180,7 +180,7 @@ readonly class UpdateAssembledContentElementDocumentEventListener
             ->generateUri(
                 $pageId,
                 [],
-                '#c' . $contentElementId
+                '#c' . $contentElementId,
             );
     }
 }

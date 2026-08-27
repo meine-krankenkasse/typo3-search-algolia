@@ -103,8 +103,8 @@ abstract class AbstractSearchEngine implements SearchEngineInterface
                 new CreateUniqueDocumentIdEvent(
                     $this,
                     $tableName,
-                    $recordUid
-                )
+                    $recordUid,
+                ),
             );
 
         // Remove record in search engine index

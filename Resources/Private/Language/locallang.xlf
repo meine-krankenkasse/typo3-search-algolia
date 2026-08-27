@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <xliff version="1.0">
     <file source-language="en" datatype="plaintext" original="messages">
         <header/>
@@ -6,12 +6,10 @@
             <trans-unit id="module.name">
                 <source>TYPO3 Search</source>
             </trans-unit>
-
             <!-- Context menu -->
             <trans-unit id="context-menu.enqueueOne">
                 <source>Add to the Algolia search queue</source>
             </trans-unit>
-
             <!-- TCA -->
             <trans-unit id="tca.tabs.general">
                 <source>General</source>
@@ -31,7 +29,6 @@
             <trans-unit id="tca.palettes.visibility">
                 <source>Visibility</source>
             </trans-unit>
-
             <!-- Scheduler -->
             <trans-unit id="executeSchedulableCommandTask.name">
                 <source>Execute console commands with progress bar</source>
@@ -39,7 +36,6 @@
             <trans-unit id="executeSchedulableCommandTask.description">
                 <source>Allows regular console commands to be configured and executed through the scheduler framework. Allows the current progress to be passed to the task.</source>
             </trans-unit>
-
             <!-- Indexer -->
             <trans-unit id="indexer.pages.title">
                 <source>Pages</source>
@@ -53,7 +49,6 @@
             <trans-unit id="indexer.tx_news_domain_model_news.title">
                 <source>News</source>
             </trans-unit>
-
             <!-- sys_file_metadata -->
             <trans-unit id="sys_file_metadata.tabs.behaviour">
                 <source>Behaviour</source>
@@ -61,7 +56,6 @@
             <trans-unit id="sys_file_metadata.no_search">
                 <source>Include in Search</source>
             </trans-unit>
-
             <!-- tx_typo3searchalgolia_domain_model_indexingservice -->
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice">
                 <source>Indexing Service</source>
@@ -135,7 +129,6 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_indexingservice.file_collections.description">
                 <source>Select the file collections that should be used for indexing. Indexing will only occur for files whose "Include in Search" option is enabled in the metadata properties.</source>
             </trans-unit>
-
             <!-- tx_typo3searchalgolia_domain_model_searchengine -->
             <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine">
                 <source>Search Engine</source>
@@ -164,7 +157,6 @@
             <trans-unit id="tx_typo3searchalgolia_domain_model_searchengine.index_name.description">
                 <source>The name of the index used to store indexed data within the search engine.</source>
             </trans-unit>
-
             <!-- QueueModule -->
             <trans-unit id="index_queue">
                 <source>Queue</source>
@@ -250,7 +242,6 @@
             <trans-unit id="index_queue.flash_message.body">
                 <source>%s items successfully added to queue.</source>
             </trans-unit>
-
             <!-- AdministrationModule -->
             <trans-unit id="administration">
                 <source>Administration</source>
@@ -276,7 +267,6 @@
             <trans-unit id="administration.searchEngine.table.column.task.clear">
                 <source>Empty Index</source>
             </trans-unit>
-
             <!-- Errors -->
             <trans-unit id="error.title">
                 <source>Error</source>
@@ -284,7 +274,6 @@
             <trans-unit id="error.databaseAvailability">
                 <source>Please ensure that the database structure is up to date.</source>
             </trans-unit>
-
             <!-- Flash messages -->
             <trans-unit id="flash_message.error.title">
                 <source>Error</source>

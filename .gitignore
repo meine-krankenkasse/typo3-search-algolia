@@ -10,6 +10,10 @@ bin/
 logs/
 composer.lock
 
+# npm
+node_modules/
+package-lock.json
+
 # Build stuff
 .build/
 

@@ -59,7 +59,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledFileDocumentEventListener($fileRepositoryMock, $this->createMock(LoggerInterface::class));
@@ -107,7 +107,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledFileDocumentEventListener($fileRepositoryMock, $this->createMock(LoggerInterface::class));
@@ -142,7 +142,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledFileDocumentEventListener($fileRepositoryMock, $this->createMock(LoggerInterface::class));
@@ -188,7 +188,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             $document,
             $indexerMock,
             $indexingServiceMock,
-            $record
+            $record,
         );
 
         $listener = new UpdateAssembledFileDocumentEventListener($fileRepositoryMock, $this->createMock(LoggerInterface::class));

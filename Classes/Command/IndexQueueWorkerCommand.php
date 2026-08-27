@@ -17,6 +17,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Exception\CliFallbackTypoScriptUnreadableException;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use Override;
@@ -121,7 +122,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             'd',
             InputOption::VALUE_OPTIONAL,
             'The number of documents to index per run',
-            100
+            100,
         );
     }
 
@@ -150,7 +151,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
         $this->io->title($this->getName() ?? '');
 
         $this->indexItems(
-            (int) $input->getOption('documentsToIndex')
+            (int) $input->getOption('documentsToIndex'),
         );
 
         return self::SUCCESS;
@@ -210,7 +211,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 if ($indexingService instanceof IndexingService) {
                     $indexerInstance?->indexRecord(
                         $indexingService,
-                        $record
+                        $record,
                     );
                 }
 
@@ -224,6 +225,19 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 if (!str_contains($exception->getMessage(), 'Record is too big')) {
                     throw $exception;
                 }
+            } catch (CliFallbackTypoScriptUnreadableException $exception) {
+                // An environment-level failure (the bundled TypoScript setup could
+                // not be read, see TypoScriptService::getCliFallbackTypoScript()) must
+                // not abort the whole batch. Log it and move on; this item is not
+                // removed from the queue, so it is retried on the next run.
+                $this->logger?->error(
+                    'Skipping queue item due to an environment-level failure: {message}',
+                    [
+                        'message'   => $exception->getMessage(),
+                        'tableName' => $item->getTableName(),
+                        'recordUid' => $item->getRecordUid(),
+                    ],
+                );
             }
 
             $progressBar->advance();
@@ -232,7 +246,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             $this->registry->set(
                 Constants::EXTENSION_NAME,
                 'index-queue-worker-progress',
-                $progressBar->getProgressPercent()
+                $progressBar->getProgressPercent(),
             );
         }
 
@@ -276,8 +290,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 ->where(
                     $queryBuilder->expr()->eq(
                         'uid',
-                        $item->getRecordUid()
-                    )
+                        $item->getRecordUid(),
+                    ),
                 )
                 ->executeQuery()
                 ->fetchAssociative();

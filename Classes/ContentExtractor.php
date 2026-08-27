@@ -48,7 +48,7 @@ class ContentExtractor
         $content = (string) preg_replace(
             '#<(script|style)[^>]*?>.*?</\\1>#msi',
             '',
-            $content
+            $content,
         );
 
         // Prevent word concatenation when HTML tags are subsequently removed

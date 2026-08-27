@@ -22,10 +22,12 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
-use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+use function intval;
 
 /**
  * This controller handles the indexing queue management module in the TYPO3 backend.
@@ -71,7 +73,7 @@ class QueueModuleController extends AbstractBaseModuleController
     ) {
         parent::__construct(
             $moduleTemplateFactory,
-            $iconFactory
+            $iconFactory,
         );
     }
 
@@ -117,8 +119,8 @@ class QueueModuleController extends AbstractBaseModuleController
             ->setIcon(
                 $this->iconFactory->getIcon(
                     'actions-plus',
-                    Icon::SIZE_SMALL
-                )
+                    IconSize::SMALL,
+                ),
             )
             ->setHref($this->getCreateNewRecordUrl());
 
@@ -150,7 +152,7 @@ class QueueModuleController extends AbstractBaseModuleController
                         ],
                     ],
                     'returnUrl' => $this->request->getAttribute('normalizedParams')?->getRequestUri(),
-                ]
+                ],
             );
     }
 
@@ -193,7 +195,7 @@ class QueueModuleController extends AbstractBaseModuleController
 
             $this->queueItemRepository
                 ->deleteByTableAndRecordUIDs(
-                    $tableName
+                    $tableName,
                 );
         }
 
@@ -208,7 +210,7 @@ class QueueModuleController extends AbstractBaseModuleController
         }
 
         // TODO Use PropertyMapper to map selected indexing services directly into the matching IndexingService-Model
-        $indexingServicesUIDs = array_map('\intval', $selectedIndexingServices);
+        $indexingServicesUIDs = array_map(intval(...), $selectedIndexingServices);
 
         if ($indexingServicesUIDs !== []) {
             $indexingServices = $this->indexingServiceRepository
@@ -236,7 +238,7 @@ class QueueModuleController extends AbstractBaseModuleController
                         $this->addFlashMessage(
                             $exception->getMessage(),
                             $this->translate('flash_message.error.title'),
-                            ContextualFeedbackSeverity::ERROR
+                            ContextualFeedbackSeverity::ERROR,
                         );
                     }
                 }
@@ -246,28 +248,28 @@ class QueueModuleController extends AbstractBaseModuleController
                         'index_queue.flash_message.body',
                         [
                             $itemCount,
-                        ]
+                        ],
                     ),
-                    $this->translate('index_queue.flash_message.title')
+                    $this->translate('index_queue.flash_message.title'),
                 );
             }
         }
 
         $this->moduleTemplate->assign(
             'indexingServices',
-            $this->indexingServiceRepository->findAll()
+            $this->indexingServiceRepository->findAll(),
         );
 
         $this->moduleTemplate->assign(
             'queueStatistics',
-            $this->queueItemRepository->getStatistics()
+            $this->queueItemRepository->getStatistics(),
         );
 
         $this->moduleTemplate->assign(
             'lastExecutionTime',
-            $this->queueStatusService->getLastExecutionTime()
+            $this->queueStatusService->getLastExecutionTime(),
         );
 
-        return $this->moduleTemplate->renderResponse();
+        return $this->moduleTemplate->renderResponse('QueueModule/Index');
     }
 }

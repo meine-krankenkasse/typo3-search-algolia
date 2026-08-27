@@ -14,7 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener\Resource
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\FileHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractAfterFileEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractFileEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileCopiedEventListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,7 +34,7 @@ use TYPO3\CMS\Core\Resource\Folder;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-#[CoversClass(AbstractAfterFileEventListener::class)]
+#[CoversClass(AbstractFileEventListener::class)]
 #[CoversClass(AfterFileCopiedEventListener::class)]
 #[UsesClass(DataHandlerRecordDeleteEvent::class)]
 #[UsesClass(DataHandlerRecordUpdateEvent::class)]
@@ -64,7 +64,7 @@ class AfterFileCopiedEventListenerTest extends TestCase
             ->method('dispatch')
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
-                    && $event->getRecordUid() === 456
+                    && $event->getRecordUid() === 456,
             ));
 
         $folderMock      = $this->createMock(Folder::class);

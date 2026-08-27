@@ -21,11 +21,13 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use TYPO3\CMS\Core\Exception\Page\PageNotFoundException;
 
 /**
@@ -42,9 +44,11 @@ use TYPO3\CMS\Core\Exception\Page\PageNotFoundException;
 #[CoversClass(RecordDeleteEventListener::class)]
 final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
 {
-    private MockObject&IndexerFactory $indexerFactoryMock;
+    private Stub&IndexerFactory $indexerFactoryMock;
 
     private MockObject&IndexerInterface $indexerMock;
+
+    private Stub&SearchEngineFactory $searchEngineFactoryMock;
 
     private RecordDeleteEventListener $subject;
 
@@ -70,13 +74,14 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
             ->method('withIndexingService')
             ->willReturn($this->indexerMock);
 
-        $this->indexerFactoryMock = $this->createMock(IndexerFactory::class);
+        $this->indexerFactoryMock      = self::createStub(IndexerFactory::class);
+        $this->searchEngineFactoryMock = self::createStub(SearchEngineFactory::class);
 
         // IndexingServiceRepository via DI uses Extbase persistence
         $indexingServiceRepository = $this->get(IndexingServiceRepository::class);
 
         $recordHandler = new RecordHandler(
-            $this->createMock(SearchEngineFactory::class),
+            $this->searchEngineFactoryMock,
             $this->indexerFactoryMock,
             $pageRepository,
             $indexingServiceRepository,
@@ -137,6 +142,55 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
             ->willReturn($indexerMock);
 
         $event = new DataHandlerRecordDeleteEvent('tt_content', 1);
+
+        ($this->subject)($event);
+    }
+
+    /**
+     * Tests that the listener dequeues a sys_file_metadata record when a
+     * DataHandlerRecordDeleteEvent is dispatched for it - the chain that
+     * BeforeFileDeletedEventListener triggers when a file is deleted (50e1ef4).
+     * Unlike 'pages'/'tt_content', indexing services of type 'sys_file_metadata'
+     * are matched regardless of page-tree root (files are not part of the page
+     * tree), see RecordHandler::getResponsibleRecordIndexer().
+     */
+    #[Test]
+    public function invokeDequeuesFileMetadataRecord(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/sys_file.csv');
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/sys_file_metadata.csv');
+
+        $indexerMock = $this->createMock(IndexerInterface::class);
+        $indexerMock
+            ->method('getTable')
+            ->willReturn('sys_file_metadata');
+        $indexerMock
+            ->method('withIndexingService')
+            ->willReturn($indexerMock);
+        $indexerMock
+            ->expects(self::atLeastOnce())
+            ->method('dequeueOne')
+            ->with(10)
+            ->willReturn($indexerMock);
+
+        $this->indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->willReturn($indexerMock);
+
+        $searchEngineServiceMock = $this->createMock(SearchEngineInterface::class);
+        $searchEngineServiceMock
+            ->method('withIndexName')
+            ->willReturn($searchEngineServiceMock);
+        $searchEngineServiceMock
+            ->expects(self::once())
+            ->method('deleteFromIndex')
+            ->with('sys_file_metadata', 10);
+
+        $this->searchEngineFactoryMock
+            ->method('makeInstanceBySearchEngineModel')
+            ->willReturn($searchEngineServiceMock);
+
+        $event = new DataHandlerRecordDeleteEvent('sys_file_metadata', 10);
 
         ($this->subject)($event);
     }

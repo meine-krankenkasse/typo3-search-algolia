@@ -14,7 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener\Resource
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\FileHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractAfterFileEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractFileEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileReplacedEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -33,7 +33,7 @@ use TYPO3\CMS\Core\Resource\FileInterface;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-#[CoversClass(AbstractAfterFileEventListener::class)]
+#[CoversClass(AbstractFileEventListener::class)]
 #[CoversClass(AfterFileReplacedEventListener::class)]
 #[UsesClass(AfterDocumentAssembledEvent::class)]
 #[UsesClass(DataHandlerRecordUpdateEvent::class)]
@@ -63,7 +63,7 @@ class AfterFileReplacedEventListenerTest extends TestCase
             ->method('dispatch')
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
-                    && $event->getRecordUid() === 321
+                    && $event->getRecordUid() === 321,
             ));
 
         $fileReplacedEvent = new AfterFileReplacedEvent($fileMock, '/tmp/local_file.pdf');

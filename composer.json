@@ -21,28 +21,33 @@
         "source": "https://github.com/meine-krankenkasse/typo3-search-algolia"
     },
     "require": {
-        "php": ">=8.3.0 <8.5.0",
-        "typo3/cms-core": "^12.4",
-        "typo3/cms-backend": "^12.4",
-        "typo3/cms-frontend": "^12.4",
-        "typo3/cms-extbase": "^12.4",
-        "typo3/cms-fluid": "^12.4",
-        "typo3/cms-scheduler": "^12.4",
+        "php": ">=8.3.0 <8.6.0",
+        "typo3/cms-core": "^13.4",
+        "typo3/cms-backend": "^13.4",
+        "typo3/cms-frontend": "^13.4",
+        "typo3/cms-extbase": "^13.4",
+        "typo3/cms-fluid": "^13.4",
+        "typo3/cms-scheduler": "^13.4",
         "algolia/algoliasearch-client-php": "^4.0",
         "smalot/pdfparser": "^2.0",
-        "symfony/polyfill-php84": "^1.33"
+        "symfony/polyfill-php84": "^1.33",
+        "symfony/var-exporter": "^7.2.5"
     },
     "require-dev": {
-        "a9f/typo3-fractor": "^0.5",
+        "a9f/typo3-fractor": "^1.0",
         "friendsofphp/php-cs-fixer": "^3.65",
+        "infection/infection": "^0.35.2",
         "overtrue/phplint": "^9.5",
-        "phpstan/phpstan": "^1.0 || ^2.0",
-        "phpstan/phpstan-deprecation-rules": "^1.0 || ^2.0",
-        "phpstan/phpstan-phpunit": "^1.0 || ^2.0",
-        "phpstan/phpstan-strict-rules": "^1.0 || ^2.0",
-        "saschaegerer/phpstan-typo3": "^1.0 || ^2.0",
-        "ssch/typo3-rector": "^2.0 || ^3.0",
-        "typo3/testing-framework": "^8.0 || ^9.0"
+        "phpat/phpat": "^0.12.4",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^12.1.2",
+        "rector/rector": "^2.5.2,<2.6.4",
+        "saschaegerer/phpstan-typo3": "^2.0",
+        "ssch/typo3-rector": "^3.0",
+        "typo3/testing-framework": "^9.0"
     },
     "suggest": {
         "typo3/cms-workspaces": "Required for workspace support and automatic reindexing when publishing workspace records"
@@ -57,15 +62,8 @@
         "allow-plugins": {
             "typo3/class-alias-loader": true,
             "typo3/cms-composer-installers": true,
-            "a9f/fractor-extension-installer": true
-        },
-        "policy": {
-            "advisories": {
-                "ignore": {
-                    "typo3/cms-core": "TYPO3 v12 is EOL; every published 12.4.x release is flagged. Extension is pinned to v12.4 until ported to v13/v14 (WEB-1469).",
-                    "typo3/cms-backend": "TYPO3 v12 is EOL; every published 12.4.x release is flagged. Extension is pinned to v12.4 until ported to v13/v14 (WEB-1469)."
-                }
-            }
+            "a9f/fractor-extension-installer": true,
+            "infection/extension-installer": true
         }
     },
     "extra": {
@@ -74,7 +72,7 @@
             "web-dir": ".build/public"
         },
         "branch-alias": {
-            "dev-main": "1.3.x-dev"
+            "dev-main": "2.0.x-dev"
         }
     },
     "autoload": {
@@ -127,14 +125,17 @@
         "ci:test:php:fractor": [
             "@ci:fractor --dry-run"
         ],
+        "ci:test:php:mutation": [
+            "infection --configuration=Build/infection.json5"
+        ],
         "ci:test": [
             "@ci:test:php:lint",
+            "@ci:test:php:cgl",
+            "@ci:test:php:unit",
             "@ci:test:php:phpstan",
             "@ci:test:php:rector",
             "@ci:test:php:fractor",
-            "@ci:test:php:unit",
-            "@ci:test:php:functional",
-            "@ci:test:php:cgl"
+            "@ci:test:php:functional"
         ]
     }
 }

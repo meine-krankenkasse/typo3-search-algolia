@@ -15,10 +15,11 @@ $EM_CONF['typo3_search_algolia'] = [
     'author_email'   => 'digital@meine-krankenkasse.de',
     'author_company' => 'mkk – meine krankenkasse',
     'state'          => 'stable',
-    'version'        => '1.3.4',
+    'version'        => '2.0.0',
     'constraints'    => [
         'depends' => [
-            'typo3' => '12.4.0-12.99.99',
+            'typo3' => '13.4.0-13.4.99',
+            'php'   => '8.3.0-8.5.99',
         ],
         'conflicts' => [
         ],

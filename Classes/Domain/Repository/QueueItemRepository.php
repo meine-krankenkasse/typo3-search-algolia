@@ -111,7 +111,7 @@ class QueueItemRepository extends Repository
      *
      * @param int $limit The maximum number of queue items to retrieve
      *
-     * @return QueryResultInterface<QueueItem> Collection of queue items ready for processing
+     * @return QueryResultInterface<int, QueueItem> Collection of queue items ready for processing
      */
     public function findAllLimited(int $limit): QueryResultInterface
     {
@@ -120,7 +120,7 @@ class QueueItemRepository extends Repository
             ->setOrderings(
                 [
                     'changed' => QueryInterface::ORDER_DESCENDING,
-                ]
+                ],
             )
             ->execute();
     }
@@ -192,8 +192,8 @@ class QueueItemRepository extends Repository
             ->where(
                 $queryBuilder->expr()->eq(
                     'table_name',
-                    $queryBuilder->createNamedParameter($tableName)
-                )
+                    $queryBuilder->createNamedParameter($tableName),
+                ),
             )
             ->orderBy('record_uid', 'ASC')
             ->executeQuery()
@@ -259,7 +259,7 @@ class QueueItemRepository extends Repository
                 ->bulkInsert(
                     self::TABLE_NAME,
                     $recordsChunk,
-                    $columns
+                    $columns,
                 );
         }
 
@@ -321,9 +321,9 @@ class QueueItemRepository extends Repository
                     'service_uid',
                     $queryBuilder->createNamedParameter(
                         $indexingService->getUid(),
-                        Connection::PARAM_INT
-                    )
-                )
+                        Connection::PARAM_INT,
+                    ),
+                ),
             );
 
         try {
@@ -374,8 +374,8 @@ class QueueItemRepository extends Repository
             ->where(
                 $queryBuilder->expr()->eq(
                     'table_name',
-                    $queryBuilder->createNamedParameter($tableName)
-                )
+                    $queryBuilder->createNamedParameter($tableName),
+                ),
             );
 
         if ($recordUids !== []) {
@@ -384,9 +384,9 @@ class QueueItemRepository extends Repository
                     'record_uid',
                     $queryBuilder->createNamedParameter(
                         $recordUids,
-                        ArrayParameterType::INTEGER
-                    )
-                )
+                        ArrayParameterType::INTEGER,
+                    ),
+                ),
             );
         }
 
@@ -396,9 +396,9 @@ class QueueItemRepository extends Repository
                     'service_uid',
                     $queryBuilder->createNamedParameter(
                         $serviceUid,
-                        Connection::PARAM_INT
-                    )
-                )
+                        Connection::PARAM_INT,
+                    ),
+                ),
             );
         }
 

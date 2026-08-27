@@ -4,6 +4,9 @@ on:
     push:
     pull_request:
 
+permissions:
+    contents: read
+
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -11,12 +14,17 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                typo3: [ 12.4 ]
-                php: [ 8.3 ]
+                typo3: [ 13.4 ]
+                php: [ 8.3, 8.4, 8.5 ]
 
         steps:
+            -   name: Harden Runner
+                uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+                with:
+                    egress-policy: audit
+
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             -   name: TER compatibility check
                 run: |
@@ -27,9 +35,14 @@ jobs:
                     echo "TER compatibility check passed"
 
             -   name: Setup PHP
-                uses: shivammathur/setup-php@v2
+                uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
                 with:
                     php-version: ${{ matrix.php }}
+
+            -   name: Setup Node.js
+                uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+                with:
+                    node-version: 24
 
             -   name: Validate composer.json and composer.lock
                 run: composer validate
@@ -39,7 +52,7 @@ jobs:
                 run: |
                     echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
-            -   uses: actions/cache@v5
+            -   uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: ${{ steps.composer-cache.outputs.dir }}
                     key: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.typo3 }}-composer-${{ hashFiles('**/composer.json') }}
@@ -50,21 +63,22 @@ jobs:
                 run: |
                     composer install --prefer-dist --no-interaction --no-progress
 
+            -   name: Install npm dependencies
+                run: npm install --no-fund --no-audit
+
+            # Fast checks first, slowest (Functional Tests) last, so a broken
+            # PR fails quickly instead of waiting for the full DB-backed suite.
             -   name: Lint
                 if: ${{ success() }}
                 run: composer ci:test:php:lint
 
-            -   name: Unit Tests
-                if: ${{ success() }}
-                run: composer ci:test:php:unit
-
-            -   name: Functional Tests
-                if: ${{ success() }}
-                run: composer ci:test:php:functional
-
             -   name: CGL
                 if: ${{ success() }}
                 run: composer ci:test:php:cgl
+
+            -   name: Unit Tests
+                if: ${{ success() }}
+                run: composer ci:test:php:unit
 
             -   name: PHPStan
                 if: ${{ success() }}
@@ -77,3 +91,52 @@ jobs:
             -   name: Fractor
                 if: ${{ success() }}
                 run: composer ci:test:php:fractor
+
+            -   name: Copy/paste detection
+                if: ${{ success() }}
+                run: npm run ci:test:jscpd
+
+            -   name: Functional Tests
+                if: ${{ success() }}
+                run: composer ci:test:php:functional
+
+    mutation:
+        name: Mutation testing
+        runs-on: ubuntu-latest
+        # Runs independently of the build matrix - a low mutation score is a
+        # signal to act on, not a merge blocker, and it must not slow down or
+        # block the correctness gate above.
+        continue-on-error: true
+
+        steps:
+            -   name: Harden Runner
+                uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+                with:
+                    egress-policy: audit
+
+            -   name: Checkout repository
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            -   name: Setup PHP
+                uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+                with:
+                    php-version: '8.3'
+                    coverage: pcov
+
+            -   name: Get composer cache directory
+                id: composer-cache
+                run: |
+                    echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+            -   uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+                with:
+                    path: ${{ steps.composer-cache.outputs.dir }}
+                    key: ${{ runner.os }}-8.3-13.4-composer-${{ hashFiles('**/composer.json') }}
+                    restore-keys: |
+                        ${{ runner.os }}-8.3-13.4-composer-
+
+            -   name: Install dependencies
+                run: composer install --prefer-dist --no-interaction --no-progress
+
+            -   name: Mutation testing
+                run: composer ci:test:php:mutation

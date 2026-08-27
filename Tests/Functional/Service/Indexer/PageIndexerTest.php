@@ -29,7 +29,7 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  *
  * Tests enqueue/dequeue operations with real database queries. Verifies that
  * page records are correctly added to and removed from the indexing queue,
- * respecting page constraints (doktype, no_search, hidden, recycler).
+ * respecting page constraints (doktype, no_search, hidden).
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -127,15 +127,15 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
     }
 
     /**
-     * Tests that enqueueOne() returns zero for a recycler page
-     * (doktype=255), which is not in the allowed doktype list.
+     * Tests that enqueueOne() returns zero for a Backend User Section page
+     * (doktype=6), which is not in the allowed doktype list.
      */
     #[Test]
-    public function enqueueOneReturnsZeroForRecyclerPage(): void
+    public function enqueueOneReturnsZeroForBackendUserSectionPage(): void
     {
         $indexer = $this->pageIndexer->withIndexingService($this->indexingService);
 
-        // Page uid=5 has doktype=255, not in allowed list (pages_doktype=1)
+        // Page uid=5 has doktype=6, not in allowed list (pages_doktype=1)
         $result = $indexer->enqueueOne(5);
 
         self::assertSame(0, $result);
@@ -167,7 +167,7 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
 
     /**
      * Tests that enqueueAll() adds all eligible pages, excluding hidden,
-     * recycler, and no_search pages, to the indexing queue.
+     * Backend User Section, and no_search pages, to the indexing queue.
      */
     #[Test]
     public function enqueueAllAddsAllEligiblePages(): void
@@ -175,7 +175,7 @@ final class PageIndexerTest extends AbstractFunctionalTestCase
         $indexer = $this->pageIndexer->withIndexingService($this->indexingService);
 
         // Eligible: uid=1 (root, doktype=1), uid=2 (sub, doktype=1), uid=3 (deep, doktype=1)
-        // Not eligible: uid=4 (hidden), uid=5 (doktype=255), uid=6 (no_search=1)
+        // Not eligible: uid=4 (hidden), uid=5 (doktype=6), uid=6 (no_search=1)
         $result = $indexer->enqueueAll();
 
         self::assertSame(3, $result);

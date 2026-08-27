@@ -37,7 +37,7 @@ class TotalCountViewHelperTest extends UnitTestCase
 
         $this->viewHelper = new TotalCountViewHelper();
         $this->viewHelper->setRenderingContext(
-            $this->createMock(RenderingContextInterface::class)
+            $this->createMock(RenderingContextInterface::class),
         );
         $this->viewHelper->initializeArguments();
     }

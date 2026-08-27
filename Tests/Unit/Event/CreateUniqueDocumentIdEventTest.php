@@ -56,7 +56,7 @@ class CreateUniqueDocumentIdEventTest extends TestCase
         $event = new CreateUniqueDocumentIdEvent(
             $this->createMock(SearchEngineInterface::class),
             'pages',
-            1
+            1,
         );
 
         self::assertSame('', $event->getDocumentId());
@@ -74,7 +74,7 @@ class CreateUniqueDocumentIdEventTest extends TestCase
         $event = new CreateUniqueDocumentIdEvent(
             $this->createMock(SearchEngineInterface::class),
             'pages',
-            1
+            1,
         );
 
         $event->setDocumentId('typo3_search_algolia:pages:1');
@@ -93,7 +93,7 @@ class CreateUniqueDocumentIdEventTest extends TestCase
         $event = new CreateUniqueDocumentIdEvent(
             $this->createMock(SearchEngineInterface::class),
             'pages',
-            1
+            1,
         );
 
         $result = $event->setDocumentId('test');

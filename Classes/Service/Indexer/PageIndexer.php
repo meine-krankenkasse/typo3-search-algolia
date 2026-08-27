@@ -97,23 +97,23 @@ class PageIndexer extends AbstractIndexer
                 // Include only pages which are not explicitly excluded from search
                 $queryBuilder->expr()->eq(
                     'no_search',
-                    0
+                    0,
                 ),
-            ]
+            ],
         );
 
         // Get page types from indexing service configuration
         $pageTypes = GeneralUtility::intExplode(
             ',',
             $this->indexingService?->getPagesDoktype() ?? '',
-            true
+            true,
         );
 
         if ($pageTypes !== []) {
             // Filter by page type
             $constraints[] = $queryBuilder->expr()->in(
                 'doktype',
-                $queryBuilder->quoteArrayBasedValueListToIntegerList($pageTypes)
+                $queryBuilder->quoteArrayBasedValueListToIntegerList($pageTypes),
             );
         }
 

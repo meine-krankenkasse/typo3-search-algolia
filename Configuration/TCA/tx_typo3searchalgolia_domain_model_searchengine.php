@@ -67,7 +67,7 @@ return [
             'label'       => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config'      => [
                 'type'     => 'group',
-                'allowed'  => 'tx_nrcconstructionsiteservice_domain_model_constructionsite',
+                'allowed'  => 'tx_typo3searchalgolia_domain_model_searchengine',
                 'size'     => 1,
                 'maxitems' => 1,
                 'minitems' => 0,
@@ -127,7 +127,7 @@ return [
                         0,
                         1,
                         1,
-                        2038
+                        2038,
                     ),
                 ],
                 'behaviour' => [

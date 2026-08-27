@@ -112,22 +112,22 @@ readonly class UpdateAssembledFileDocumentEventListener
         // Add file-related fields
         $document->setField(
             'extension',
-            $file->getExtension()
+            $file->getExtension(),
         );
 
         $document->setField(
             'mimeType',
-            $file->getMimeType()
+            $file->getMimeType(),
         );
 
         $document->setField(
             'name',
-            $file->getName()
+            $file->getName(),
         );
 
         $document->setField(
             'size',
-            $file->getSize()
+            $file->getSize(),
         );
 
         $publicUrl = $file->getPublicUrl();
@@ -136,7 +136,6 @@ readonly class UpdateAssembledFileDocumentEventListener
         if (
             ($publicUrl !== null)
             && str_starts_with($publicUrl, '/')
-            && ($file->getStorage() !== null)
             && ($file->getStorage()->getDriverType() === 'Local')
         ) {
             $publicUrl = ltrim($publicUrl, '/');
@@ -144,12 +143,12 @@ readonly class UpdateAssembledFileDocumentEventListener
 
         $document->setField(
             'url',
-            $publicUrl
+            $publicUrl,
         );
 
         $document->setField(
             'content',
-            $this->getFileContent($file)
+            $this->getFileContent($file),
         );
     }
 
@@ -202,7 +201,7 @@ readonly class UpdateAssembledFileDocumentEventListener
                     'file'      => $file->getIdentifier(),
                     'fileName'  => $file->getName(),
                     'exception' => $exception->getMessage(),
-                ]
+                ],
             );
 
             return null;

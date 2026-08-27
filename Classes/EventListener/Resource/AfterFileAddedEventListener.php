@@ -33,7 +33,7 @@ use TYPO3\CMS\Core\Resource\Event\AfterFileAddedEvent;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class AfterFileAddedEventListener extends AbstractAfterFileEventListener
+class AfterFileAddedEventListener extends AbstractFileEventListener
 {
     /**
      * Processes the file added event and triggers indexing of the file's metadata.
@@ -68,8 +68,8 @@ class AfterFileAddedEventListener extends AbstractAfterFileEventListener
             ->dispatch(
                 new DataHandlerRecordUpdateEvent(
                     'sys_file_metadata',
-                    $metadataUid
-                )
+                    $metadataUid,
+                ),
             );
     }
 }

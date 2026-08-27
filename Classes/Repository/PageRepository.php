@@ -80,9 +80,9 @@ readonly class PageRepository implements PageRepositoryInterface
                     'uid',
                     $queryBuilder->createNamedParameter(
                         $uid,
-                        Connection::PARAM_INT
-                    )
-                )
+                        Connection::PARAM_INT,
+                    ),
+                ),
             )
             ->executeQuery()
             ->fetchAssociative();
@@ -116,7 +116,7 @@ readonly class PageRepository implements PageRepositoryInterface
             $recordUid,
             $fields,
             '',
-            $useDeleteClause
+            $useDeleteClause,
         ) ?? [];
     }
 
@@ -168,12 +168,12 @@ readonly class PageRepository implements PageRepositoryInterface
             $recursivePageIds[] = $this->getSubPageIdsRecursive(
                 $pageId,
                 $depth,
-                $excludeHiddenPages
+                $excludeHiddenPages,
             );
         }
 
         return array_unique(
-            array_merge(...$recursivePageIds)
+            array_merge(...$recursivePageIds),
         );
     }
 
@@ -183,7 +183,7 @@ readonly class PageRepository implements PageRepositoryInterface
      * This method traverses the page tree starting from a specific page and
      * collects all subpages down to the specified depth. It automatically:
      * - Excludes the starting page itself from the results
-     * - Filters out system pages (recycler and backend user section pages)
+     * - Filters out system pages (backend user section pages)
      * - Respects workspace and deletion restrictions
      * - Optionally filters out hidden pages
      *
@@ -233,21 +233,20 @@ readonly class PageRepository implements PageRepositoryInterface
                         'pid',
                         $queryBuilder->createNamedParameter(
                             $id,
-                            Connection::PARAM_INT
-                        )
+                            Connection::PARAM_INT,
+                        ),
                     ),
                     $queryBuilder->expr()->eq(
                         'sys_language_uid',
-                        0
+                        0,
                     ),
                     // Exclude some page types, see \TYPO3\CMS\Core\Domain\Repository\PageRepository::getSubpagesRecursive
                     $queryBuilder->expr()->notIn(
                         'doktype',
                         [
-                            \TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_RECYCLER,
                             \TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_BE_USER_SECTION,
-                        ]
-                    )
+                        ],
+                    ),
                 )
                 ->orderBy('uid');
 

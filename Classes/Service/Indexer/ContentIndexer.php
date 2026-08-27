@@ -78,14 +78,14 @@ class ContentIndexer extends AbstractIndexer
         $contentElementTypes = GeneralUtility::trimExplode(
             ',',
             $this->indexingService?->getContentElementTypes() ?? '',
-            true
+            true,
         );
 
         if ($contentElementTypes !== []) {
             // Filter by CType
             $constraints[] = $queryBuilder->expr()->in(
                 'CType',
-                $queryBuilder->quoteArrayBasedValueListToStringList($contentElementTypes)
+                $queryBuilder->quoteArrayBasedValueListToStringList($contentElementTypes),
             );
         }
 

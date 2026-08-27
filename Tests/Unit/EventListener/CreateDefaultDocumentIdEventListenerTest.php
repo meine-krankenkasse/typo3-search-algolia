@@ -44,7 +44,7 @@ class CreateDefaultDocumentIdEventListenerTest extends TestCase
         $event = new CreateUniqueDocumentIdEvent(
             $this->createMock(SearchEngineInterface::class),
             'pages',
-            42
+            42,
         );
 
         $listener = new CreateDefaultDocumentIdEventListener();
@@ -64,7 +64,7 @@ class CreateDefaultDocumentIdEventListenerTest extends TestCase
         $event = new CreateUniqueDocumentIdEvent(
             $this->createMock(SearchEngineInterface::class),
             'tt_content',
-            123
+            123,
         );
 
         $listener = new CreateDefaultDocumentIdEventListener();
@@ -85,7 +85,7 @@ class CreateDefaultDocumentIdEventListenerTest extends TestCase
         $event = new CreateUniqueDocumentIdEvent(
             $this->createMock(SearchEngineInterface::class),
             'sys_file_metadata',
-            7
+            7,
         );
 
         $listener = new CreateDefaultDocumentIdEventListener();
