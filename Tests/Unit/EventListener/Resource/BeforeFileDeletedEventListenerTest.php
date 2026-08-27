@@ -13,8 +13,8 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener\Resource
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\FileHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractAfterFileEventListener;
-use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileDeletedEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractFileEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\BeforeFileDeletedEventListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -26,16 +26,16 @@ use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 
 /**
- * Unit tests for AfterFileDeletedEventListener.
+ * Unit tests for BeforeFileDeletedEventListener.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-#[CoversClass(AbstractAfterFileEventListener::class)]
-#[CoversClass(AfterFileDeletedEventListener::class)]
+#[CoversClass(AbstractFileEventListener::class)]
+#[CoversClass(BeforeFileDeletedEventListener::class)]
 #[UsesClass(DataHandlerRecordDeleteEvent::class)]
-class AfterFileDeletedEventListenerTest extends TestCase
+class BeforeFileDeletedEventListenerTest extends TestCase
 {
     /**
      * Tests that invoking the listener dispatches a DataHandlerRecordDeleteEvent when
@@ -66,7 +66,7 @@ class AfterFileDeletedEventListenerTest extends TestCase
 
         $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
-        $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
+        $listener = new BeforeFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
     }
 
@@ -95,7 +95,7 @@ class AfterFileDeletedEventListenerTest extends TestCase
 
         $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
-        $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
+        $listener = new BeforeFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
     }
 
@@ -128,7 +128,7 @@ class AfterFileDeletedEventListenerTest extends TestCase
 
         $fileDeletedEvent = new BeforeFileDeletedEvent($fileMock);
 
-        $listener = new AfterFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
+        $listener = new BeforeFileDeletedEventListener($eventDispatcherMock, $fileHandlerMock);
         $listener($fileDeletedEvent);
     }
 }

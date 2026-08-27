@@ -35,7 +35,7 @@ use TYPO3\CMS\Core\Resource\FileInterface;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class AfterFileCopiedEventListener extends AbstractAfterFileEventListener
+class AfterFileCopiedEventListener extends AbstractFileEventListener
 {
     /**
      * Processes the file copied event and triggers indexing of the copied file's metadata.

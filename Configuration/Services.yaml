@@ -80,10 +80,10 @@ services:
     # Listens to the *before* event: by the time AfterFileDeletedEvent fires, TYPO3 core
     # has already removed the sys_file_metadata row, so the metadata UID can no longer be
     # resolved and the search index would never be told to remove the document.
-    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileDeletedEventListener:
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\BeforeFileDeletedEventListener:
         tags:
             -   name: event.listener
-                identifier: 'typo3-search-algolia/resource-after-file-deleted-event-listener'
+                identifier: 'typo3-search-algolia/resource-before-file-deleted-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\BeforeFileDeletedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileCopiedEventListener:

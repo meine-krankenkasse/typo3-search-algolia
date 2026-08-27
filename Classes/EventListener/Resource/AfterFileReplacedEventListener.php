@@ -34,7 +34,7 @@ use TYPO3\CMS\Core\Resource\Event\AfterFileReplacedEvent;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class AfterFileReplacedEventListener extends AbstractAfterFileEventListener
+class AfterFileReplacedEventListener extends AbstractFileEventListener
 {
     /**
      * Processes the file replaced event and triggers updating of the file's metadata in the search index.

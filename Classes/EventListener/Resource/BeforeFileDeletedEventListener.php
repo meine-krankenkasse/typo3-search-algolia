@@ -38,11 +38,21 @@ use TYPO3\CMS\Core\Resource\Event\BeforeFileDeletedEvent;
  * when files are deleted from the TYPO3 system, ensuring that they are no longer
  * returned in search results after deletion.
  *
+ * Known trade-off: ResourceStorage::deleteFile() dispatches BeforeFileDeletedEvent
+ * before the physical deletion is attempted, not after it succeeds. If the storage
+ * driver then fails to delete the file (FileOperationErrorException) or the storage
+ * has a recycler folder configured (the "delete" becomes a move instead of a real
+ * deletion), the file's metadata is still removed from the search index here even
+ * though the file itself remains present and recoverable. This favors under-inclusion
+ * (a still-valid file temporarily missing from search) over the alternative bug this
+ * listener fixes (a deleted file staying searchable forever), which is the safer
+ * direction, but it is a real, currently unhandled edge case.
+ *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class AfterFileDeletedEventListener extends AbstractAfterFileEventListener
+class BeforeFileDeletedEventListener extends AbstractFileEventListener
 {
     /**
      * Processes the file deletion event and triggers removal of the file's metadata from the search index.

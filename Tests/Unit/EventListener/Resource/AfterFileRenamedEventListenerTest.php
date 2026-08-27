@@ -13,7 +13,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener\Resource
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\FileHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractAfterFileEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractFileEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileRenamedEventListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -31,7 +31,7 @@ use TYPO3\CMS\Core\Resource\FileInterface;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-#[CoversClass(AbstractAfterFileEventListener::class)]
+#[CoversClass(AbstractFileEventListener::class)]
 #[CoversClass(AfterFileRenamedEventListener::class)]
 #[UsesClass(DataHandlerRecordUpdateEvent::class)]
 class AfterFileRenamedEventListenerTest extends TestCase

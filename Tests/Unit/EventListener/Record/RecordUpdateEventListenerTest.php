@@ -16,7 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandlerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\RecordUpdateEventListener;
-use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractAfterFileEventListener;
+use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractFileEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
@@ -35,7 +35,7 @@ use PHPUnit\Framework\TestCase;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(RecordUpdateEventListener::class)]
-#[UsesClass(AbstractAfterFileEventListener::class)]
+#[UsesClass(AbstractFileEventListener::class)]
 #[UsesClass(DataHandlerRecordUpdateEvent::class)]
 class RecordUpdateEventListenerTest extends TestCase
 {

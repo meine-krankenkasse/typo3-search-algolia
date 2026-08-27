@@ -33,7 +33,7 @@ use TYPO3\CMS\Core\Resource\Event\AfterFileRenamedEvent;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class AfterFileRenamedEventListener extends AbstractAfterFileEventListener
+class AfterFileRenamedEventListener extends AbstractFileEventListener
 {
     /**
      * Processes the file renamed event and triggers updating of the file's metadata in the search index.
