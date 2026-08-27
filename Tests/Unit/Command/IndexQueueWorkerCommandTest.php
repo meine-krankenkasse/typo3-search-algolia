@@ -54,7 +54,7 @@ class IndexQueueWorkerCommandTest extends TestCase
 
     private MockObject&Registry $registryMock;
 
-    private MockObject&ConnectionPool $connectionPoolMock;
+    private Stub&ConnectionPool $connectionPoolMock;
 
     private MockObject&QueueItemRepository $queueItemRepositoryMock;
 
@@ -71,7 +71,7 @@ class IndexQueueWorkerCommandTest extends TestCase
 
         $this->persistenceManagerMock        = $this->createMock(PersistenceManagerInterface::class);
         $this->registryMock                  = $this->createMock(Registry::class);
-        $this->connectionPoolMock            = $this->createMock(ConnectionPool::class);
+        $this->connectionPoolMock            = self::createStub(ConnectionPool::class);
         $this->queueItemRepositoryMock       = $this->createMock(QueueItemRepository::class);
         $this->indexingServiceRepositoryMock = $this->createMock(IndexingServiceRepository::class);
         $this->queueStatusServiceMock        = $this->createMock(QueueStatusServiceInterface::class);

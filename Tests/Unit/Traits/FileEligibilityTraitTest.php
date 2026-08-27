@@ -93,7 +93,7 @@ class FileEligibilityTraitTest extends TestCase
      */
     private function createEligibleFileMock(string $extension = 'pdf'): File
     {
-        $fileMock = $this->createMock(File::class);
+        $fileMock = self::createStub(File::class);
         $fileMock
             ->method('isIndexed')
             ->willReturn(true);
@@ -138,7 +138,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenNotIndexed(): void
     {
-        $fileMock = $this->createMock(File::class);
+        $fileMock = self::createStub(File::class);
         $fileMock
             ->method('isIndexed')
             ->willReturn(false);
@@ -169,7 +169,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenMetadataUidMissing(): void
     {
-        $fileMock = $this->createMock(File::class);
+        $fileMock = self::createStub(File::class);
         $fileMock
             ->method('isIndexed')
             ->willReturn(true);
@@ -215,7 +215,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReloadsFreshMetadataWhenCachedAspectIsMissingNoSearch(): void
     {
-        $fileMock = $this->createMock(File::class);
+        $fileMock = self::createStub(File::class);
         $fileMock
             ->method('isIndexed')
             ->willReturn(true);
