@@ -16,6 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Traits\FileEligibilityTrait;
 use Override;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -52,7 +53,9 @@ class FileEligibilityTraitTest extends TestCase
 
     /**
      * Registers a MetaDataAspect mock to be returned for the next
-     * `GeneralUtility::makeInstance(MetaDataAspect::class, ...)` call.
+     * `GeneralUtility::makeInstance(MetaDataAspect::class, ...)` call, i.e. the
+     * *freshly reloaded* aspect used when the file's own cached aspect is missing
+     * the 'no_search' field.
      *
      * @param array<string, int|float|string|null> $metaData
      */
@@ -67,12 +70,29 @@ class FileEligibilityTraitTest extends TestCase
     }
 
     /**
-     * Creates a mock File with all eligibility criteria met.
+     * Stubs the given File mock's own (cached) getMetaData() aspect.
+     *
+     * @param array<string, int|float|string|null> $metaData
+     */
+    private function stubCachedMetaData(MockObject&File $fileMock, array $metaData): void
+    {
+        $metaDataMock = $this->createMock(MetaDataAspect::class);
+        $metaDataMock
+            ->method('get')
+            ->willReturn($metaData);
+
+        $fileMock
+            ->method('getMetaData')
+            ->willReturn($metaDataMock);
+    }
+
+    /**
+     * Creates a mock File with all eligibility criteria met, including a
+     * cached metadata aspect that already carries 'no_search', so no fresh
+     * reload is needed.
      */
     private function createEligibleFileMock(string $extension = 'pdf'): File
     {
-        $this->registerMetaDataAspectMock(['uid' => 1, 'no_search' => 0]);
-
         $fileMock = $this->createMock(File::class);
         $fileMock
             ->method('isIndexed')
@@ -80,6 +100,8 @@ class FileEligibilityTraitTest extends TestCase
         $fileMock
             ->method('getExtension')
             ->willReturn($extension);
+
+        $this->stubCachedMetaData($fileMock, ['uid' => 1, 'no_search' => 0]);
 
         return $fileMock;
     }
@@ -116,8 +138,6 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenNotIndexed(): void
     {
-        $this->registerMetaDataAspectMock(['uid' => 1, 'no_search' => 0]);
-
         $fileMock = $this->createMock(File::class);
         $fileMock
             ->method('isIndexed')
@@ -126,6 +146,7 @@ class FileEligibilityTraitTest extends TestCase
             ->method('getExtension')
             ->willReturn('pdf');
 
+        // Not indexed short-circuits before metadata is ever read.
         self::assertFalse($this->subject->callIsEligible($fileMock, ['pdf']));
     }
 
@@ -148,8 +169,6 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenMetadataUidMissing(): void
     {
-        $this->registerMetaDataAspectMock(['no_search' => 0]);
-
         $fileMock = $this->createMock(File::class);
         $fileMock
             ->method('isIndexed')
@@ -157,6 +176,10 @@ class FileEligibilityTraitTest extends TestCase
         $fileMock
             ->method('getExtension')
             ->willReturn('pdf');
+
+        // 'no_search' is present, so no fresh reload is triggered; the missing
+        // 'uid' alone must still make the file ineligible.
+        $this->stubCachedMetaData($fileMock, ['no_search' => 0]);
 
         self::assertFalse($this->subject->callIsEligible($fileMock, ['pdf']));
     }
@@ -168,8 +191,6 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenMarkedNoSearch(): void
     {
-        $this->registerMetaDataAspectMock(['uid' => 1, 'no_search' => 1]);
-
         $fileMock = $this->createMock(File::class);
         $fileMock
             ->method('isIndexed')
@@ -178,7 +199,62 @@ class FileEligibilityTraitTest extends TestCase
             ->method('getExtension')
             ->willReturn('pdf');
 
+        $this->stubCachedMetaData($fileMock, ['uid' => 1, 'no_search' => 1]);
+
         self::assertFalse($this->subject->callIsEligible($fileMock, ['pdf']));
+    }
+
+    /**
+     * Tests the actual bug this trait was fixed for (a7a8005): right after a file
+     * is uploaded, its own cached metadata aspect only carries the fields extracted
+     * during upload (e.g. 'uid'), not yet 'no_search', because the full
+     * sys_file_metadata row had not been read into it. isEligible() must reload a
+     * fresh aspect in that case and use ITS 'no_search' value, rather than treating
+     * the missing field on the stale cached aspect as "not indexable".
+     */
+    #[Test]
+    public function isEligibleReloadsFreshMetadataWhenCachedAspectIsMissingNoSearch(): void
+    {
+        $fileMock = $this->createMock(File::class);
+        $fileMock
+            ->method('isIndexed')
+            ->willReturn(true);
+        $fileMock
+            ->method('getExtension')
+            ->willReturn('pdf');
+
+        // Stale/partial cached aspect: 'uid' present, 'no_search' NOT (yet) read.
+        $this->stubCachedMetaData($fileMock, ['uid' => 1]);
+        // Freshly reloaded aspect: full row, including 'no_search' => 0.
+        $this->registerMetaDataAspectMock(['uid' => 1, 'no_search' => 0]);
+
+        self::assertTrue($this->subject->callIsEligible($fileMock, ['pdf']));
+    }
+
+    /**
+     * Tests that isEligible() does NOT reload a fresh metadata aspect when the
+     * file's own cached aspect already carries 'no_search' - reloading unconditionally
+     * would cost an extra DB round-trip per file in a batch scan
+     * (FileIndexer::initQueueItemRecords()) for no benefit. GeneralUtility::addInstance()
+     * is deliberately NOT called here: if the fresh-reload path were (incorrectly)
+     * taken anyway, GeneralUtility::makeInstance(MetaDataAspect::class, $file) would
+     * construct a real MetaDataAspect and attempt a real database query, which fails
+     * hard in this unit test's un-bootstrapped environment.
+     */
+    #[Test]
+    public function isEligibleDoesNotReloadMetadataWhenCachedAspectAlreadyHasNoSearch(): void
+    {
+        $fileMock = $this->createMock(File::class);
+        $fileMock
+            ->method('isIndexed')
+            ->willReturn(true);
+        $fileMock
+            ->method('getExtension')
+            ->willReturn('pdf');
+
+        $this->stubCachedMetaData($fileMock, ['uid' => 1, 'no_search' => 0]);
+
+        self::assertTrue($this->subject->callIsEligible($fileMock, ['pdf']));
     }
 
     /**

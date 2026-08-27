@@ -45,17 +45,22 @@ trait FileEligibilityTrait
             return false;
         }
 
-        // Read metadata via a freshly instantiated aspect rather than the file's own
-        // (possibly cached) one: right after a file was just added, its metadata aspect
-        // only carries the subset of fields extracted during upload (e.g. width/height/uid),
-        // not the full sys_file_metadata row (e.g. no_search), which would make an
-        // eligibility check based on the file's own aspect silently reject the file.
-        $metaData = GeneralUtility::makeInstance(MetaDataAspect::class, $file)->get();
+        if (!$file->isIndexed() || !$this->isExtensionAllowed($file, $allowedFileExtensions)) {
+            return false;
+        }
 
-        return $file->isIndexed()
-            && $this->isExtensionAllowed($file, $allowedFileExtensions)
-            && isset($metaData['uid'])
-            && $this->isIndexable($metaData);
+        $metaData = $file->getMetaData()->get();
+
+        if (!isset($metaData['no_search'])) {
+            // Right after a file was just added, its (cached) metadata aspect only carries
+            // the subset of fields extracted during upload (e.g. width/height/uid), not the
+            // full sys_file_metadata row (e.g. no_search). Only in that case, reload a fresh
+            // aspect instead of silently rejecting the file for a field that simply hasn't
+            // been read yet.
+            $metaData = GeneralUtility::makeInstance(MetaDataAspect::class, $file)->get();
+        }
+
+        return isset($metaData['uid']) && $this->isIndexable($metaData);
     }
 
     /**
