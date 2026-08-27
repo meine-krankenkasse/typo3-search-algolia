@@ -37,6 +37,12 @@ parameters:
         requestGetAttributeMapping:
             route: TYPO3\CMS\Backend\Routing\Route|null
 
+    # Name the offending rule in phpat failure output, otherwise a violation
+    # only says "class X extends class Y", not which of the 5 rules in
+    # ArchitectureTest.php fired.
+    phpat:
+        show_rule_names: true
+
     ignoreErrors:
         # Pdo\Sqlite only exists on PHP 8.4+ (our phpVersion floor is 8.3),
         # but PHPStan can only resolve the class when it itself runs on an
