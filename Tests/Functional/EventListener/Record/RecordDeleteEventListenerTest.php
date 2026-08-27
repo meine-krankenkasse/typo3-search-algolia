@@ -44,7 +44,7 @@ use TYPO3\CMS\Core\Exception\Page\PageNotFoundException;
 #[CoversClass(RecordDeleteEventListener::class)]
 final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
 {
-    private MockObject&IndexerFactory $indexerFactoryMock;
+    private Stub&IndexerFactory $indexerFactoryMock;
 
     private MockObject&IndexerInterface $indexerMock;
 
@@ -74,7 +74,7 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
             ->method('withIndexingService')
             ->willReturn($this->indexerMock);
 
-        $this->indexerFactoryMock      = $this->createMock(IndexerFactory::class);
+        $this->indexerFactoryMock      = self::createStub(IndexerFactory::class);
         $this->searchEngineFactoryMock = self::createStub(SearchEngineFactory::class);
 
         // IndexingServiceRepository via DI uses Extbase persistence

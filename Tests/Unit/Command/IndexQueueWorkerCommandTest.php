@@ -26,6 +26,7 @@ use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -96,11 +97,11 @@ class IndexQueueWorkerCommandTest extends TestCase
      *
      * @param QueueItem[] $items
      *
-     * @return MockObject&QueryResultInterface<int, QueueItem>
+     * @return Stub&QueryResultInterface<int, QueueItem>
      */
-    private function createQueueItemsResult(array $items): MockObject&QueryResultInterface
+    private function createQueueItemsResult(array $items): Stub&QueryResultInterface
     {
-        $queryResultMock = $this->createMock(QueryResultInterface::class);
+        $queryResultMock = self::createStub(QueryResultInterface::class);
         $queryResultMock
             ->method('count')
             ->willReturn(count($items));
@@ -143,17 +144,17 @@ class IndexQueueWorkerCommandTest extends TestCase
      */
     private function stubFetchableRecord(): void
     {
-        $expressionBuilderMock = $this->createMock(ExpressionBuilder::class);
+        $expressionBuilderMock = self::createStub(ExpressionBuilder::class);
         $expressionBuilderMock
             ->method('eq')
             ->willReturn('1 = 1');
 
-        $resultMock = $this->createMock(Result::class);
+        $resultMock = self::createStub(Result::class);
         $resultMock
             ->method('fetchAssociative')
             ->willReturn(['uid' => 1]);
 
-        $queryBuilderMock = $this->createMock(QueryBuilder::class);
+        $queryBuilderMock = self::createStub(QueryBuilder::class);
         $queryBuilderMock->method('select')->willReturnSelf();
         $queryBuilderMock->method('from')->willReturnSelf();
         $queryBuilderMock->method('where')->willReturnSelf();
@@ -269,14 +270,14 @@ class IndexQueueWorkerCommandTest extends TestCase
             ->with(1)
             ->willReturn($indexingService);
 
-        $failingIndexerMock = $this->createMock(IndexerInterface::class);
+        $failingIndexerMock = self::createStub(IndexerInterface::class);
         $failingIndexerMock
             ->method('indexRecord')
             ->willThrowException(
                 new CliFallbackTypoScriptUnreadableException('Unable to read the bundled TypoScript setup.')
             );
 
-        $succeedingIndexerMock = $this->createMock(IndexerInterface::class);
+        $succeedingIndexerMock = self::createStub(IndexerInterface::class);
         $succeedingIndexerMock
             ->method('indexRecord')
             ->willReturn(true);
