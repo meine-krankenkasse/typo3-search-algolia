@@ -16,7 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Traits\FileEligibilityTrait;
 use Override;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -74,7 +74,7 @@ class FileEligibilityTraitTest extends TestCase
      *
      * @param array<string, int|float|string|null> $metaData
      */
-    private function stubCachedMetaData(MockObject&File $fileMock, array $metaData): void
+    private function stubCachedMetaData(Stub&File $fileMock, array $metaData): void
     {
         $metaDataMock = self::createStub(MetaDataAspect::class);
         $metaDataMock
@@ -191,7 +191,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenMarkedNoSearch(): void
     {
-        $fileMock = $this->createMock(File::class);
+        $fileMock = self::createStub(File::class);
         $fileMock
             ->method('isIndexed')
             ->willReturn(true);
@@ -244,7 +244,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleDoesNotReloadMetadataWhenCachedAspectAlreadyHasNoSearch(): void
     {
-        $fileMock = $this->createMock(File::class);
+        $fileMock = self::createStub(File::class);
         $fileMock
             ->method('isIndexed')
             ->willReturn(true);
