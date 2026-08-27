@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\MetaDataAspect;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Unit tests for FileEligibilityTrait.
@@ -41,16 +42,36 @@ class FileEligibilityTraitTest extends TestCase
         $this->subject = new FileEligibilityTraitTestSubject();
     }
 
+    #[Override]
+    protected function tearDown(): void
+    {
+        GeneralUtility::purgeInstances();
+
+        parent::tearDown();
+    }
+
+    /**
+     * Registers a MetaDataAspect mock to be returned for the next
+     * `GeneralUtility::makeInstance(MetaDataAspect::class, ...)` call.
+     *
+     * @param array<string, int|float|string|null> $metaData
+     */
+    private function registerMetaDataAspectMock(array $metaData): void
+    {
+        $metaDataMock = $this->createMock(MetaDataAspect::class);
+        $metaDataMock
+            ->method('get')
+            ->willReturn($metaData);
+
+        GeneralUtility::addInstance(MetaDataAspect::class, $metaDataMock);
+    }
+
     /**
      * Creates a mock File with all eligibility criteria met.
      */
     private function createEligibleFileMock(string $extension = 'pdf'): File
     {
-        $metaDataMock = $this->createMock(MetaDataAspect::class);
-        $metaDataMock
-            ->method('offsetExists')
-            ->with('uid')
-            ->willReturn(true);
+        $this->registerMetaDataAspectMock(['uid' => 1, 'no_search' => 0]);
 
         $fileMock = $this->createMock(File::class);
         $fileMock
@@ -59,17 +80,6 @@ class FileEligibilityTraitTest extends TestCase
         $fileMock
             ->method('getExtension')
             ->willReturn($extension);
-        $fileMock
-            ->method('getMetaData')
-            ->willReturn($metaDataMock);
-        $fileMock
-            ->method('hasProperty')
-            ->with('no_search')
-            ->willReturn(true);
-        $fileMock
-            ->method('getProperty')
-            ->with('no_search')
-            ->willReturn(0);
 
         return $fileMock;
     }
@@ -106,10 +116,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenNotIndexed(): void
     {
-        $metaDataMock = $this->createMock(MetaDataAspect::class);
-        $metaDataMock
-            ->method('offsetExists')
-            ->willReturn(true);
+        $this->registerMetaDataAspectMock(['uid' => 1, 'no_search' => 0]);
 
         $fileMock = $this->createMock(File::class);
         $fileMock
@@ -118,15 +125,6 @@ class FileEligibilityTraitTest extends TestCase
         $fileMock
             ->method('getExtension')
             ->willReturn('pdf');
-        $fileMock
-            ->method('getMetaData')
-            ->willReturn($metaDataMock);
-        $fileMock
-            ->method('hasProperty')
-            ->willReturn(true);
-        $fileMock
-            ->method('getProperty')
-            ->willReturn(0);
 
         self::assertFalse($this->subject->callIsEligible($fileMock, ['pdf']));
     }
@@ -150,11 +148,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenMetadataUidMissing(): void
     {
-        $metaDataMock = $this->createMock(MetaDataAspect::class);
-        $metaDataMock
-            ->method('offsetExists')
-            ->with('uid')
-            ->willReturn(false);
+        $this->registerMetaDataAspectMock(['no_search' => 0]);
 
         $fileMock = $this->createMock(File::class);
         $fileMock
@@ -163,15 +157,6 @@ class FileEligibilityTraitTest extends TestCase
         $fileMock
             ->method('getExtension')
             ->willReturn('pdf');
-        $fileMock
-            ->method('getMetaData')
-            ->willReturn($metaDataMock);
-        $fileMock
-            ->method('hasProperty')
-            ->willReturn(true);
-        $fileMock
-            ->method('getProperty')
-            ->willReturn(0);
 
         self::assertFalse($this->subject->callIsEligible($fileMock, ['pdf']));
     }
@@ -183,11 +168,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isEligibleReturnsFalseWhenMarkedNoSearch(): void
     {
-        $metaDataMock = $this->createMock(MetaDataAspect::class);
-        $metaDataMock
-            ->method('offsetExists')
-            ->with('uid')
-            ->willReturn(true);
+        $this->registerMetaDataAspectMock(['uid' => 1, 'no_search' => 1]);
 
         $fileMock = $this->createMock(File::class);
         $fileMock
@@ -196,17 +177,6 @@ class FileEligibilityTraitTest extends TestCase
         $fileMock
             ->method('getExtension')
             ->willReturn('pdf');
-        $fileMock
-            ->method('getMetaData')
-            ->willReturn($metaDataMock);
-        $fileMock
-            ->method('hasProperty')
-            ->with('no_search')
-            ->willReturn(true);
-        $fileMock
-            ->method('getProperty')
-            ->with('no_search')
-            ->willReturn(1);
 
         self::assertFalse($this->subject->callIsEligible($fileMock, ['pdf']));
     }
@@ -264,17 +234,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isIndexableReturnsTrueWhenNoSearchIsZero(): void
     {
-        $fileMock = $this->createMock(FileInterface::class);
-        $fileMock
-            ->method('hasProperty')
-            ->with('no_search')
-            ->willReturn(true);
-        $fileMock
-            ->method('getProperty')
-            ->with('no_search')
-            ->willReturn(0);
-
-        self::assertTrue($this->subject->callIsIndexable($fileMock));
+        self::assertTrue($this->subject->callIsIndexable(['no_search' => 0]));
     }
 
     /**
@@ -284,17 +244,7 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isIndexableReturnsFalseWhenNoSearchIsOne(): void
     {
-        $fileMock = $this->createMock(FileInterface::class);
-        $fileMock
-            ->method('hasProperty')
-            ->with('no_search')
-            ->willReturn(true);
-        $fileMock
-            ->method('getProperty')
-            ->with('no_search')
-            ->willReturn(1);
-
-        self::assertFalse($this->subject->callIsIndexable($fileMock));
+        self::assertFalse($this->subject->callIsIndexable(['no_search' => 1]));
     }
 
     /**
@@ -305,12 +255,6 @@ class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isIndexableReturnsFalseWhenNoSearchPropertyMissing(): void
     {
-        $fileMock = $this->createMock(FileInterface::class);
-        $fileMock
-            ->method('hasProperty')
-            ->with('no_search')
-            ->willReturn(false);
-
-        self::assertFalse($this->subject->callIsIndexable($fileMock));
+        self::assertFalse($this->subject->callIsIndexable([]));
     }
 }
