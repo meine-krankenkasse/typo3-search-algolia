@@ -36,3 +36,15 @@ parameters:
     typo3:
         requestGetAttributeMapping:
             route: TYPO3\CMS\Backend\Routing\Route|null
+
+    ignoreErrors:
+        # Pdo\Sqlite only exists on PHP 8.4+ (our phpVersion floor is 8.3),
+        # but PHPStan can only resolve the class when it itself runs on an
+        # interpreter where it really exists (8.4/8.5), so this shows up on
+        # some PHP versions in the test matrix and not on others. The
+        # instanceof check guarding it is verified runtime-safe on PHP 8.3
+        # (instanceof against a non-existent class evaluates to false there).
+        -
+            message: '#(Class|unknown class) Pdo\\Sqlite#'
+            path: %currentWorkingDirectory%/Tests/Functional/AbstractFunctionalTestCase.php
+            reportUnmatched: false
