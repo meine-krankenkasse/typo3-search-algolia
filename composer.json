@@ -129,12 +129,12 @@
         ],
         "ci:test": [
             "@ci:test:php:lint",
+            "@ci:test:php:cgl",
+            "@ci:test:php:unit",
             "@ci:test:php:phpstan",
             "@ci:test:php:rector",
             "@ci:test:php:fractor",
-            "@ci:test:php:unit",
-            "@ci:test:php:functional",
-            "@ci:test:php:cgl"
+            "@ci:test:php:functional"
         ]
     }
 }
