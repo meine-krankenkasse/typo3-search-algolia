@@ -51,6 +51,7 @@ use function count;
 #[CoversClass(IndexQueueWorkerCommand::class)]
 #[UsesClass(QueueItem::class)]
 #[UsesClass(IndexingService::class)]
+#[UsesClass(CliFallbackTypoScriptUnreadableException::class)]
 class IndexQueueWorkerCommandTest extends TestCase
 {
     private MockObject&PersistenceManagerInterface $persistenceManagerMock;
