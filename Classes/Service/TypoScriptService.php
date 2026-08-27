@@ -14,6 +14,9 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use Override;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use RuntimeException;
 use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -41,8 +44,22 @@ use function is_string;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-readonly class TypoScriptService implements TypoScriptServiceInterface
+class TypoScriptService implements TypoScriptServiceInterface, LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
+    /**
+     * Memoized result of the CLI fallback parse (the extension's bundled
+     * setup.typoscript, read and parsed directly, see getCliFallbackTypoScript()).
+     * The scheduler worker command (mkk:queue:index:worker) runs as a single
+     * long-lived process and calls getTypoScriptConfiguration() once per queue
+     * item, so without this memoization the same static file would be re-read,
+     * re-hashed and re-parsed hundreds of times per run for an identical result.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $cliFallbackTypoScript = null;
+
     /**
      * Constructor for the TypoScript service.
      *
@@ -54,8 +71,8 @@ readonly class TypoScriptService implements TypoScriptServiceInterface
      *                                                               bundled TypoScript when no request is bound
      */
     public function __construct(
-        private ConfigurationManagerInterface $configurationManager,
-        private TypoScriptStringFactory $typoScriptStringFactory,
+        private readonly ConfigurationManagerInterface $configurationManager,
+        private readonly TypoScriptStringFactory $typoScriptStringFactory,
     ) {
     }
 
@@ -75,24 +92,59 @@ readonly class TypoScriptService implements TypoScriptServiceInterface
             $typoscriptConfiguration = $this->configurationManager
                 ->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
         } catch (NoServerRequestGivenException) {
-            // No request is bound in CLI/scheduler context (e.g. the index queue worker
-            // command), so site TypoScript cannot be resolved the normal request-bound way.
-            // Parse the extension's own bundled setup.typoscript directly instead, which
-            // covers the module.tx_typo3searchalgolia field mappings this service reads.
-            // Note: a project-level TypoScript override of these settings does not apply
-            // in this fallback, only the extension's shipped defaults are used here.
-            $typoscriptConfiguration = $this->typoScriptStringFactory
-                ->parseFromStringWithIncludes(
-                    'typo3-search-algolia-cli-fallback',
-                    (string) file_get_contents(
-                        ExtensionManagementUtility::extPath(Constants::EXTENSION_NAME)
-                        . 'Configuration/TypoScript/setup.typoscript'
-                    )
-                )
-                ->toArray();
+            $typoscriptConfiguration = $this->getCliFallbackTypoScript();
         }
 
         return GeneralUtility::removeDotsFromTS($typoscriptConfiguration)['module']['tx_typo3searchalgolia'] ?? [];
+    }
+
+    /**
+     * Returns the extension's own bundled TypoScript setup, parsed directly
+     * from disk, for use when no request is bound (CLI/scheduler context,
+     * e.g. the index queue worker command) and the normal request-bound
+     * ConfigurationManager cannot resolve site TypoScript.
+     *
+     * Known limitations of this fallback, both currently inert (verified: no
+     * project-level TypoScript override of module.tx_typo3searchalgolia exists
+     * anywhere in this installation, and the shipped setup.typoscript has no
+     * [condition] blocks), but relevant to keep in mind for future changes:
+     * - A project-level TypoScript override of these settings does not apply
+     *   here. parseFromStringWithIncludes() parses only this one file, not the
+     *   site's full sys_template cascade the request-bound path would resolve.
+     * - [condition] blocks inside the parsed string are not evaluated.
+     *   parseFromStringWithIncludes() wires a plain IncludeTreeTraverser
+     *   without condition matching, so any [condition] added to
+     *   setup.typoscript in the future would always be treated as true here,
+     *   regardless of its actual outcome.
+     *
+     * @return array<string, mixed>
+     */
+    private function getCliFallbackTypoScript(): array
+    {
+        if ($this->cliFallbackTypoScript !== null) {
+            return $this->cliFallbackTypoScript;
+        }
+
+        $this->logger?->warning(
+            'Resolving TypoScript configuration via the CLI fallback (the bundled '
+            . 'setup.typoscript only); project-level TypoScript overrides and any '
+            . '[condition] blocks are not honored in this context.'
+        );
+
+        $setupPath = ExtensionManagementUtility::extPath(Constants::EXTENSION_NAME)
+            . 'Configuration/TypoScript/setup.typoscript';
+
+        $rawTypoScript = file_get_contents($setupPath);
+
+        if ($rawTypoScript === false) {
+            throw new RuntimeException(
+                'Unable to read the bundled TypoScript setup at "' . $setupPath . '".'
+            );
+        }
+
+        return $this->cliFallbackTypoScript = $this->typoScriptStringFactory
+            ->parseFromStringWithIncludes('typo3-search-algolia-cli-fallback', $rawTypoScript)
+            ->toArray();
     }
 
     /**
