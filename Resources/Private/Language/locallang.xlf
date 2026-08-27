@@ -171,9 +171,7 @@
                 <source>Queue Statistic</source>
             </trans-unit>
             <trans-unit id="index_queue.statistics.total">
-                <source>
-                    <![CDATA[The queue currently contains <strong>%s</strong> entries.]]>
-                </source>
+                <source><![CDATA[The queue currently contains <strong>%s</strong> entries.]]></source>
             </trans-unit>
             <trans-unit id="index_queue.statistics.last_execution.info">
                 <source>The last indexing was on:</source>

@@ -171,9 +171,7 @@
                 <target>Warteschlangenstatistik</target>
             </trans-unit>
             <trans-unit id="index_queue.statistics.total">
-                <target>
-                    <![CDATA[Die Warteschlange enthält derzeit <strong>%s</strong> Einträge.]]>
-                </target>
+                <target><![CDATA[Die Warteschlange enthält derzeit <strong>%s</strong> Einträge.]]></target>
             </trans-unit>
             <trans-unit id="index_queue.statistics.last_execution.info">
                 <target>Die letzte Indizierung erfolgte am:</target>
