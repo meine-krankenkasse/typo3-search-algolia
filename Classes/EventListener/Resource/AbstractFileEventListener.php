@@ -53,7 +53,7 @@ abstract class AbstractFileEventListener
      */
     public function __construct(
         protected readonly EventDispatcherInterface $eventDispatcher,
-        protected FileHandler $fileHandler,
+        protected readonly FileHandler $fileHandler,
     ) {
     }
 }
