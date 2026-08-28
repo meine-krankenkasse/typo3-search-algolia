@@ -1,3 +1,21 @@
+# 3.0.0
+
+## BREAKING
+
+- WEB-1351: Require TYPO3 v14.3
+- WEB-1351: Drop TYPO3 v13.4 support
+
+## MISC
+
+- WEB-1351: Port extension to TYPO3 v14.3
+- WEB-1351: Fix double URL-encoding in the context menu "Add to queue" action, specific to TYPO3 v14's rewritten AjaxRequest.withQueryArguments()
+- WEB-1351: Fix a pre-existing SQL parameterization bug in FileCollectionRepository::findAllByCollectionUids()
+- WEB-1351: Restore a dropped LLL: prefix on the indexer type field wizard label lookup
+
+## Contributors
+
+- Rico Sonntag
+
 # 2.0.0
 
 ## BREAKING

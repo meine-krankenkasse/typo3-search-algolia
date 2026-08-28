@@ -1,7 +1,7 @@
 # Requirements & Installation
 
 ## System Requirements
-- TYPO3 v13.4
+- TYPO3 v14.3
 - PHP >=8.3 and <8.6
 - Composer
 - Algolia account with API credentials
