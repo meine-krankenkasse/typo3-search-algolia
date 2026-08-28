@@ -22,3 +22,6 @@ var/
 .php-cs-fixer.cache
 .phplint.cache
 .phpunit.result.cache
+
+# Subagent-driven-development scratch workspace (ledgers, briefs, reports)
+.superpowers/
