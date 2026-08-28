@@ -25,7 +25,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(IndexerTypeInfoText::class)]
-class IndexerTypeInfoTextTest extends TestCase
+final class IndexerTypeInfoTextTest extends TestCase
 {
     /**
      * Tests that render() looks up the type label with the "LLL:" prefix

@@ -52,10 +52,10 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
      * throughout the repository for database operations. The connection
      * pool provides access to the database connections needed for
      * retrieving file collections. The parent constructor is called
-     * explicitly because the parent's own methods (e.g. the inherited
-     * queryMultipleRecords() used by findAllByCollectionUids()) rely on
-     * its own private $connectionPool/$fileCollectionRegistry properties,
-     * which stay uninitialized otherwise.
+     * explicitly because the parent's own inherited methods (e.g.
+     * findByType(), findAll()) rely on its own private
+     * $connectionPool/$fileCollectionRegistry properties, which stay
+     * uninitialized otherwise.
      *
      * @param ConnectionPool         $connectionPool         The TYPO3 database connection pool
      * @param FileCollectionRegistry $fileCollectionRegistry The TYPO3 file collection registry
@@ -78,10 +78,11 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
      * that have been configured for indexing in the indexing service settings.
      * These collections define which files should be included in the search index.
      *
-     * The parent's queryMultipleRecords() is typed to the generic CollectionInterface
-     * since TYPO3 v14, but every 'sys_file_collection' record resolves through
-     * FileCollectionRegistry to an AbstractFileCollection subclass by TYPO3's own
-     * convention. Narrow it back here rather than trusting the widened interface,
+     * The inherited createMultipleDomainObjects() (used below) is typed to
+     * the generic CollectionInterface since TYPO3 v14, but every
+     * 'sys_file_collection' record resolves through FileCollectionRegistry
+     * to an AbstractFileCollection subclass by TYPO3's own convention.
+     * Narrow it back here rather than trusting the widened interface,
      * since callers (e.g. FileIndexer) rely on AbstractFileCollection-specific
      * methods like loadContents().
      *
@@ -122,13 +123,11 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
             );
         }
 
-        $data = $queryBuilder
+        $collectionRows = $queryBuilder
             ->executeQuery()
             ->fetchAllAssociative();
 
-        $collections = $data === []
-            ? []
-            : $this->createMultipleDomainObjects($data);
+        $collections = $this->createMultipleDomainObjects($collectionRows);
 
         return array_values(
             array_filter(
