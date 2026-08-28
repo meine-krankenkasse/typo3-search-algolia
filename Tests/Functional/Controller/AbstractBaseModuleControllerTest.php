@@ -19,6 +19,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Extbase\Mvc\ExtbaseRequestParameters;
@@ -89,6 +91,10 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
      * BackendViewFactory to resolve this extension's own template root
      * paths (mirrors AbstractBaseModuleController::updateRoutePackageName()),
      * plus the given 'extbase' attribute.
+     *
+     * Also stubs the 'applicationType' and 'normalizedParams' attributes since
+     * TYPO3 v14's PageRendererBackendSetupTrait now requires both to resolve
+     * the backend favicon on the request passed into ModuleTemplateFactory::create().
      */
     private function createModuleRequest(?ExtbaseRequestParameters $extbaseRequestParameters): RequestInterface
     {
@@ -99,12 +105,16 @@ final class AbstractBaseModuleControllerTest extends AbstractFunctionalTestCase
             ],
         );
 
+        $normalizedParams = NormalizedParams::createFromServerParams($_SERVER);
+
         $requestMock = self::createStub(RequestInterface::class);
         $requestMock
             ->method('getAttribute')
             ->willReturnMap([
                 ['route', null, $route],
                 ['extbase', null, $extbaseRequestParameters],
+                ['applicationType', null, SystemEnvironmentBuilder::REQUESTTYPE_BE],
+                ['normalizedParams', null, $normalizedParams],
             ]);
         $requestMock
             ->method('getParsedBody')

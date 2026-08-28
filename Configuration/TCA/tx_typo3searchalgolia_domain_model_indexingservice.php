@@ -32,13 +32,9 @@ return [
         'transOrigDiffSourceField' => 'l10n_diffsource',
         'translationSource'        => 'l10n_source',
         'default_sortby'           => 'title ASC',
-        'searchFields'             => 'title, description',
         'enablecolumns'            => [
             'disabled' => 'hidden',
         ],
-    ],
-    'interface' => [
-        'maxSingleDBListItems' => 50,
     ],
     'types' => [
         '1' => [
@@ -104,13 +100,15 @@ return [
         'crdate' => [
             'label'  => 'crdate',
             'config' => [
-                'type' => 'datetime',
+                'type'       => 'datetime',
+                'searchable' => false,
             ],
         ],
         'tstamp' => [
             'label'  => 'tstamp',
             'config' => [
-                'type' => 'datetime',
+                'type'       => 'datetime',
+                'searchable' => false,
             ],
         ],
         'starttime' => [
@@ -122,6 +120,7 @@ return [
                 'behaviour' => [
                     'allowLanguageSynchronization' => true,
                 ],
+                'searchable' => false,
             ],
         ],
         'endtime' => [
@@ -143,6 +142,7 @@ return [
                 'behaviour' => [
                     'allowLanguageSynchronization' => true,
                 ],
+                'searchable' => false,
             ],
         ],
         'hidden' => [

@@ -16,9 +16,10 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
+use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
@@ -75,12 +76,14 @@ class DataHandlerHook
      * such as the event dispatcher and page repository. These dependencies
      * enable the service to handle events and manage page-related data effectively.
      *
-     * @param EventDispatcherInterface $eventDispatcher The event dispatcher to dispatch events to listeners
-     * @param PageRepository           $pageRepository  The repository for fetching and managing page records
+     * @param EventDispatcherInterface $eventDispatcher  The event dispatcher to dispatch events to listeners
+     * @param PageRepository           $pageRepository   The repository for fetching and managing page records
+     * @param TcaSchemaFactory         $tcaSchemaFactory The TCA schema factory used to check a table's workspace capability
      */
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly PageRepository $pageRepository,
+        private readonly TcaSchemaFactory $tcaSchemaFactory,
     ) {
     }
 
@@ -315,7 +318,8 @@ class DataHandlerHook
     {
         if (
             !ExtensionManagementUtility::isLoaded('workspaces')
-            || !BackendUtility::isTableWorkspaceEnabled($tableName)
+            || !$this->tcaSchemaFactory->has($tableName)
+            || !$this->tcaSchemaFactory->get($tableName)->hasCapability(TcaSchemaCapability::Workspace)
         ) {
             return false;
         }

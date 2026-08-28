@@ -34,7 +34,7 @@ class ContextMenuActions {
     enqueueOne = function (table, identifier, context) {
         new AjaxRequest(context.actionUrl)
             .withQueryArguments({
-                target: encodeURIComponent(identifier)
+                target: identifier
             })
             .get()
             .then(() => {

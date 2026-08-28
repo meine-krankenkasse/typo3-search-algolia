@@ -22,6 +22,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTest
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
@@ -73,7 +74,41 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
                 'transOrigPointerField'    => 'l10n_parent',
                 'transOrigDiffSourceField' => 'l10n_diffsource',
             ],
+            // TYPO3 v14's Schema API validates that every field referenced in
+            // ctrl.enablecolumns also has a matching columns definition (unlike
+            // v13, where DefaultRestrictionContainer read ctrl field names
+            // directly without checking columns). Shapes match what core's own
+            // (internal) TcaEnrichment would generate for these standard fields.
+            'columns' => [
+                'hidden' => [
+                    'label'  => 'Hidden',
+                    'config' => [
+                        'type' => 'check',
+                    ],
+                ],
+                'starttime' => [
+                    'label'  => 'Start time',
+                    'config' => [
+                        'type' => 'datetime',
+                    ],
+                ],
+                'endtime' => [
+                    'label'  => 'End time',
+                    'config' => [
+                        'type' => 'datetime',
+                    ],
+                ],
+            ],
         ];
+
+        // TYPO3 v14's restriction classes (HiddenRestriction, DeletedRestriction, ...)
+        // resolve enable-columns via TcaSchemaFactory, not $GLOBALS['TCA'] directly.
+        // The schema factory's internal state is built once from the full TCA before
+        // this setUp() runs, so the ad-hoc entry above is invisible to it until
+        // explicitly rebuilt. rebuild() is TYPO3 core's own documented mechanism for
+        // exactly this ("only used for functional tests, which override TCA on the
+        // fly for specific test cases").
+        $this->get(TcaSchemaFactory::class)->rebuild($GLOBALS['TCA']);
 
         $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/pages.csv');
         $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/tx_news_domain_model_news.csv');

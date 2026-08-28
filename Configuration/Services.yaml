@@ -116,3 +116,15 @@ services:
             -   name: event.listener
                 identifier: 'typo3-search-algolia/workspace-after-record-published-event-listener'
                 event: TYPO3\CMS\Workspaces\Event\AfterRecordPublishedEvent
+
+    # Scheduler event listeners
+    # Runs after core's own AddSchedulableCommandsAsNativeTaskTypes listener,
+    # which auto-registers the queue worker command as a scheduler task type
+    # but hardcodes TYPO3's own ExecuteSchedulableCommandTask as the task
+    # class. Overrides it back to this extension's progress-aware subclass.
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Scheduler\BeforeTcaOverridesEventListener:
+        tags:
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/scheduler-before-tca-overrides-event-listener'
+                event: TYPO3\CMS\Core\Configuration\Event\BeforeTcaOverridesEvent
+                after: TYPO3\CMS\Scheduler\EventListener\AddSchedulableCommandsAsNativeTaskTypes

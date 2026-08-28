@@ -16,6 +16,7 @@ package-lock.json
 
 # Build stuff
 .build/
+var/
 
 # Cache
 .php-cs-fixer.cache

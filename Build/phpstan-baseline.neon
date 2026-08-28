@@ -32,3 +32,9 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php
+
+		-
+			message: '#^Parameter \#1 \$collectionIds of method MeineKrankenkasse\\Typo3SearchAlgolia\\Repository\\FileCollectionRepository\:\:findAllByCollectionUids\(\) expects array\<int\>, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../Tests/Functional/Repository/FileCollectionRepositoryTest.php
