@@ -103,10 +103,10 @@ jobs:
     mutation:
         name: Mutation testing
         runs-on: ubuntu-latest
-        # Runs independently of the build matrix - a low mutation score is a
-        # signal to act on, not a merge blocker, and it must not slow down or
-        # block the correctness gate above.
-        continue-on-error: true
+        # Ratchet gate (GH-9): fails when the MSI drops below the floor in
+        # Build/infection.json5. Runs independently of the build matrix so a
+        # slow mutation run never delays the correctness gate above, but it
+        # is no longer advisory-only.
 
         steps:
             -   name: Harden Runner
