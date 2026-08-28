@@ -50,6 +50,17 @@ interface IndexerInterface extends SingletonInterface
     public function getTable(): string;
 
     /**
+     * Returns the UIDs of all records of this indexer's table that are
+     * currently in scope for the current indexing service, i.e. the same
+     * set enqueueAll() would queue. Read-only, does not touch the queue.
+     *
+     * @return int[] The in-scope record UIDs
+     *
+     * @throws RuntimeException If no indexing service is set
+     */
+    public function findRecordUidsInScope(): array;
+
+    /**
      * Creates a new instance with the specified indexing service configuration.
      *
      * This method implements the immutable pattern, returning a new instance

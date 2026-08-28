@@ -1,0 +1,75 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Service\Indexer;
+
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
+
+#[CoversClass(PageIndexer::class)]
+#[CoversClass(AbstractIndexer::class)]
+final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
+{
+    /**
+     * This is a thin-wrapper contract test: initQueueItemRecords() (the
+     * delegate) is already covered by this repo's existing functional
+     * indexer tests for the real SQL/scoping behavior — this test only
+     * covers findRecordUidsInScope() itself (record_uid extraction + the
+     * int cast), and does NOT independently prove real DB scoping; that
+     * is additionally exercised end-to-end by Task 6's functional test.
+     * Fixture values are deliberately strings, matching what
+     * QueryBuilder::fetchAllAssociative() actually returns for an
+     * unmapped/text-typed select column — this exercises the (int) cast
+     * for real, a literal-int fixture would pass even if the cast were
+     * accidentally dropped.
+     */
+    #[Test]
+    public function findRecordUidsInScopeReturnsOnlyTheRecordUidColumnAsIntegers(): void
+    {
+        $indexer = $this->getMockBuilder(PageIndexer::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['initQueueItemRecords'])
+            ->getMock();
+
+        $indexer
+            ->expects(self::once())
+            ->method('initQueueItemRecords')
+            ->willReturn([
+                ['record_uid' => '1', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
+                ['record_uid' => '8', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
+            ]);
+
+        $indexer = $indexer->withIndexingService(
+            $this->createStub(IndexingService::class),
+        );
+
+        self::assertSame([1, 8], $indexer->findRecordUidsInScope());
+    }
+
+    /**
+     * Verifies findRecordUidsInScope() throws when no indexing service is
+     * set, matching the @throws contract on IndexerInterface and the same
+     * guard every sibling method (enqueueOne(), dequeueOne(), etc.) uses.
+     */
+    #[Test]
+    public function findRecordUidsInScopeThrowsWithoutAnIndexingService(): void
+    {
+        $indexer = $this->getMockBuilder(PageIndexer::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['initQueueItemRecords'])
+            ->getMock();
+
+        $indexer->expects(self::never())->method('initQueueItemRecords');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Missing indexing service instance.');
+
+        $indexer->findRecordUidsInScope();
+    }
+}

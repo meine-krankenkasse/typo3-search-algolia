@@ -30,6 +30,8 @@ use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use function array_map;
+
 /**
  * Abstract base class for all indexers.
  *
@@ -347,6 +349,28 @@ abstract class AbstractIndexer implements IndexerInterface
             ->bulkInsert(
                 $this->initQueueItemRecords(),
             );
+    }
+
+    /**
+     * Returns the UIDs of all records currently in scope for the current
+     * indexing service, the same set enqueueAll() would queue, without
+     * touching the queue.
+     *
+     * @return int[] The in-scope record UIDs
+     *
+     * @throws RuntimeException If no indexing service is set
+     */
+    #[Override]
+    public function findRecordUidsInScope(): array
+    {
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
+
+        return array_map(
+            static fn (array $row): int => (int) $row['record_uid'],
+            $this->initQueueItemRecords(),
+        );
     }
 
     /**
