@@ -1,0 +1,5 @@
+sys_file_collection,,,,
+,uid,pid,title,type,deleted
+,1,0,"Collection A",static,0
+,2,0,"Collection B",static,0
+,3,0,"Deleted Collection",static,1

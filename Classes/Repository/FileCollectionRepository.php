@@ -14,8 +14,10 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 use Doctrine\DBAL\ArrayParameterType;
 use TYPO3\CMS\Core\Collection\CollectionInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Resource\Collection\AbstractFileCollection;
 use TYPO3\CMS\Core\Resource\Collection\FileCollectionRegistry;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function array_filter;
 use function array_values;
@@ -38,6 +40,11 @@ use function array_values;
  */
 readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCollectionRepository
 {
+    /**
+     * The database table name for file collections.
+     */
+    private const string TABLE_NAME = 'sys_file_collection';
+
     /**
      * Initializes the repository with the database connection pool.
      *
@@ -84,16 +91,44 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
      */
     public function findAllByCollectionUids(array $collectionIds = []): array
     {
+        // The inherited queryMultipleRecords() builds and executes its own
+        // separate QueryBuilder instance internally, so a bound parameter
+        // created here via createNamedParameter() would never reach the
+        // instance that actually runs the query. The query is therefore
+        // built and executed directly here instead, replicating what
+        // queryMultipleRecords() does internally (including its
+        // DeletedRestriction), so the parameter binding stays on the same
+        // QueryBuilder instance throughout.
         $queryBuilder = $this->connectionPool
-            ->getQueryBuilderForTable('sys_file_collection');
+            ->getQueryBuilderForTable(self::TABLE_NAME);
 
-        $constraints = [];
+        $queryBuilder->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+
+        $queryBuilder
+            ->select('*')
+            ->from(self::TABLE_NAME);
 
         if ($collectionIds !== []) {
-            $constraints[] = $queryBuilder->expr()->in('uid', $collectionIds);
+            $queryBuilder->where(
+                $queryBuilder->expr()->in(
+                    'uid',
+                    $queryBuilder->createNamedParameter(
+                        $collectionIds,
+                        ArrayParameterType::INTEGER,
+                    ),
+                ),
+            );
         }
 
-        $collections = $this->queryMultipleRecords($constraints) ?? [];
+        $data = $queryBuilder
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $collections = $data === []
+            ? []
+            : $this->createMultipleDomainObjects($data);
 
         return array_values(
             array_filter(
@@ -121,7 +156,7 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
         }
 
         $queryBuilder = $this->connectionPool
-            ->getQueryBuilderForTable('sys_file_collection');
+            ->getQueryBuilderForTable(self::TABLE_NAME);
 
         /** @var list<array{uid: int, type: string, folder_identifier: string, recursive: int, category: int}> $rows */
         $rows = $queryBuilder
@@ -132,7 +167,7 @@ readonly class FileCollectionRepository extends \TYPO3\CMS\Core\Resource\FileCol
                 'recursive',
                 'category',
             )
-            ->from('sys_file_collection')
+            ->from(self::TABLE_NAME)
             ->where(
                 $queryBuilder->expr()->in(
                     'uid',
