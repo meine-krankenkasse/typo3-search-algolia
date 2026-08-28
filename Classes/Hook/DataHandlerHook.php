@@ -76,8 +76,9 @@ class DataHandlerHook
      * such as the event dispatcher and page repository. These dependencies
      * enable the service to handle events and manage page-related data effectively.
      *
-     * @param EventDispatcherInterface $eventDispatcher The event dispatcher to dispatch events to listeners
-     * @param PageRepository           $pageRepository  The repository for fetching and managing page records
+     * @param EventDispatcherInterface $eventDispatcher  The event dispatcher to dispatch events to listeners
+     * @param PageRepository           $pageRepository   The repository for fetching and managing page records
+     * @param TcaSchemaFactory         $tcaSchemaFactory The TCA schema factory used to check a table's workspace capability
      */
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,

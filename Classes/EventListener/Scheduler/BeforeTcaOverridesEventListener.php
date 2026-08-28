@@ -38,6 +38,12 @@ class BeforeTcaOverridesEventListener
      */
     private const string COMMAND_IDENTIFIER = 'mkk:queue:index:worker';
 
+    /**
+     * Overrides the auto-registered scheduler task class for the index queue
+     * worker command with this extension's own progress-aware subclass.
+     *
+     * @param BeforeTcaOverridesEvent $event The event carrying the TCA array to mutate
+     */
     public function __invoke(BeforeTcaOverridesEvent $event): void
     {
         $tca = $event->getTca();
