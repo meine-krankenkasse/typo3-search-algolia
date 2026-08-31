@@ -45,57 +45,64 @@
                 </div>
             </f:if>
 
-            <f:for each="{sections}" as="section" key="table">
-                <div class="mt-4">
-                    <h3 class="mb-3"><code>{table}</code></h3>
+            <f:form action="index" method="get">
+                <f:for each="{sections}" as="section" key="table">
+                    <div class="mt-4">
+                        <h3 class="mb-3"><code>{table}</code></h3>
 
-                    <f:if condition="{section.noIndexingService}">
-                        <f:then>
-                            <p>No indexing service configured for this record type.</p>
-                        </f:then>
-                        <f:else>
-                            <f:if condition="{section.recordUids -> f:count()} == 0">
-                                <f:then>
-                                    <p>No record of this type is currently in scope.</p>
-                                </f:then>
-                                <f:else>
-                                    <f:form action="index" method="get">
-                                        <select name="selectedRecordUid[{table}]" class="tx-typo3searchalgolia-attribute-overview-select">
-                                            <f:for each="{section.recordUids}" as="uid">
-                                                <f:if condition="{uid} == {section.selectedRecordUid}">
-                                                    <f:then>
-                                                        <option value="{uid}" selected="selected">{uid}</option>
-                                                    </f:then>
-                                                    <f:else>
-                                                        <option value="{uid}">{uid}</option>
-                                                    </f:else>
-                                                </f:if>
-                                            </f:for>
-                                        </select>
-                                    </f:form>
+                        <f:if condition="{section.error}">
+                            <f:then>
+                                <p class="text-danger">Failed to build this section: {section.error}</p>
+                            </f:then>
+                            <f:else>
+                                <f:if condition="{section.noIndexingService}">
+                                    <f:then>
+                                        <p>No indexing service configured for this record type.</p>
+                                    </f:then>
+                                    <f:else>
+                                        <f:if condition="{section.recordUids -> f:count()} == 0">
+                                            <f:then>
+                                                <p>No record of this type is currently in scope.</p>
+                                            </f:then>
+                                            <f:else>
+                                                <select name="selectedRecordUid[{table}]" class="tx-typo3searchalgolia-attribute-overview-select">
+                                                    <f:for each="{section.recordUids}" as="uid">
+                                                        <f:if condition="{uid} == {section.selectedRecordUid}">
+                                                            <f:then>
+                                                                <option value="{uid}" selected="selected">{uid}</option>
+                                                            </f:then>
+                                                            <f:else>
+                                                                <option value="{uid}">{uid}</option>
+                                                            </f:else>
+                                                        </f:if>
+                                                    </f:for>
+                                                </select>
 
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Attribute</th>
-                                                <th>Origin</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <f:for each="{section.originMap.origins}" as="originValue" key="attributeName">
-                                                <tr>
-                                                    <td><code>{attributeName}</code></td>
-                                                    <td><span class="badge">{originValue}</span></td>
-                                                </tr>
-                                            </f:for>
-                                        </tbody>
-                                    </table>
-                                </f:else>
-                            </f:if>
-                        </f:else>
-                    </f:if>
-                </div>
-            </f:for>
+                                                <table class="table table-striped">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Attribute</th>
+                                                            <th>Origin</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <f:for each="{section.originMap.origins}" as="originValue" key="attributeName">
+                                                            <tr>
+                                                                <td><code>{attributeName}</code></td>
+                                                                <td><span class="badge">{originValue}</span></td>
+                                                            </tr>
+                                                        </f:for>
+                                                    </tbody>
+                                                </table>
+                                            </f:else>
+                                        </f:if>
+                                    </f:else>
+                                </f:if>
+                            </f:else>
+                        </f:if>
+                    </div>
+                </f:for>
+            </f:form>
         </div>
     </f:section>
 </html>
