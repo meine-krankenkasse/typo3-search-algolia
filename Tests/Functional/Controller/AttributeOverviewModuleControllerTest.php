@@ -585,7 +585,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         self::assertStringContainsString(
             '<span class="badge">default</span>',
             $pagesSectionHtml,
-            'A different, unaffected table\'s section must still render its normal content in the '
+            "A different, unaffected table's section must still render its normal content in the "
             . 'same response as a table whose section build threw.',
         );
 
@@ -650,8 +650,8 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         self::assertSame(
             1,
             substr_count($body, '<form'),
-            'Exactly one <form> must wrap every table\'s section; one form per table would lose the '
-            . 'other table\'s selection on submit.',
+            "Exactly one <form> must wrap every table's section; one form per table would lose the "
+            . "other table's selection on submit.",
         );
     }
 
@@ -944,7 +944,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         self::assertMatchesRegularExpression(
             '#<form[^>]*\bmethod="post"#i',
             $body,
-            'The shared form must submit via POST, not GET, see this test\'s docblock for why a GET '
+            "The shared form must submit via POST, not GET, see this test's docblock for why a GET "
             . 'submission silently drops the page ID and the backend route token.',
         );
 

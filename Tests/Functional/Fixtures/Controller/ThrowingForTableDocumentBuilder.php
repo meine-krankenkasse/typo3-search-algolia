@@ -55,7 +55,7 @@ final class ThrowingForTableDocumentBuilder extends DocumentBuilder
     }
 
     #[Override]
-    public function setIndexer(?IndexerInterface $indexer): DocumentBuilder
+    public function setIndexer(?IndexerInterface $indexer): ThrowingForTableDocumentBuilder
     {
         $this->indexerForTest = $indexer;
         $this->realDocumentBuilder->setIndexer($indexer);
@@ -64,7 +64,7 @@ final class ThrowingForTableDocumentBuilder extends DocumentBuilder
     }
 
     #[Override]
-    public function setRecord(array $record): DocumentBuilder
+    public function setRecord(array $record): ThrowingForTableDocumentBuilder
     {
         $this->realDocumentBuilder->setRecord($record);
 
@@ -72,7 +72,7 @@ final class ThrowingForTableDocumentBuilder extends DocumentBuilder
     }
 
     #[Override]
-    public function setIndexingService(IndexingService $indexingService): DocumentBuilder
+    public function setIndexingService(IndexingService $indexingService): ThrowingForTableDocumentBuilder
     {
         $this->realDocumentBuilder->setIndexingService($indexingService);
 
@@ -80,7 +80,7 @@ final class ThrowingForTableDocumentBuilder extends DocumentBuilder
     }
 
     #[Override]
-    public function assemble(): DocumentBuilder
+    public function assemble(): ThrowingForTableDocumentBuilder
     {
         if ($this->indexerForTest?->getTable() === $this->tableToFailFor) {
             throw new Error(

@@ -16,6 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginResolverInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SchemaGapDetector;
@@ -212,7 +213,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      * @param string   $table             The database table name
      * @param int|null $overrideRecordUid A manually selected record UID, if any
      *
-     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: \MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap|null, noIndexingService: bool, error: string|null}
+     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: AttributeOriginMap|null, noIndexingService: bool, error: string|null}
      */
     private function buildSection(string $table, ?int $overrideRecordUid): array
     {
@@ -312,7 +313,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      *
      * @param bool $noIndexingService Whether no indexing service is configured for this table at all
      *
-     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: \MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap|null, noIndexingService: bool, error: string|null}
+     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: AttributeOriginMap|null, noIndexingService: bool, error: string|null}
      */
     private function emptySection(bool $noIndexingService): array
     {
@@ -333,7 +334,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      *
      * @param string $errorMessage The caught exception's message
      *
-     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: \MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap|null, noIndexingService: bool, error: string|null}
+     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: AttributeOriginMap|null, noIndexingService: bool, error: string|null}
      */
     private function errorSection(string $errorMessage): array
     {
