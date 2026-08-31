@@ -5,6 +5,12 @@
     <f:layout name="Module" />
 
     <f:section name="Content">
+        <f:be.pageRenderer
+            includeJavaScriptModules="{
+                0: '@meine-krankenkasse/typo3-search-algolia/attribute-overview-module.js',
+            }"
+        />
+
         <div class="col-md-12">
             <h1><f:translate key="module.name" /></h1>
             <h2><f:translate key="mod_attributes" /></h2>
@@ -54,9 +60,16 @@
                                 </f:then>
                                 <f:else>
                                     <f:form action="index" method="get">
-                                        <select name="selectedRecordUid[{table}]" onchange="this.form.submit()">
+                                        <select name="selectedRecordUid[{table}]" class="tx-typo3searchalgolia-attribute-overview-select">
                                             <f:for each="{section.recordUids}" as="uid">
-                                                <option value="{uid}" selected="{f:if(condition: '{uid} == {section.selectedRecordUid}', then: 'selected')}">{uid}</option>
+                                                <f:if condition="{uid} == {section.selectedRecordUid}">
+                                                    <f:then>
+                                                        <option value="{uid}" selected="selected">{uid}</option>
+                                                    </f:then>
+                                                    <f:else>
+                                                        <option value="{uid}">{uid}</option>
+                                                    </f:else>
+                                                </f:if>
                                             </f:for>
                                         </select>
                                     </f:form>
