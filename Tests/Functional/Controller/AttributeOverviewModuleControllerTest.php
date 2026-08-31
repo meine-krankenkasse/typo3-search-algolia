@@ -986,4 +986,53 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             $body,
         );
     }
+
+    /**
+     * Proves the parsed body genuinely takes PRECEDENCE over the query
+     * params, not merely that it is used when the query params happen to
+     * carry no value for the key at all (that weaker claim is already
+     * covered by indexActionAppliesASelectedRecordOverrideSubmittedViaThePostBody()
+     * above, which omits selectedRecordUid from the query params entirely -
+     * a mutant that swaps the fallback order, e.g.
+     * getQueryParams()['selectedRecordUid'] ?? $parsedBodyValue ?? [], would
+     * pass that test identically, since the query params never contain the
+     * key either way). Here BOTH the parsed body and the query params carry
+     * a selectedRecordUid[pages] value, but pointing at two different, both
+     * in-scope, pages fixture UIDs (uid=2 "First Page" via POST, uid=3
+     * "Second Page" via the query string). Only the POST body's uid=2 must
+     * be applied; a swapped fallback order would instead apply uid=3 from
+     * the query string, failing both assertions below.
+     */
+    #[Test]
+    public function indexActionPrefersThePostBodysSelectedRecordOverAConflictingQueryParam(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $subject = $this->createDrivenSubject(
+            [
+                'id'                => 0,
+                'selectedRecordUid' => ['pages' => 3],
+            ],
+            null,
+            ['selectedRecordUid' => ['pages' => 2]],
+        );
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $pagesSectionHtml = $this->extractSectionHtml($body, 'pages');
+
+        self::assertStringContainsString(
+            '<option value="2" selected="selected">2</option>',
+            $pagesSectionHtml,
+        );
+
+        self::assertStringNotContainsString(
+            '<option value="3" selected="selected">3</option>',
+            $pagesSectionHtml,
+        );
+    }
 }
