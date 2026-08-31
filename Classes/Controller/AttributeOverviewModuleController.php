@@ -30,6 +30,7 @@ use function array_column;
 use function array_keys;
 use function array_values;
 use function in_array;
+use function is_array;
 
 /**
  * Backend module showing, per record type, every attribute sent to Algolia
@@ -110,7 +111,21 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             return $this->forwardErrorFlashMessage('error.databaseAvailability');
         }
 
-        $selectedRecordUid = $this->request->getQueryParams()['selectedRecordUid'] ?? [];
+        // The shared record-selector form is submitted via POST (see
+        // Resources/Private/Templates/AttributeOverviewModule/Index.html for
+        // why: a GET <f:form>'s "action" attribute bakes the page ID and the
+        // backend route token into its query string, but per the HTML form
+        // submission algorithm a GET submission discards that query string
+        // entirely in favour of the form's own field values, silently
+        // dropping both and triggering TYPO3's missing-token safety redirect
+        // on every selector change). getParsedBody() is checked first and
+        // getQueryParams() kept as a fallback for a plain GET-driven request
+        // (e.g. a hand-built bookmark/link, or this action invoked directly
+        // in a test), mirroring the same dual lookup
+        // AbstractBaseModuleController::getPageId() already uses for 'id'.
+        $parsedBody        = $this->request->getParsedBody();
+        $selectedRecordUid = is_array($parsedBody) ? ($parsedBody['selectedRecordUid'] ?? null) : null;
+        $selectedRecordUid ??= $this->request->getQueryParams()['selectedRecordUid'] ?? [];
 
         $sections     = [];
         $originMaps   = [];
@@ -150,6 +165,14 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         $this->moduleTemplate->assign(
             'configGaps',
             $this->schemaGapDetector->detectConfigGaps($fieldTargets),
+        );
+        // Carried into the shared record-selector form as a hidden 'id'
+        // field (see Index.html), so the page context set by the module's
+        // own page-tree navigation survives the form's POST round trip
+        // instead of being silently dropped.
+        $this->moduleTemplate->assign(
+            'pageUid',
+            $this->pageUid,
         );
 
         return $this->moduleTemplate->renderResponse('AttributeOverviewModule/Index');
