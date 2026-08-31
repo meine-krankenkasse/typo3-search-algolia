@@ -16,6 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -30,6 +31,20 @@ use RuntimeException;
 #[CoversClass(AbstractIndexer::class)]
 final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
 {
+    /**
+     * Creates a PageIndexer mock with initQueueItemRecords() as the only
+     * mocked method, standing in for a generic AbstractIndexer subclass
+     * across all tests in this file, since findRecordUidsInScope() itself
+     * is not overridden by any concrete indexer.
+     */
+    private function createIndexerMock(): MockObject&PageIndexer
+    {
+        return $this->getMockBuilder(PageIndexer::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['initQueueItemRecords'])
+            ->getMock();
+    }
+
     /**
      * This is a thin-wrapper contract test: initQueueItemRecords() (the
      * delegate) is already covered by this repo's existing functional
@@ -54,10 +69,7 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
     #[Test]
     public function findRecordUidsInScopeReturnsOnlyTheRecordUidColumnAsIntegers(): void
     {
-        $indexer = $this->getMockBuilder(PageIndexer::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['initQueueItemRecords'])
-            ->getMock();
+        $indexer = $this->createIndexerMock();
 
         $indexer
             ->expects(self::once())
@@ -84,10 +96,7 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
     #[Test]
     public function findRecordUidsInScopeForwardsAPositiveLimitToInitQueueItemRecords(): void
     {
-        $indexer = $this->getMockBuilder(PageIndexer::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['initQueueItemRecords'])
-            ->getMock();
+        $indexer = $this->createIndexerMock();
 
         $indexer
             ->expects(self::once())
@@ -113,10 +122,7 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
     #[Test]
     public function findRecordUidsInScopeThrowsWithoutAnIndexingService(): void
     {
-        $indexer = $this->getMockBuilder(PageIndexer::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['initQueueItemRecords'])
-            ->getMock();
+        $indexer = $this->createIndexerMock();
 
         $indexer->expects(self::never())->method('initQueueItemRecords');
 
