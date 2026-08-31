@@ -89,7 +89,11 @@ final class SchemaGapDetector
             }
 
             if ($missingOn !== []) {
-                $gaps[] = new SchemaGap($attributeName, $presentOn, $missingOn);
+                $gaps[] = new SchemaGap(
+                    $attributeName,
+                    $presentOn,
+                    $missingOn,
+                );
             }
         }
 

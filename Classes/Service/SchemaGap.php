@@ -32,13 +32,20 @@ final readonly class SchemaGap
     ) {
     }
 
+    /**
+     * Returns the name of the attribute this gap describes.
+     *
+     * @return string The attribute name
+     */
     public function getAttributeName(): string
     {
         return $this->attributeName;
     }
 
     /**
-     * @return string[]
+     * Returns the record type names that carry this attribute.
+     *
+     * @return string[] Record type names that have this attribute
      */
     public function getPresentOn(): array
     {
@@ -46,7 +53,9 @@ final readonly class SchemaGap
     }
 
     /**
-     * @return string[]
+     * Returns the record type names missing this attribute.
+     *
+     * @return string[] Record type names that don't have this attribute
      */
     public function getMissingOn(): array
     {
