@@ -35,10 +35,17 @@ use function in_array;
  * Backend module showing, per record type, every attribute sent to Algolia
  * for a representative record and its origin, plus cross-type schema gaps.
  *
- * Read-only: never triggers real indexing, queueing, or index writes. It
- * only runs DocumentBuilder::assemble() as a dry run against a single
- * representative record per table and reads back the result, it never
- * enqueues, indexes, or writes to the search engine or the database.
+ * This module itself never enqueues records, indexes anything, or writes to
+ * the search engine or the database, it only reads. However, buildSection()
+ * does run DocumentBuilder::assemble() as a dry run against a single
+ * representative record per table, and assemble() dispatches the real
+ * AfterDocumentAssembledEvent, the same event real indexing uses. Nothing
+ * in that event's contract requires listeners to be side-effect-free, so a
+ * third-party listener with a real side effect (an external API call, an
+ * audit-log write, a cache invalidation) will also fire for real just from
+ * an admin opening this diagnostic page. This is a known, accepted
+ * characteristic of the preview mechanism, not a defect, it must simply not
+ * be mistaken for "never triggers real indexing" in the literal sense.
  *
  * The record-type list is not hardcoded, it is derived live from
  * IndexerRegistry (see getRecordTypes()), the same registry the built-in
