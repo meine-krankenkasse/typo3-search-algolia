@@ -474,6 +474,18 @@ abstract class AbstractIndexer implements IndexerInterface
      * - changed: The timestamp when the record was last changed
      * - priority: The indexing priority for the record
      *
+     * When a positive $limit is given, the result is additionally ordered by
+     * the table's tstamp column descending (uid descending as a deterministic
+     * tie-break, matching the same tie-break
+     * AttributeOverviewModuleController::mostRecentlyChanged() uses), applied
+     * BEFORE the SQL LIMIT. Without an ORDER BY, row order under LIMIT is
+     * unspecified, so a capped result could silently omit the table's actual
+     * most-recently-changed record whenever the table has more in-scope rows
+     * than the limit. The unbounded case (no limit, used by enqueueAll() and
+     * enqueueMultiple() for the real indexing pipeline) intentionally keeps
+     * no ORDER BY, this would only add cost with no behavioral benefit since
+     * every in-scope row is fetched anyway.
+     *
      * @param QueryBuilder $queryBuilder The query builder to use for the query
      * @param string[]     $constraints  An array of SQL constraint expressions
      * @param int          $limit        Maximum number of rows to fetch (via SQL LIMIT), 0 for unbounded
@@ -518,6 +530,12 @@ abstract class AbstractIndexer implements IndexerInterface
             ->where(...$constraints);
 
         if ($limit > 0) {
+            $tstampField = $GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 'uid';
+
+            $queryBuilder
+                ->orderBy($tstampField, 'DESC')
+                ->addOrderBy('uid', 'DESC');
+
             $queryBuilder->setMaxResults($limit);
         }
 
