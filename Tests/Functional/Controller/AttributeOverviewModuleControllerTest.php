@@ -671,4 +671,64 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             $body,
         );
     }
+
+    /**
+     * Proves the "keep the first configured indexing service" tie-break in
+     * buildSection() ($indexingServiceByRecordUid[$recordUid] ??=
+     * $indexingService;) is genuinely load-bearing when two indexing
+     * services for the SAME table have OVERLAPPING scopes and both match
+     * the SAME record - unlike
+     * indexActionAssemblesUnderTheIndexingServiceTheSelectedRecordWasActuallyFoundUnder()
+     * above, whose two fixture services scope strictly DISJOINT pages (each
+     * record reachable through exactly one service), so that test can never
+     * exercise the ??= tie-break itself.
+     *
+     * The fixtures here configure both "Overlap Indexer A" (uid 1,
+     * includeContentElements=false) and "Overlap Indexer B" (uid 2,
+     * includeContentElements=true) with the IDENTICAL pages_recursive/
+     * pages_doktype scope, so page uid 40 is genuinely in scope under BOTH.
+     * Since findAllByTableName() returns the two services uid-ascending and
+     * buildSection() processes them in that order, page 40 is recorded
+     * under Service A on the first pass and Service B's later, redundant
+     * match for the same UID is discarded by ??=. If the operator were a
+     * plain = (last-service-wins) instead, page 40 would be assembled under
+     * Service B (includeContentElements=true) and would carry a 'content'
+     * attribute, flipping the outcome asserted below - this was spot-checked
+     * by temporarily reverting ??= to = locally, which turns this
+     * assertion red, confirming the test is sensitive to the exact
+     * behaviour it documents.
+     */
+    #[Test]
+    public function indexActionKeepsTheFirstConfiguredIndexingServiceWhenScopesOverlap(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages_overlap.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content_overlap.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services_overlap.csv');
+
+        $subject = $this->createDrivenSubject([
+            'id'                => 0,
+            'selectedRecordUid' => ['pages' => 40],
+        ]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $pagesSectionHtml = $this->extractSectionHtml($body, 'pages');
+
+        self::assertStringContainsString(
+            '<option value="40" selected="selected">40</option>',
+            $pagesSectionHtml,
+        );
+
+        self::assertStringNotContainsString(
+            '<code>content</code>',
+            $pagesSectionHtml,
+            'Page 40 is in scope under BOTH overlapping indexing services; the FIRST configured one '
+            . '("Overlap Indexer A", includeContentElements=false) must win, so no "content" attribute may '
+            . 'appear. A reintroduced last-match-wins behaviour would instead assemble page 40 under '
+            . '"Overlap Indexer B" (includeContentElements=true) and this assertion would fail.',
+        );
+    }
 }
