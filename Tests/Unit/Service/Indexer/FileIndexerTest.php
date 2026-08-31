@@ -918,7 +918,7 @@ final class FileIndexerTest extends TestCase
         $fileCollectionRepositoryMock
             ->expects(self::once())
             ->method('findAllByCollectionUids')
-            ->with([1, 2])
+            ->with(self::identicalTo([1, 2]))
             ->willReturn([]);
 
         $indexingServiceMock = self::createStub(IndexingService::class);
