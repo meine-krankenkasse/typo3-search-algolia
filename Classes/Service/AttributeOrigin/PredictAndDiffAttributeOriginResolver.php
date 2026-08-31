@@ -24,9 +24,15 @@ use function in_array;
  * against a statically predicted baseline (hardcoded defaults + TypoScript
  * mapping), attributing anything not predicted to an event listener.
  *
- * This never runs DocumentBuilder::assemble() and never changes
- * DocumentBuilder itself, see docs/superpowers/specs/2026-08-28-attribute-overview-module-design.md
- * "Core mechanism" for the rationale.
+ * This resolver itself never runs DocumentBuilder::assemble() and never
+ * changes DocumentBuilder, it only classifies a Document instance that was
+ * already assembled elsewhere (by AttributeOverviewModuleController, via a
+ * real, write-free dry run). The predicted baseline is intentionally static
+ * (hardcoded default field names plus the TypoScript field mapping) rather
+ * than tracked through the listeners themselves, because there is no
+ * central registry of which listener touches which field, anything present
+ * on the real document but absent from that baseline is, by elimination,
+ * attributable to a listener.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de

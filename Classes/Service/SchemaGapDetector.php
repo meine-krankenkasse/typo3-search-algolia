@@ -22,9 +22,16 @@ use function in_array;
 
 /**
  * Compares attribute-name sets across record types on two independent
- * levels (runtime and config), see
- * docs/superpowers/specs/2026-08-28-attribute-overview-module-design.md
- * "Gap detection" for the rationale for keeping both levels.
+ * levels: runtime (detectRuntimeGaps(), the attributes an assembled
+ * Document actually carries, per AttributeOriginMap) and config
+ * (detectConfigGaps(), the attributes the TypoScript field mapping targets,
+ * independent of whether any record was ever assembled). The two levels are
+ * kept separate because they answer different questions: runtime gaps
+ * reveal drift introduced by event listeners or missing per-table listener
+ * coverage, while config gaps reveal drift already baked into the
+ * TypoScript setup, before any listener even runs. A field could be present
+ * on one level and absent on the other, collapsing them into one
+ * comparison would hide that distinction.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de

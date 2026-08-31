@@ -25,3 +25,6 @@ var/
 
 # Subagent-driven-development scratch workspace (ledgers, briefs, reports)
 .superpowers/
+
+# Subagent-driven-development planning workspace (specs, plans), local-only
+docs/superpowers/
