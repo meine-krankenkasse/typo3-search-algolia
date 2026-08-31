@@ -731,4 +731,45 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             . '"Overlap Indexer B" (includeContentElements=true) and this assertion would fail.',
         );
     }
+
+    /**
+     * Drives indexAction() through the real DI-resolved TypoScriptService
+     * (see createDrivenSubject()/createSubject(), no mock is substituted for
+     * it) and asserts the rendered "Schema gaps (config)" section reflects
+     * the REAL, bundled TypoScript field mapping
+     * (Configuration/TypoScript/setup.typoscript), not merely that the
+     * section exists. No database fixtures are imported: $fieldTargets[] in
+     * indexAction() is populated from the TypoScript field mapping alone,
+     * independent of whether any indexing service or record exists for a
+     * table, so the config-gap comparison runs unconditionally for every
+     * table getRecordTypes() returns.
+     *
+     * The bundled mapping targets 'subTitle' for both 'pages' (from
+     * 'subtitle') and 'tt_content' (from 'subheader'), but neither
+     * 'sys_file_metadata' nor 'tx_news_domain_model_news' maps any field to
+     * 'subTitle' - a genuine, already-true config-level gap requiring no
+     * fixture construction, only the actual shipped setup.typoscript. A
+     * regression that breaks the real wiring (e.g. indexAction() passing an
+     * empty array, or the runtime field mapping instead of the config one,
+     * to detectConfigGaps()) would make this assertion fail, unlike a bare
+     * "the section renders" check, which an always-empty configGaps would
+     * already satisfy as simply absent (the surrounding f:if renders
+     * nothing for an empty array).
+     */
+    #[Test]
+    public function indexActionRendersConfigGapsFromTheRealTypoScriptFieldMapping(): void
+    {
+        $subject = $this->createDrivenSubject(['id' => 0]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        self::assertMatchesRegularExpression(
+            '#Schema gaps \(config\).*?<code>subTitle</code>.*?present on.*?pages.*?tt_content.*?'
+            . 'missing on.*?sys_file_metadata.*?tx_news_domain_model_news.*?</li>#s',
+            $body,
+        );
+    }
 }
