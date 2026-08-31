@@ -190,7 +190,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             ];
         }
 
-        $selectedRecordUid = ((null !== $overrideRecordUid) && in_array($overrideRecordUid, $recordUids, true))
+        $selectedRecordUid = (($overrideRecordUid !== null) && in_array($overrideRecordUid, $recordUids, true))
             ? $overrideRecordUid
             : $this->mostRecentlyChanged($table, $recordUids);
 

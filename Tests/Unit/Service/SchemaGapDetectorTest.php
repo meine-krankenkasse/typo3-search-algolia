@@ -50,10 +50,10 @@ final class SchemaGapDetectorTest extends TestCase
 
         $subject = new SchemaGapDetector();
         $gaps    = $subject->detectRuntimeGaps([
-            'pages'                       => $withSite(),
-            'tt_content'                  => $withSite(),
-            'sys_file_metadata'           => $withSite(),
-            'tx_news_domain_model_news'   => $withoutSite(),
+            'pages'                     => $withSite(),
+            'tt_content'                => $withSite(),
+            'sys_file_metadata'         => $withSite(),
+            'tx_news_domain_model_news' => $withoutSite(),
         ]);
 
         self::assertCount(1, $gaps);

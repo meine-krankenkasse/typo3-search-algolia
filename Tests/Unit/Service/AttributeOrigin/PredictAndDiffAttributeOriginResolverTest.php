@@ -42,7 +42,7 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
     #[Test]
     public function resolveClassifiesHardcodedFieldsAsDefault(): void
     {
-        $indexer = $this->createStub(IndexerInterface::class);
+        $indexer = self::createStub(IndexerInterface::class);
         $indexer->method('getTable')->willReturn('pages');
 
         $document = new Document($indexer, []);
@@ -52,7 +52,7 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
             ->setField('type', 'pages')
             ->setField('indexed', 1787900000);
 
-        $typoScriptService = $this->createStub(TypoScriptServiceInterface::class);
+        $typoScriptService = self::createStub(TypoScriptServiceInterface::class);
         $typoScriptService->method('getFieldMappingByType')->willReturn([]);
 
         $subject = new PredictAndDiffAttributeOriginResolver($typoScriptService);
@@ -71,7 +71,7 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
     #[Test]
     public function resolveClassifiesTypoScriptMappedFieldsAsTypoScript(): void
     {
-        $indexer = $this->createStub(IndexerInterface::class);
+        $indexer = self::createStub(IndexerInterface::class);
         $indexer->method('getTable')->willReturn('tt_content');
 
         $document = new Document($indexer, []);
@@ -79,7 +79,7 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
             ->setField('uid', 5)
             ->setField('title', 'Camino Francés');
 
-        $typoScriptService = $this->createStub(TypoScriptServiceInterface::class);
+        $typoScriptService = self::createStub(TypoScriptServiceInterface::class);
         $typoScriptService->method('getFieldMappingByType')->willReturn([
             'header' => 'title',
         ]);
@@ -98,7 +98,7 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
     #[Test]
     public function resolveClassifiesUnpredictedFieldsAsListener(): void
     {
-        $indexer = $this->createStub(IndexerInterface::class);
+        $indexer = self::createStub(IndexerInterface::class);
         $indexer->method('getTable')->willReturn('pages');
 
         $document = new Document($indexer, []);
@@ -106,7 +106,7 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
             ->setField('uid', 8)
             ->setField('categories', ['Reisen']);
 
-        $typoScriptService = $this->createStub(TypoScriptServiceInterface::class);
+        $typoScriptService = self::createStub(TypoScriptServiceInterface::class);
         $typoScriptService->method('getFieldMappingByType')->willReturn([]);
 
         $subject = new PredictAndDiffAttributeOriginResolver($typoScriptService);
@@ -123,13 +123,13 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
     #[Test]
     public function resolveClassifiesADefaultFieldNameAsDefaultEvenWhenAlsoTypoScriptMapped(): void
     {
-        $indexer = $this->createStub(IndexerInterface::class);
+        $indexer = self::createStub(IndexerInterface::class);
         $indexer->method('getTable')->willReturn('pages');
 
         $document = new Document($indexer, []);
         $document->setField('type', 'pages');
 
-        $typoScriptService = $this->createStub(TypoScriptServiceInterface::class);
+        $typoScriptService = self::createStub(TypoScriptServiceInterface::class);
         $typoScriptService->method('getFieldMappingByType')->willReturn([
             'doktype' => 'type',
         ]);
