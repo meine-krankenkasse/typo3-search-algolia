@@ -642,6 +642,60 @@ final class FileIndexerTest extends TestCase
     }
 
     /**
+     * Proves initQueueItemRecords() actually materializes candidates from
+     * EVERY configured file collection before sorting/capping, not just the
+     * first one it happens to iterate.
+     *
+     * A real indexing service can configure MULTIPLE file collections (see
+     * getFileCollections()'s comma-separated list handling), and every other
+     * capping test in this class stubs findAllByCollectionUids() to return
+     * exactly ONE collection, so none of them would notice a regression that
+     * reintroduces an early "break 2" exit inside the outer
+     * "foreach ($collections as $collection)" loop in initQueueItemRecords()
+     * once the limit is reached, silently dropping every candidate from any
+     * collection processed AFTER the first one.
+     *
+     * Here two collections are stubbed: the first ("A") holds three
+     * lower-tstamp files, already enough on its own to reach the limit of
+     * two; the second ("B") holds the single file with the HIGHEST tstamp
+     * of all four eligible candidates. A regressed early-exit-per-collection
+     * implementation would fill the two-item cap entirely from collection A
+     * before ever visiting collection B, so file 604 (tstamp 604, the
+     * highest) would never even be considered, let alone included. The
+     * fixed implementation materializes all four candidates across both
+     * collections first, then sorts by tstamp descending, so 604 must win
+     * the top slot.
+     */
+    #[Test]
+    public function findRecordUidsInScopeAppliesTheLimitAcrossMultipleFileCollections(): void
+    {
+        $collectionA = new StaticFileCollectionTestSubject();
+
+        foreach ([601, 602, 603] as $metadataUid) {
+            $collectionA->add($this->createEligibleFileMock($metadataUid, 'pdf'));
+        }
+
+        $collectionB = new StaticFileCollectionTestSubject();
+        $collectionB->add($this->createEligibleFileMock(604, 'pdf'));
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collectionA, $collectionB]);
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1,2');
+
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock);
+
+        $recordUids = $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->findRecordUidsInScope(2);
+
+        self::assertSame([604, 603], $recordUids);
+    }
+
+    /**
      * Proves the uid DESC tie-break FileIndexer::initQueueItemRecords()
      * documents (see that method's docblock) is actually load-bearing: three
      * eligible files share the EXACT SAME tstamp, so only the tie-break can
