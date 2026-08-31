@@ -352,16 +352,22 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     /**
-     * Returns the UIDs of all records currently in scope for the current
+     * Returns the UIDs of records currently in scope for the current
      * indexing service, the same set enqueueAll() would queue, without
      * touching the queue.
+     *
+     * @param int $limit Maximum number of UIDs to return (applied as an SQL LIMIT
+     *                   where supported), 0 for unbounded, i.e. the full in-scope
+     *                   set enqueueAll() would queue. Pass a positive limit when
+     *                   only a bounded preview is needed (e.g. to populate a UI
+     *                   selector) instead of materializing the full set.
      *
      * @return int[] The in-scope record UIDs
      *
      * @throws RuntimeException If no indexing service is set
      */
     #[Override]
-    public function findRecordUidsInScope(): array
+    public function findRecordUidsInScope(int $limit = 0): array
     {
         if (!($this->indexingService instanceof IndexingService)) {
             throw new RuntimeException('Missing indexing service instance.');
@@ -369,7 +375,7 @@ abstract class AbstractIndexer implements IndexerInterface
 
         return array_map(
             static fn (array $row): int => (int) $row['record_uid'],
-            $this->initQueueItemRecords(),
+            $this->initQueueItemRecords([], $limit),
         );
     }
 
@@ -420,12 +426,17 @@ abstract class AbstractIndexer implements IndexerInterface
      * constraints) will be prepared for queuing.
      *
      * @param int[] $recordUids Optional array of record UIDs to prepare
+     * @param int   $limit      Maximum number of records to fetch (via SQL LIMIT),
+     *                          0 for unbounded. Callers that need the complete
+     *                          eligible set (enqueueAll(), enqueueMultiple()) must
+     *                          keep passing 0, the default, so their queueing
+     *                          behavior is unaffected by this parameter.
      *
      * @return array<array-key, array<string, int|string>> Array of prepared record data
      *
      * @throws Exception If a database error occurs
      */
-    protected function initQueueItemRecords(array $recordUids = []): array
+    protected function initQueueItemRecords(array $recordUids = [], int $limit = 0): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
@@ -444,7 +455,7 @@ abstract class AbstractIndexer implements IndexerInterface
         }
 
         return $this
-            ->fetchRecords($queryBuilder, $constraints)
+            ->fetchRecords($queryBuilder, $constraints, $limit)
             ->fetchAllAssociative();
     }
 
@@ -465,12 +476,14 @@ abstract class AbstractIndexer implements IndexerInterface
      *
      * @param QueryBuilder $queryBuilder The query builder to use for the query
      * @param string[]     $constraints  An array of SQL constraint expressions
+     * @param int          $limit        Maximum number of rows to fetch (via SQL LIMIT), 0 for unbounded
      *
      * @return Result The database query result object
      */
     private function fetchRecords(
         QueryBuilder $queryBuilder,
         array $constraints,
+        int $limit = 0,
     ): Result {
         // Set up the query restrictions
         $queryBuilder->getRestrictions()
@@ -497,13 +510,18 @@ abstract class AbstractIndexer implements IndexerInterface
             "'" . $this->getPriority() . "' AS priority",
         ];
 
-        // Build and execute the query
-        return $queryBuilder
+        // Build the query
+        $queryBuilder
             ->select('uid AS record_uid')
             ->addSelectLiteral(...$selectLiterals)
             ->from($this->getTable())
-            ->where(...$constraints)
-            ->executeQuery();
+            ->where(...$constraints);
+
+        if ($limit > 0) {
+            $queryBuilder->setMaxResults($limit);
+        }
+
+        return $queryBuilder->executeQuery();
     }
 
     /**

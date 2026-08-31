@@ -52,6 +52,18 @@ use function in_array;
 class AttributeOverviewModuleController extends AbstractBaseModuleController
 {
     /**
+     * Maximum number of in-scope record UIDs buildSection() will
+     * materialize per configured indexing service, to populate the record
+     * selector dropdown and to bound mostRecentlyChanged()'s IN (...)
+     * clause. This module is a diagnostic preview, not the real indexing
+     * pipeline (see IndexerInterface::enqueueAll()), so it never needs the
+     * full in-scope set, a low three-digit cap is more than enough to offer
+     * a useful selection of candidate records without materializing the
+     * same volume a real enqueueAll() run would on every page load.
+     */
+    private const int SCOPE_RECORD_LIMIT = 200;
+
+    /**
      * @param ModuleTemplateFactory            $moduleTemplateFactory     Factory for creating module template instances
      * @param IconFactory                      $iconFactory               Factory for creating icon instances
      * @param IndexingServiceRepository        $indexingServiceRepository Repository for accessing indexing service configurations
@@ -203,7 +215,17 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         $indexingServiceByRecordUid = [];
 
         foreach ($indexingServices as $indexingService) {
-            foreach ($indexer->withIndexingService($indexingService)->findRecordUidsInScope() as $recordUid) {
+            // Capped at SCOPE_RECORD_LIMIT: this is a diagnostic preview
+            // populating a UI selector, not the real indexing pipeline
+            // (IndexerInterface::enqueueAll() is unaffected, it never passes
+            // a limit), so it never needs to materialize the full in-scope
+            // set, which on a large table would be an unbounded, uncached DB
+            // scan on every page load of this admin-only module.
+            $scopedRecordUids = $indexer
+                ->withIndexingService($indexingService)
+                ->findRecordUidsInScope(self::SCOPE_RECORD_LIMIT);
+
+            foreach ($scopedRecordUids as $recordUid) {
                 // A UID can legitimately be in scope under more than one
                 // indexing service; keep the first one found, deterministically.
                 $indexingServiceByRecordUid[$recordUid] ??= $indexingService;

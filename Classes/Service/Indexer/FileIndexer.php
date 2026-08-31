@@ -29,6 +29,8 @@ use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use function count;
+
 /**
  * Indexer for TYPO3 files and their metadata.
  *
@@ -198,11 +200,14 @@ class FileIndexer extends AbstractIndexer
      * indexability, and prepares them for indexing.
      *
      * @param int[] $recordUids Unused parameter, kept for compatibility with the parent method
+     * @param int   $limit      Maximum number of records to return, 0 for unbounded. Callers that need
+     *                          the complete eligible set (enqueueAll(), enqueueMultiple()) must keep
+     *                          passing 0, the default, so their queueing behavior is unaffected.
      *
      * @return array<array-key, array<string, int|string>> Array of prepared file records
      */
     #[Override]
-    protected function initQueueItemRecords(array $recordUids = []): array
+    protected function initQueueItemRecords(array $recordUids = [], int $limit = 0): array
     {
         $collectionIds = GeneralUtility::intExplode(
             ',',
@@ -246,6 +251,10 @@ class FileIndexer extends AbstractIndexer
                     'changed'     => (int) ($GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 0),
                     'priority'    => $this->getPriority(),
                 ];
+
+                if (($limit > 0) && (count($items) >= $limit)) {
+                    break 2;
+                }
             }
         }
 
