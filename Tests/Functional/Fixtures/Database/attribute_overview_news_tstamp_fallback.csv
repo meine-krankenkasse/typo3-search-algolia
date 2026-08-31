@@ -1,0 +1,5 @@
+tx_news_domain_model_news,,,,,,,,,,,
+,uid,pid,title,tstamp,crdate,hidden,deleted,starttime,endtime,sys_language_uid,t3ver_wsid
+,1,2,"News with the highest tstamp",5000,1700000000,0,0,0,0,0,0
+,2,2,"News with the middle tstamp",3000,1700000000,0,0,0,0,0,0
+,3,2,"News with the highest uid, lowest tstamp",1000,1700000000,0,0,0,0,0,0

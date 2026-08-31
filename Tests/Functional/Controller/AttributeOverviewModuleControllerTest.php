@@ -821,4 +821,77 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             $body,
         );
     }
+
+    /**
+     * Proves AttributeOverviewModuleController::mostRecentlyChanged()'s
+     * "$GLOBALS['TCA'][$table]['ctrl']['tstamp'] ?? 'uid'" fallback is
+     * genuinely reachable and correctly wired as the ORDER BY column, not
+     * merely a theoretical branch for a hypothetical future indexer.
+     *
+     * Piggybacks on the synthetic tx_news_domain_model_news TCA setUp()
+     * already registers (the news extension is not a hard dependency of
+     * this extension, see setUp()'s docblock), mutating it further, ONLY
+     * within this one test method, to remove ctrl.tstamp entirely. That
+     * mutation does not leak into any other test method: every test method
+     * runs its own setUp(), which reassigns the whole
+     * $GLOBALS['TCA']['tx_news_domain_model_news'] array from scratch
+     * (tstamp included), so the removal here does not survive past this
+     * method's own request.
+     *
+     * The dedicated attribute_overview_news_tstamp_fallback.csv fixture
+     * gives uid=1 the highest tstamp (5000) and uid=3 the highest uid but
+     * the LOWEST tstamp (1000), the two orderings deliberately disagree.
+     * With ctrl.tstamp intact, the automatic pick would be uid=1 (highest
+     * tstamp). With it removed, mostRecentlyChanged()'s fallback orders by
+     * 'uid' DESC instead, so the automatic pick must be uid=3 (highest
+     * uid), the opposite record, proving the fallback field is genuinely
+     * 'uid', not NULL, not silently dropped, and not the pre-existing
+     * tstamp column.
+     *
+     * Set to null rather than unset(): both are equivalent for the ??
+     * fallback under test (null coalescing treats a missing key and an
+     * explicit null value identically), but null avoids an "Undefined array
+     * key" PHP warning from AbstractIndexer::fetchRecords()'s OTHER,
+     * unrelated ctrl.tstamp read in getChangedFieldStatement() (used to
+     * build the 'changed' select literal, not the ORDER BY this test
+     * targets), which findRecordUidsInScope() calls internally before
+     * buildSection() ever reaches mostRecentlyChanged(). The synthetic
+     * TCA's enablecolumns.starttime is cleared for the same reason: leaving
+     * it would route getChangedFieldStatement() into its
+     * GREATEST(starttime, tstamp) branch and concatenate the now-null
+     * tstamp into malformed SQL. Neither change affects the restriction
+     * filtering already wired up via TcaSchemaFactory::rebuild() in
+     * setUp(), only these two ad-hoc raw-array reads.
+     */
+    #[Test]
+    public function indexActionAutoPicksByUidDescendingWhenTheTablesTcaHasNoTstampField(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_news_tstamp_fallback.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $GLOBALS['TCA']['tx_news_domain_model_news']['ctrl']['tstamp'] = null;
+        unset($GLOBALS['TCA']['tx_news_domain_model_news']['ctrl']['enablecolumns']['starttime']);
+
+        $subject = $this->createDrivenSubject(['id' => 0]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $newsSectionHtml = $this->extractSectionHtml($body, 'tx_news_domain_model_news');
+
+        self::assertStringContainsString(
+            '<option value="3" selected="selected">3</option>',
+            $newsSectionHtml,
+            'With ctrl.tstamp removed, the fallback field is uid, so the highest-uid record (3, the '
+            . 'lowest-tstamp of the three) must be auto-picked, not uid=1 (the highest-tstamp record).',
+        );
+
+        self::assertStringNotContainsString(
+            '<option value="1" selected="selected">1</option>',
+            $newsSectionHtml,
+        );
+    }
 }
