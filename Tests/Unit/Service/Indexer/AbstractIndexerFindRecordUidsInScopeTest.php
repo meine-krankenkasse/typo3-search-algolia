@@ -19,6 +19,13 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
+/**
+ * Unit tests for AbstractIndexer::findRecordUidsInScope().
+ *
+ * @author  Rico Sonntag <rico.sonntag@netresearch.de>
+ * @license Netresearch https://www.netresearch.de
+ * @link    https://www.netresearch.de
+ */
 #[CoversClass(PageIndexer::class)]
 #[CoversClass(AbstractIndexer::class)]
 final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
@@ -35,6 +42,14 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
      * unmapped/text-typed select column — this exercises the (int) cast
      * for real, a literal-int fixture would pass even if the cast were
      * accidentally dropped.
+     *
+     * Also asserts, via a `with(...)` constraint rather than a bare
+     * `expects(self::once())`, that the $limit argument is genuinely
+     * forwarded to initQueueItemRecords() unchanged: without this
+     * constraint, a regression that silently drops the limit parameter
+     * (making the cap a no-op) would not be caught, since the mock would
+     * still match and return the same fixture regardless of what was
+     * actually passed.
      */
     #[Test]
     public function findRecordUidsInScopeReturnsOnlyTheRecordUidColumnAsIntegers(): void
@@ -47,6 +62,7 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
         $indexer
             ->expects(self::once())
             ->method('initQueueItemRecords')
+            ->with([], 0)
             ->willReturn([
                 ['record_uid' => '1', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
                 ['record_uid' => '8', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
@@ -57,6 +73,36 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
         );
 
         self::assertSame([1, 8], $indexer->findRecordUidsInScope());
+    }
+
+    /**
+     * Verifies the $limit argument reaches initQueueItemRecords() as given,
+     * for a positive limit specifically (the zero/default case is already
+     * covered above) — the case that actually matters for
+     * AttributeOverviewModuleController's SCOPE_RECORD_LIMIT cap.
+     */
+    #[Test]
+    public function findRecordUidsInScopeForwardsAPositiveLimitToInitQueueItemRecords(): void
+    {
+        $indexer = $this->getMockBuilder(PageIndexer::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['initQueueItemRecords'])
+            ->getMock();
+
+        $indexer
+            ->expects(self::once())
+            ->method('initQueueItemRecords')
+            ->with([], 2)
+            ->willReturn([
+                ['record_uid' => '3', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
+                ['record_uid' => '2', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
+            ]);
+
+        $indexer = $indexer->withIndexingService(
+            self::createStub(IndexingService::class),
+        );
+
+        self::assertSame([3, 2], $indexer->findRecordUidsInScope(2));
     }
 
     /**
