@@ -531,8 +531,11 @@ abstract class AbstractIndexer implements IndexerInterface
 
         if ($limit > 0) {
             // Defensive fallback: every currently-registered indexer's table
-            // defines ctrl.tstamp; this only engages if a future indexer's
-            // table doesn't.
+            // defines ctrl.tstamp, so a table without one only occurs with a
+            // future indexer. Covered by
+            // AbstractIndexerFindRecordUidsInScopeTstampFallbackFunctionalTest,
+            // which removes ctrl.tstamp from a real table's TCA at runtime and
+            // asserts the ORDER BY falls back to 'uid'.
             $tstampField = $GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 'uid';
 
             $queryBuilder
