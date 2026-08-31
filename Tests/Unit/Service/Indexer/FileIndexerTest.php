@@ -27,6 +27,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Service\Indexer\Fixtures\StaticFileCollectionTestSubject;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -36,11 +37,16 @@ use Psr\Container\ContainerInterface;
 use ReflectionProperty;
 use RuntimeException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\MetaDataAspect;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\TypoScript\Tokenizer\TokenizerInterface;
 use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
+
+use function array_unique;
+use function implode;
 
 /**
  * Unit tests for FileIndexer.
@@ -479,5 +485,132 @@ class FileIndexerTest extends TestCase
         $cloneFalse = $this->subject->withExcludeHiddenPages(false);
 
         self::assertFalse($reflection->getValue($cloneFalse));
+    }
+
+    /**
+     * Creates a TypoScriptService whose getAllowedFileExtensions() genuinely
+     * resolves (through the real TypoScript-parsing code path) to the given
+     * extensions, unlike createTypoScriptService() above which never
+     * populates the configuration manager and is only used by tests that
+     * never reach that method.
+     *
+     * @param string[] $allowedFileExtensions
+     */
+    private function createTypoScriptServiceWithAllowedFileExtensions(array $allowedFileExtensions): TypoScriptService
+    {
+        $configurationManagerMock = self::createStub(ConfigurationManagerInterface::class);
+        $configurationManagerMock
+            ->method('getConfiguration')
+            ->willReturn([
+                'module.' => [
+                    'tx_typo3searchalgolia.' => [
+                        'indexer.' => [
+                            'sys_file_metadata.' => [
+                                'extensions' => implode(',', $allowedFileExtensions),
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+
+        return new TypoScriptService(
+            $configurationManagerMock,
+            new TypoScriptStringFactory(
+                self::createStub(ContainerInterface::class),
+                self::createStub(TokenizerInterface::class),
+            ),
+        );
+    }
+
+    /**
+     * Creates a File mock that FileEligibilityTrait::isEligible() accepts:
+     * indexed, an allowed extension, and metadata carrying 'no_search' => 0
+     * (so isEligible() never triggers its GeneralUtility::makeInstance()
+     * metadata-reload branch, which a plain mock cannot satisfy).
+     */
+    private function createEligibleFileMock(int $metadataUid, string $extension): File
+    {
+        $metaDataAspectMock = self::createStub(MetaDataAspect::class);
+        $metaDataAspectMock
+            ->method('get')
+            ->willReturn([
+                'uid'       => $metadataUid,
+                'no_search' => 0,
+            ]);
+        // FileIndexer::initQueueItemRecords() only ever reads the 'uid' offset,
+        // so a fixed return value (rather than a with('uid') argument matcher,
+        // deprecated on test stubs as of PHPUnit 12 and removed in 13) is
+        // sufficient here.
+        $metaDataAspectMock
+            ->method('offsetGet')
+            ->willReturn($metadataUid);
+
+        $fileMock = self::createStub(File::class);
+        $fileMock->method('isIndexed')->willReturn(true);
+        $fileMock->method('getExtension')->willReturn($extension);
+        $fileMock->method('getMetaData')->willReturn($metaDataAspectMock);
+
+        return $fileMock;
+    }
+
+    /**
+     * Verifies the break-2-based cap in FileIndexer::initQueueItemRecords()
+     * actually caps: five eligible files across the file collection, a
+     * limit of two, exactly two record UIDs must come back. Uses set
+     * membership + cardinality rather than an identity assertion on which
+     * two, since FileIndexer imposes no ordering guarantee on file
+     * collection iteration (see the class docblock note on this in
+     * FileIndexer::initQueueItemRecords()).
+     */
+    #[Test]
+    public function findRecordUidsInScopeAppliesTheLimitAcrossFileCollectionItems(): void
+    {
+        $collection = new StaticFileCollectionTestSubject();
+
+        $eligibleMetadataUids = [101, 102, 103, 104, 105];
+
+        foreach ($eligibleMetadataUids as $metadataUid) {
+            $collection->add($this->createEligibleFileMock($metadataUid, 'pdf'));
+        }
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collection]);
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1');
+
+        $connectionPool = self::createStub(ConnectionPool::class);
+        $fileRepository = new FileRepository($connectionPool);
+
+        $indexer = new FileIndexer(
+            $connectionPool,
+            self::createStub(SiteFinder::class),
+            new PageRepository($connectionPool),
+            self::createStub(SearchEngineFactory::class),
+            self::createStub(QueueItemRepository::class),
+            self::createStub(DocumentBuilder::class),
+            self::createStub(ResourceFactory::class),
+            $fileCollectionRepositoryMock,
+            $fileRepository,
+            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
+            new FileCollectionService(
+                $fileCollectionRepositoryMock,
+                $fileRepository,
+                new CategoryRepository($connectionPool),
+            ),
+        );
+
+        $recordUids = $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->findRecordUidsInScope(2);
+
+        self::assertCount(2, $recordUids);
+        self::assertCount(2, array_unique($recordUids));
+
+        foreach ($recordUids as $recordUid) {
+            self::assertContains($recordUid, $eligibleMetadataUids);
+        }
     }
 }
