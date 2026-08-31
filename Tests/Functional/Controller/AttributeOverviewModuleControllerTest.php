@@ -218,9 +218,12 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * and a real request keeps this test's "real fixtures, real controller"
      * character consistent through to the request object itself.
      *
-     * @param array<string, mixed> $queryParams
+     * @param array<string, mixed>      $queryParams
+     * @param array<string, mixed>|null $parsedBody  Simulates a real POST submission of the shared record-selector
+     *                                               form (see Index.html and WEB-1351): when set, indexAction()
+     *                                               must read selectedRecordUid from here, not from $queryParams.
      */
-    private function createModuleRequest(array $queryParams): RequestInterface
+    private function createModuleRequest(array $queryParams, ?array $parsedBody = null): RequestInterface
     {
         $route = new Route(
             '/module/typo3-search-algolia/attributes',
@@ -240,6 +243,10 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             ->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE)
             ->withAttribute('normalizedParams', NormalizedParams::createFromServerParams($_SERVER))
             ->withQueryParams($queryParams);
+
+        if ($parsedBody !== null) {
+            $serverRequest = $serverRequest->withParsedBody($parsedBody);
+        }
 
         return new Request($serverRequest);
     }
@@ -270,19 +277,25 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     }
 
     /**
-     * @param array<string, mixed> $queryParams
+     * @param array<string, mixed>      $queryParams
+     * @param array<string, mixed>|null $parsedBody  See createModuleRequest() for what this simulates.
      */
     private function createDrivenSubject(
         array $queryParams,
         ?DocumentBuilder $documentBuilder = null,
+        ?array $parsedBody = null,
     ): AttributeOverviewModuleControllerTestSubject {
-        $request = $this->createModuleRequest($queryParams);
+        $request = $this->createModuleRequest($queryParams, $parsedBody);
 
         $subject = $this->createSubject($documentBuilder);
         $subject->setRequestForTest($request);
         $subject->setModuleTemplateForTest(
             $this->get(ModuleTemplateFactory::class)->create($request),
         );
+        // Mirrors what AbstractBaseModuleController::initializeAction()
+        // would derive from the request's 'id' (this test subject bypasses
+        // that method entirely, see its class docblock).
+        $subject->setPageUidForTest((int) ($queryParams['id'] ?? 0));
 
         return $subject;
     }
@@ -892,6 +905,85 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         self::assertStringNotContainsString(
             '<option value="1" selected="selected">1</option>',
             $newsSectionHtml,
+        );
+    }
+
+    /**
+     * Guards against a regression of the bug reported for WEB-1351: the
+     * shared record-selector form's action="" URL, built by TYPO3's backend
+     * UriBuilder, carries the current page ID and the backend route's
+     * CSRF-style token in its query string. Per the HTML form submission
+     * algorithm, a GET submission discards that query string entirely and
+     * resubmits only the form's own field values, silently dropping both.
+     * The missing token then trips TYPO3's route-token safety net
+     * (RouteDispatcher::assertRequestToken()), which redirects through
+     * /typo3/main and can render the whole backend shell nested inside this
+     * module's own content iframe, reproduced live in a real browser
+     * navigating via a page-tree context (?id=202) and changing a
+     * record-selector option.
+     *
+     * Asserts the two markup properties that prevent this: the form submits
+     * via POST (whose action="" URL is sent unchanged, so the token
+     * survives), and the page ID is additionally carried as its own hidden
+     * field, restoring it for AbstractBaseModuleController::getPageId(),
+     * which already prefers a POSTed 'id' over a GET one.
+     */
+    #[Test]
+    public function indexActionRendersTheSharedFormAsPostWithAHiddenIdField(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $subject = $this->createDrivenSubject(['id' => 202]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        self::assertMatchesRegularExpression(
+            '#<form[^>]*\bmethod="post"#i',
+            $body,
+            'The shared form must submit via POST, not GET, see this test\'s docblock for why a GET '
+            . 'submission silently drops the page ID and the backend route token.',
+        );
+
+        self::assertStringContainsString(
+            '<input type="hidden" name="id" value="202"',
+            $body,
+            'The page ID must be carried as its own hidden field so it survives the POST round trip.',
+        );
+    }
+
+    /**
+     * The actual regression test for WEB-1351: mirrors what a real browser
+     * now sends after the form was switched to POST (see
+     * indexActionRendersTheSharedFormAsPostWithAHiddenIdField() and
+     * Index.html), selectedRecordUid arrives in the parsed body, not the
+     * query string. Deliberately omits selectedRecordUid from the query
+     * params entirely, proving the controller reads it from the POST body
+     * and does not merely happen to still find it in the query string.
+     */
+    #[Test]
+    public function indexActionAppliesASelectedRecordOverrideSubmittedViaThePostBody(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $subject = $this->createDrivenSubject(
+            ['id' => 0],
+            null,
+            ['selectedRecordUid' => ['pages' => 2]],
+        );
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        self::assertStringContainsString(
+            '<option value="2" selected="selected">2</option>',
+            $body,
         );
     }
 }

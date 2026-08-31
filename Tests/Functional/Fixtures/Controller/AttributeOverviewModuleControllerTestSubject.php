@@ -42,6 +42,18 @@ class AttributeOverviewModuleControllerTestSubject extends AttributeOverviewModu
         $this->moduleTemplate = $moduleTemplate;
     }
 
+    /**
+     * Normally set by AbstractBaseModuleController::initializeAction() from
+     * the request's 'id', which this test subject bypasses entirely (see
+     * class docblock), so a test asserting on the rendered 'pageUid' (the
+     * shared record-selector form's hidden 'id' field) must set it here
+     * explicitly instead.
+     */
+    public function setPageUidForTest(int $pageUid): void
+    {
+        $this->pageUid = $pageUid;
+    }
+
     public function callIndexAction(): ResponseInterface
     {
         return $this->indexAction();
