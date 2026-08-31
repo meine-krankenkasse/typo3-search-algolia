@@ -240,6 +240,27 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     }
 
     /**
+     * Extracts a single table's own section markup from the rendered
+     * module body, so an assertion can be scoped to that one table and not
+     * accidentally match content belonging to a different table's section
+     * further down the page. Bounded from the table's own <code>{table}</code>
+     * heading up to (but not including) the next section's opening
+     * "<div class=\"mt-4\">" or the closing "</form>", whichever comes first.
+     */
+    private function extractSectionHtml(string $body, string $table): string
+    {
+        $matched = preg_match(
+            '#<code>' . preg_quote($table, '#') . '</code></h3>(.*?)(?:<div class="mt-4">|</form>)#s',
+            $body,
+            $matches,
+        );
+
+        self::assertSame(1, $matched, 'Expected exactly one rendered section for table "' . $table . '".');
+
+        return $matches[1];
+    }
+
+    /**
      * @param array<string, mixed> $queryParams
      */
     private function createDrivenSubject(array $queryParams): AttributeOverviewModuleControllerTestSubject
@@ -355,6 +376,151 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             1,
             substr_count($body, 'selected="selected"'),
             'Exactly one <option> must carry selected="selected"; a re-introduced Fluid f:if without an f:else branch would mark every option selected at once.',
+        );
+    }
+
+    /**
+     * Guards against a regression of the bug fixed in f13dc65: buildSection()
+     * unioned findRecordUidsInScope() across every indexing service
+     * configured for a table, but always assembled the selected record under
+     * indexingServices[0], the first configured service, regardless of which
+     * service the record was actually found under.
+     *
+     * The pages fixtures here configure TWO indexing services with disjoint
+     * scopes: "Page Indexer A" (uid 1, pages_doktype=1, no content elements)
+     * only ever finds page uid 20, "Page Indexer B" (uid 2, pages_doktype=4,
+     * WITH content elements) only ever finds page uid 21. Page 21 is
+     * therefore reachable exclusively through service B, so its assembled
+     * document only carries a 'content' attribute if it is genuinely
+     * assembled under service B's isIncludeContentElements()=true
+     * configuration (see UpdateAssembledPageDocumentEventListener). If the
+     * f13dc65 bug were reintroduced, buildSection() would instead assemble
+     * page 21 under indexingServices[0] (service A, includeContentElements
+     * false), and the 'content' attribute would never appear, failing the
+     * first assertion below.
+     *
+     * Selecting page 20 (only reachable through service A) is asserted not
+     * to carry a 'content' attribute, both as the expected behaviour and as
+     * a control: it shows the difference is genuinely driven by which
+     * service backs each record, not by some unrelated always-on default.
+     */
+    #[Test]
+    public function indexActionAssemblesUnderTheIndexingServiceTheSelectedRecordWasActuallyFoundUnder(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages_multi_service.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content_multi_service.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services_multi_service.csv');
+
+        $responseForPageOnlyInServiceBsScope = $this->createDrivenSubject([
+            'id'                => 0,
+            'selectedRecordUid' => ['pages' => 21],
+        ])->callIndexAction();
+
+        $bodyForPageOnlyInServiceBsScope = (string) $responseForPageOnlyInServiceBsScope->getBody();
+
+        self::assertSame(200, $responseForPageOnlyInServiceBsScope->getStatusCode());
+
+        $pagesSectionForServiceBsRecord = $this->extractSectionHtml($bodyForPageOnlyInServiceBsScope, 'pages');
+
+        self::assertStringContainsString(
+            '<option value="21" selected="selected">21</option>',
+            $pagesSectionForServiceBsRecord,
+        );
+
+        self::assertStringContainsString(
+            '<code>content</code>',
+            $pagesSectionForServiceBsRecord,
+            'Page 21 is only in scope under "Page Indexer B" (includeContentElements=true); a "content" '
+            . 'attribute must appear, proving assembly happened under that service, not indexingServices[0].',
+        );
+
+        $responseForPageOnlyInServiceAsScope = $this->createDrivenSubject([
+            'id'                => 0,
+            'selectedRecordUid' => ['pages' => 20],
+        ])->callIndexAction();
+
+        $bodyForPageOnlyInServiceAsScope = (string) $responseForPageOnlyInServiceAsScope->getBody();
+
+        self::assertSame(200, $responseForPageOnlyInServiceAsScope->getStatusCode());
+
+        $pagesSectionForServiceAsRecord = $this->extractSectionHtml($bodyForPageOnlyInServiceAsScope, 'pages');
+
+        self::assertStringNotContainsString(
+            '<code>content</code>',
+            $pagesSectionForServiceAsRecord,
+            'Page 20 is only in scope under "Page Indexer A" (includeContentElements=false); no "content" '
+            . 'attribute must appear for it.',
+        );
+    }
+
+    /**
+     * Verifies the "indexing service configured but zero records currently
+     * in scope" branch, distinct from "no indexing service configured at
+     * all": the pages indexing service fixture here filters on
+     * pages_doktype=99, which none of the imported pages fixture rows
+     * (all doktype=1) match, so buildSection() must return an empty
+     * recordUids list with noIndexingService=false, and the template must
+     * render "No record of this type is currently in scope.", not "No
+     * indexing service configured for this record type.".
+     */
+    #[Test]
+    public function indexActionShowsNoRecordInScopeMessageWhenTheIndexingServiceMatchesNoRecords(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_service_no_scope_match.csv');
+
+        $subject = $this->createDrivenSubject(['id' => 0]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $pagesSectionHtml = $this->extractSectionHtml($body, 'pages');
+
+        self::assertStringContainsString(
+            'No record of this type is currently in scope.',
+            $pagesSectionHtml,
+        );
+
+        self::assertStringNotContainsString(
+            'No indexing service configured for this record type.',
+            $pagesSectionHtml,
+        );
+    }
+
+    /**
+     * Verifies an out-of-scope/invalid selectedRecordUid override (a UID
+     * that is not part of the table's actual in-scope set) falls back to
+     * the automatic mostRecentlyChanged() pick rather than erroring or
+     * silently rendering an invalid selection. The pages fixture's uid=3
+     * ("Second Page") has the highest tstamp, so it is the expected
+     * automatic pick.
+     */
+    #[Test]
+    public function indexActionFallsBackToTheAutomaticPickForAnOutOfScopeSelectedRecordUid(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $subject = $this->createDrivenSubject([
+            'id'                => 0,
+            'selectedRecordUid' => ['pages' => 99999],
+        ]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        self::assertStringContainsString(
+            '<option value="3" selected="selected">3</option>',
+            $body,
+        );
+
+        self::assertStringNotContainsString(
+            '<option value="99999"',
+            $body,
         );
     }
 }
