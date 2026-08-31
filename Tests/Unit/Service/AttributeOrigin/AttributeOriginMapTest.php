@@ -18,6 +18,13 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Unit tests for AttributeOriginMap.
+ *
+ * @author  Rico Sonntag <rico.sonntag@netresearch.de>
+ * @license Netresearch https://www.netresearch.de
+ * @link    https://www.netresearch.de
+ */
 #[CoversClass(AttributeOriginMap::class)]
 #[UsesClass(AttributeOrigin::class)]
 final class AttributeOriginMapTest extends TestCase
