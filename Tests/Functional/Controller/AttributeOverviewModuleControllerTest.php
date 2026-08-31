@@ -259,7 +259,11 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             $matches,
         );
 
-        self::assertSame(1, $matched, 'Expected exactly one rendered section for table "' . $table . '".');
+        self::assertSame(
+            1,
+            $matched,
+            'Expected exactly one rendered section for table "' . $table . '".',
+        );
 
         return $matches[1];
     }
@@ -634,6 +638,37 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             substr_count($body, '<form'),
             'Exactly one <form> must wrap every table\'s section; one form per table would lose the '
             . 'other table\'s selection on submit.',
+        );
+    }
+
+    /**
+     * Proves mostRecentlyChanged()'s documented uid DESC tie-break is
+     * actually load-bearing, not just present in the docblock: none of this
+     * class's other automatic-pick tests exercise an actual tie, every one
+     * of them uses attribute_overview_pages.csv, whose three pages all carry
+     * distinct tstamps. This test uses a dedicated fixture
+     * (attribute_overview_pages_tstamp_tie.csv) where pages uid=2 and uid=3
+     * share the exact same tstamp (3000), both higher than the root page's
+     * (uid=1, tstamp=1000). Without the uid DESC tie-break, which of the two
+     * tied pages is picked would be whatever order the database happens to
+     * return them in; with it, the higher uid (3) must always win.
+     */
+    #[Test]
+    public function indexActionPicksTheHigherUidOnATstampTie(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages_tstamp_tie.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $subject = $this->createDrivenSubject(['id' => 0]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        self::assertStringContainsString(
+            '<option value="3" selected="selected">3</option>',
+            $body,
         );
     }
 }
