@@ -13,6 +13,18 @@
         "@default": true
     },
     "testFramework": "phpunit",
-    "minMsi": 0,
-    "minCoveredMsi": 0
+    // MSI thresholds — ratchet strategy (GH-9).
+    //
+    // Current measured MSI: 80.48% Covered MSI (2026-08-28, verified from the
+    // real GitHub Actions run for commit 50799ad: 538 mutations generated,
+    // 433 killed, 105 escaped, 100% mutation code coverage, so overall MSI
+    // equals covered MSI here). Floor set to 80 as a precautionary margin
+    // below the measured value (no run-to-run variance was actually
+    // observed — two independent CI runs of the same commit both landed at
+    // exactly 80.48%), not to demand improvement immediately.
+    // Raise this in small steps as escaped mutants get killed (open
+    // .build/infection/infection.log, pick a surviving mutant, write a test
+    // that kills it), never lower it without a documented reason.
+    "minMsi": 80,
+    "minCoveredMsi": 80
 }
