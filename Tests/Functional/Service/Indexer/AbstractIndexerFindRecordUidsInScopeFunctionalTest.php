@@ -11,19 +11,11 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Service\Indexer;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
  * Functional tests for AbstractIndexer::findRecordUidsInScope() against a
@@ -42,40 +34,14 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  */
 #[CoversClass(AbstractIndexer::class)]
 #[CoversClass(PageIndexer::class)]
-final class AbstractIndexerFindRecordUidsInScopeFunctionalTest extends AbstractFunctionalTestCase
+final class AbstractIndexerFindRecordUidsInScopeFunctionalTest extends AbstractIndexerFindRecordUidsInScopeTestCase
 {
-    private PageIndexer $pageIndexer;
-
-    private IndexingService $indexingService;
-
     #[Override]
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/pages_scope_ordering.csv');
-        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/tx_typo3searchalgolia_domain_model_searchengine.csv');
-        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/tx_typo3searchalgolia_domain_model_indexingservice.csv');
-
-        $connectionPool = $this->getConnectionPool();
-
-        $this->pageIndexer = new PageIndexer(
-            $connectionPool,
-            self::createStub(SiteFinder::class),
-            new PageRepository($connectionPool),
-            $this->createMock(SearchEngineFactory::class),
-            $this->get(QueueItemRepository::class),
-            $this->createMock(DocumentBuilder::class),
-        );
-
-        // Real IndexingService (uid=1, type=pages, pages_recursive=1, pages_doktype=1),
-        // same fixture row PageIndexerTest uses.
-        $repository      = $this->get(IndexingServiceRepository::class);
-        $indexingService = $repository->findByUid(1);
-
-        self::assertInstanceOf(IndexingService::class, $indexingService);
-
-        $this->indexingService = $indexingService;
+        $this->createPageIndexerWithIndexingService(__DIR__ . '/../../Fixtures/Database/pages_scope_ordering.csv');
     }
 
     /**
