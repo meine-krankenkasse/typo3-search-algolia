@@ -569,11 +569,13 @@ final class FileIndexerTest extends TestCase
      * findRecordUidsInScope() test scenarios below: allowed file extensions
      * fixed to 'pdf' (via createTypoScriptServiceWithAllowedFileExtensions())
      * and every other collaborator a bare self::createStub(), matching the
-     * exact wiring every one of those tests needs. Only the
-     * FileCollectionRepository actually varies between call sites (it feeds
-     * both the FileIndexer constructor and the FileCollectionService it
-     * builds internally), so it is the sole parameter, mirroring this
-     * class's own createConfiguredSubject() helper pattern above.
+     * exact wiring every one of those tests needs. The FileCollectionRepository
+     * varies between call sites (it feeds both the FileIndexer constructor
+     * and the FileCollectionService it builds internally), mirroring this
+     * class's own createConfiguredSubject() helper pattern above. The
+     * QueueItemRepository stays optional, defaulting to a bare stub, and
+     * only needs overriding by call sites that observe what enqueueAll()/
+     * enqueueMultiple() actually pass to bulkInsert().
      */
     private function createStubbedSubject(
         FileCollectionRepository $fileCollectionRepositoryMock,
@@ -882,7 +884,11 @@ final class FileIndexerTest extends TestCase
             $insertedCount,
             'enqueueAll() must queue every eligible file uncapped, not fall back to some accidental default cap.',
         );
-        self::assertCount(3, $capturedRecords);
+        self::assertCount(
+            3,
+            $capturedRecords,
+            'all three eligible files (701, 702, 703) must be queued uncapped.',
+        );
 
         self::assertSame(
             [
@@ -905,14 +911,15 @@ final class FileIndexerTest extends TestCase
     #[Test]
     public function initQueueItemRecordsParsesCollectionIdsWithEmptySegmentsRemoved(): void
     {
-        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        // A mock with expects(self::once()), not a bare stub, so this test
+        // fails loudly (not silently pass with zero assertions executed)
+        // if findAllByCollectionUids() were ever skipped.
+        $fileCollectionRepositoryMock = $this->createMock(FileCollectionRepository::class);
         $fileCollectionRepositoryMock
+            ->expects(self::once())
             ->method('findAllByCollectionUids')
-            ->willReturnCallback(static function (array $collectionIds): array {
-                self::assertSame([1, 2], $collectionIds);
-
-                return [];
-            });
+            ->with([1, 2])
+            ->willReturn([]);
 
         $indexingServiceMock = self::createStub(IndexingService::class);
         $indexingServiceMock->method('getFileCollections')->willReturn('1,,2');

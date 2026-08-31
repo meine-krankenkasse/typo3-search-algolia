@@ -115,7 +115,11 @@ final class SchemaGapDetectorTest extends TestCase
             'tt_content' => ['title', 'teaser'],
         ]);
 
-        self::assertCount(2, $gaps);
+        self::assertCount(
+            2,
+            $gaps,
+            'one gap for the pages-only "description" attribute and one for the tt_content-only "teaser" attribute.',
+        );
 
         $gapsByAttributeName = [];
 
