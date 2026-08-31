@@ -316,9 +316,14 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * assertStringContainsString() on 'selected="selected"' above passes
      * identically whether that bug is present or fixed (both markups
      * contain that substring on the true branch), so it alone would not go
-     * red on a revert. The extra assertions below do: they fail on the old
-     * markup (selected="" would be present, and more than one "selected"
-     * option would render), and pass on the current, fixed markup.
+     * red on a revert. The assertStringNotContainsString() below does: the
+     * old markup's non-matching options each carry a bare selected="",
+     * which the fixed markup never emits. The substr_count() assertion is
+     * not itself discriminating here (only the one matching option ever
+     * carries the value "selected" in either markup), but documents the
+     * cardinality invariant the fix establishes and would catch a future
+     * regression that duplicates the selected value instead of leaving it
+     * empty.
      */
     #[Test]
     public function indexActionUsesTheManuallySelectedRecordOverTheAutomaticOne(): void
