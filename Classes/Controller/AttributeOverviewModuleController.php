@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
-use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
@@ -22,6 +21,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SchemaGapDetector;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptServiceInterface;
 use Psr\Http\Message\ResponseInterface;
+use Throwable;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\IconFactory;
@@ -127,7 +127,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
                     $table,
                     isset($selectedRecordUid[$table]) ? (int) $selectedRecordUid[$table] : null,
                 );
-            } catch (Exception $exception) {
+            } catch (Throwable $exception) {
                 $section = $this->errorSection($exception->getMessage());
             }
 
