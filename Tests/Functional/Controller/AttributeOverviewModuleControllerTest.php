@@ -19,13 +19,16 @@ use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginResolverInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SchemaGapDetector;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptServiceInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\AttributeOverviewModuleControllerTestSubject;
+use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\ThrowingForTableDocumentBuilder;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
@@ -95,6 +98,7 @@ use function substr_count;
  */
 #[CoversClass(AttributeOverviewModuleController::class)]
 #[UsesClass(AttributeOverviewModuleControllerTestSubject::class)]
+#[UsesClass(ThrowingForTableDocumentBuilder::class)]
 final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTestCase
 {
     #[Override]
@@ -187,7 +191,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * AbstractBaseModuleControllerTest::createSubject()'s same approach
      * for its own (smaller) test subject.
      */
-    private function createSubject(): AttributeOverviewModuleControllerTestSubject
+    private function createSubject(?DocumentBuilder $documentBuilder = null): AttributeOverviewModuleControllerTestSubject
     {
         return new AttributeOverviewModuleControllerTestSubject(
             $this->get(ModuleTemplateFactory::class),
@@ -195,7 +199,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             $this->get(IndexingServiceRepository::class),
             $this->get(ConnectionPool::class),
             $this->get(IndexerFactory::class),
-            $this->get(DocumentBuilder::class),
+            $documentBuilder ?? $this->get(DocumentBuilder::class),
             $this->get(AttributeOriginResolverInterface::class),
             $this->get(SchemaGapDetector::class),
             $this->get(TypoScriptServiceInterface::class),
@@ -263,11 +267,13 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     /**
      * @param array<string, mixed> $queryParams
      */
-    private function createDrivenSubject(array $queryParams): AttributeOverviewModuleControllerTestSubject
-    {
+    private function createDrivenSubject(
+        array $queryParams,
+        ?DocumentBuilder $documentBuilder = null,
+    ): AttributeOverviewModuleControllerTestSubject {
         $request = $this->createModuleRequest($queryParams);
 
-        $subject = $this->createSubject();
+        $subject = $this->createSubject($documentBuilder);
         $subject->setRequestForTest($request);
         $subject->setModuleTemplateForTest(
             $this->get(ModuleTemplateFactory::class)->create($request),
@@ -521,6 +527,113 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         self::assertStringNotContainsString(
             '<option value="99999"',
             $body,
+        );
+    }
+
+    /**
+     * Verifies the per-table try/catch in indexAction() (widened to catch
+     * Throwable) genuinely isolates a single table's failed section build:
+     * forces buildSection() to throw a plain \Error (not an \Exception, see
+     * ThrowingForTableDocumentBuilder's docblock for why that distinction
+     * is the whole point) for tt_content only, and asserts (a) tt_content's
+     * own section shows the caught error message, and (b) pages' section,
+     * in the exact same response, still renders normally, proving the
+     * failure did not abort the whole module.
+     */
+    #[Test]
+    public function indexActionIsolatesAPerTableFailureFromOtherTablesSections(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $throwingDocumentBuilder = new ThrowingForTableDocumentBuilder(
+            $this->get(EventDispatcherInterface::class),
+            $this->get(TypoScriptService::class),
+            $this->get(DocumentBuilder::class),
+            'tt_content',
+        );
+
+        $subject = $this->createDrivenSubject(['id' => 0], $throwingDocumentBuilder);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $pagesSectionHtml     = $this->extractSectionHtml($body, 'pages');
+        $ttContentSectionHtml = $this->extractSectionHtml($body, 'tt_content');
+
+        self::assertStringContainsString(
+            '<span class="badge">default</span>',
+            $pagesSectionHtml,
+            'A different, unaffected table\'s section must still render its normal content in the '
+            . 'same response as a table whose section build threw.',
+        );
+
+        self::assertStringNotContainsString(
+            'Failed to build this section',
+            $pagesSectionHtml,
+        );
+
+        // Fluid HTML-encodes {section.error} by default, so the double
+        // quotes around the table name in the message come back as &quot;.
+        self::assertStringContainsString(
+            'Failed to build this section: Simulated document assembly failure for table &quot;tt_content&quot;.',
+            $ttContentSectionHtml,
+        );
+    }
+
+    /**
+     * Guards against a regression to one <f:form> per table: submits
+     * selectedRecordUid overrides for TWO different tables (pages and
+     * tt_content) in a single request and asserts both selections took
+     * effect in the same response, plus that exactly one <form> tag is
+     * rendered - the discriminating assertion, since a per-table form
+     * would still let each individual override "work" (only the sibling
+     * table's own override, submitted via a DIFFERENT form, would be lost
+     * on submit, which a single-table assertion cannot detect).
+     */
+    #[Test]
+    public function indexActionAppliesSelectedRecordOverridesForMultipleTablesFromASharedForm(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $subject = $this->createDrivenSubject([
+            'id'                => 0,
+            'selectedRecordUid' => [
+                'pages'      => 2,
+                'tt_content' => 1,
+            ],
+        ]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $pagesSectionHtml     = $this->extractSectionHtml($body, 'pages');
+        $ttContentSectionHtml = $this->extractSectionHtml($body, 'tt_content');
+
+        self::assertStringContainsString(
+            '<option value="2" selected="selected">2</option>',
+            $pagesSectionHtml,
+            'The pages selection must take effect even though tt_content was submitted in the same request.',
+        );
+
+        self::assertStringContainsString(
+            '<option value="1" selected="selected">1</option>',
+            $ttContentSectionHtml,
+            'The tt_content selection must take effect even though pages was submitted in the same request.',
+        );
+
+        self::assertSame(
+            1,
+            substr_count($body, '<form'),
+            'Exactly one <form> must wrap every table\'s section; one form per table would lose the '
+            . 'other table\'s selection on submit.',
         );
     }
 }
