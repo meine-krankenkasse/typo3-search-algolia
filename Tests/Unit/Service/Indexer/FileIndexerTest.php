@@ -575,8 +575,10 @@ final class FileIndexerTest extends TestCase
      * builds internally), so it is the sole parameter, mirroring this
      * class's own createConfiguredSubject() helper pattern above.
      */
-    private function createStubbedSubject(FileCollectionRepository $fileCollectionRepositoryMock): FileIndexer
-    {
+    private function createStubbedSubject(
+        FileCollectionRepository $fileCollectionRepositoryMock,
+        ?QueueItemRepository $queueItemRepositoryMock = null,
+    ): FileIndexer {
         $connectionPool = self::createStub(ConnectionPool::class);
         $fileRepository = new FileRepository($connectionPool);
 
@@ -585,7 +587,7 @@ final class FileIndexerTest extends TestCase
             self::createStub(SiteFinder::class),
             new PageRepository($connectionPool),
             self::createStub(SearchEngineFactory::class),
-            self::createStub(QueueItemRepository::class),
+            $queueItemRepositoryMock ?? self::createStub(QueueItemRepository::class),
             self::createStub(DocumentBuilder::class),
             self::createStub(ResourceFactory::class),
             $fileCollectionRepositoryMock,
@@ -824,5 +826,175 @@ final class FileIndexerTest extends TestCase
             ->findRecordUidsInScope(10);
 
         self::assertSame([], $recordUids);
+    }
+
+    /**
+     * Proves two things findRecordUidsInScope() cannot, since it strips
+     * every field except 'record_uid' before returning:
+     *
+     * 1. enqueueAll() calls initQueueItemRecords() via its real production
+     *    entry point, with no $limit argument, relying entirely on the
+     *    parameter's own default. All three eligible files must come back
+     *    uncapped, proving that default genuinely means "unbounded" and
+     *    was not accidentally capped to some other value.
+     * 2. Each queued record carries the full, correct shape
+     *    (table_name/record_uid/service_uid/changed/priority), not just a
+     *    record_uid, since the real indexing queue table needs all five
+     *    columns to route this record back to the right table and
+     *    indexing service on the next run.
+     */
+    #[Test]
+    public function enqueueAllPreparesTheFullRecordShapeForEveryEligibleFileUncapped(): void
+    {
+        $collection = new StaticFileCollectionTestSubject();
+        $collection->add($this->createEligibleFileMock(701, 'pdf'));
+        $collection->add($this->createEligibleFileMock(702, 'pdf'));
+        $collection->add($this->createEligibleFileMock(703, 'pdf'));
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collection]);
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1');
+        $indexingServiceMock->method('getUid')->willReturn(9);
+
+        $capturedRecords = [];
+
+        $queueItemRepositoryMock = self::createStub(QueueItemRepository::class);
+        $queueItemRepositoryMock
+            ->method('bulkInsert')
+            ->willReturnCallback(static function (array $records) use (&$capturedRecords): int {
+                $capturedRecords = $records;
+
+                return count($records);
+            });
+
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock, $queueItemRepositoryMock);
+
+        $insertedCount = $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->enqueueAll();
+
+        self::assertSame(
+            3,
+            $insertedCount,
+            'enqueueAll() must queue every eligible file uncapped, not fall back to some accidental default cap.',
+        );
+        self::assertCount(3, $capturedRecords);
+
+        self::assertSame(
+            [
+                'table_name'  => 'sys_file_metadata',
+                'record_uid'  => 701,
+                'service_uid' => 9,
+                'changed'     => 0,
+                'priority'    => 0,
+            ],
+            $capturedRecords[0],
+        );
+    }
+
+    /**
+     * Proves the configured file collection IDs are parsed with empty
+     * segments removed: a collections config of '1,,2' (a stray empty
+     * segment, e.g. from a trailing comma) must resolve to exactly [1, 2],
+     * not [1, 0, 2].
+     */
+    #[Test]
+    public function initQueueItemRecordsParsesCollectionIdsWithEmptySegmentsRemoved(): void
+    {
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturnCallback(static function (array $collectionIds): array {
+                self::assertSame([1, 2], $collectionIds);
+
+                return [];
+            });
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1,,2');
+
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock);
+
+        $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->findRecordUidsInScope();
+    }
+
+    /**
+     * Proves an ineligible file does not stop the scan of the remaining
+     * files in the same collection: an eligible file listed AFTER an
+     * ineligible one in iteration order must still be found.
+     */
+    #[Test]
+    public function findRecordUidsInScopeSkipsAnIneligibleFileWithoutStoppingTheScan(): void
+    {
+        $collection = new StaticFileCollectionTestSubject();
+        $collection->add($this->createEligibleFileMock(801, 'jpg'));
+        $collection->add($this->createEligibleFileMock(802, 'pdf'));
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collection]);
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1');
+
+        // Only 'pdf' is allowed (see createStubbedSubject()), so 801 (jpg)
+        // is skipped, but 802 (pdf), listed right after it, must still be
+        // found rather than the scan stopping at the first ineligible file.
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock);
+
+        $recordUids = $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->findRecordUidsInScope();
+
+        self::assertSame([802], $recordUids);
+    }
+
+    /**
+     * Proves the service UID falls back to exactly 0, not some other
+     * placeholder, when the indexing service's own UID is not yet
+     * available (e.g. a not-yet-persisted IndexingService, whose uid is
+     * still null).
+     */
+    #[Test]
+    public function initQueueItemRecordsFallsBackToZeroServiceUidWhenIndexingServiceHasNoUidYet(): void
+    {
+        $collection = new StaticFileCollectionTestSubject();
+        $collection->add($this->createEligibleFileMock(901, 'pdf'));
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collection]);
+
+        // Deliberately not stubbing getUid(), so it returns its default
+        // null, matching a not-yet-persisted IndexingService.
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1');
+
+        $capturedRecords = [];
+
+        $queueItemRepositoryMock = self::createStub(QueueItemRepository::class);
+        $queueItemRepositoryMock
+            ->method('bulkInsert')
+            ->willReturnCallback(static function (array $records) use (&$capturedRecords): int {
+                $capturedRecords = $records;
+
+                return count($records);
+            });
+
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock, $queueItemRepositoryMock);
+
+        $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->enqueueAll();
+
+        self::assertSame(0, $capturedRecords[0]['service_uid']);
     }
 }

@@ -100,4 +100,32 @@ final class SchemaGapDetectorTest extends TestCase
         self::assertSame(['pages'], $gaps[0]->getPresentOn());
         self::assertSame(['tt_content'], $gaps[0]->getMissingOn());
     }
+
+    /**
+     * Verifies every gap is returned, not just the first one found: two
+     * independent attribute names each missing on a different type must
+     * both be reported.
+     */
+    #[Test]
+    public function detectConfigGapsReturnsEveryGapNotJustTheFirst(): void
+    {
+        $subject = new SchemaGapDetector();
+        $gaps    = $subject->detectConfigGaps([
+            'pages'      => ['title', 'description'],
+            'tt_content' => ['title', 'teaser'],
+        ]);
+
+        self::assertCount(2, $gaps);
+
+        $gapsByAttributeName = [];
+
+        foreach ($gaps as $gap) {
+            $gapsByAttributeName[$gap->getAttributeName()] = $gap;
+        }
+
+        self::assertSame(['pages'], $gapsByAttributeName['description']->getPresentOn());
+        self::assertSame(['tt_content'], $gapsByAttributeName['description']->getMissingOn());
+        self::assertSame(['tt_content'], $gapsByAttributeName['teaser']->getPresentOn());
+        self::assertSame(['pages'], $gapsByAttributeName['teaser']->getMissingOn());
+    }
 }
