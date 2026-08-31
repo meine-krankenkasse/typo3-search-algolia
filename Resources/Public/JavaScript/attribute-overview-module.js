@@ -35,7 +35,7 @@ class AttributeOverviewModule {
      *
      * @returns {void}
      */
-    initialize = function () {
+    initialize() {
         DocumentService.ready().then((document) => {
             document
                 .querySelectorAll("." + this.selectorClass)
@@ -45,7 +45,7 @@ class AttributeOverviewModule {
                     });
                 });
         });
-    };
+    }
 
     constructor() {
         this.initialize();
