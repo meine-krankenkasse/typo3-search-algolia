@@ -109,22 +109,27 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         $originMaps   = [];
         $fieldTargets = [];
 
-        try {
-            foreach ($this->getRecordTypes() as $table) {
+        foreach ($this->getRecordTypes() as $table) {
+            // Scoped per table rather than around the whole loop: a failure
+            // building one table's section (e.g. a third-party
+            // AfterDocumentAssembledEvent listener throwing while processing
+            // that table) must not prevent every other, successfully built
+            // table's diagnostic data from rendering.
+            try {
                 $section = $this->buildSection(
                     $table,
                     isset($selectedRecordUid[$table]) ? (int) $selectedRecordUid[$table] : null,
                 );
-
-                $sections[$table]     = $section;
-                $fieldTargets[$table] = array_values($this->typoScriptService->getFieldMappingByType($table));
-
-                if ($section['originMap'] !== null) {
-                    $originMaps[$table] = $section['originMap'];
-                }
+            } catch (Exception $exception) {
+                $section = $this->errorSection($exception->getMessage());
             }
-        } catch (Exception $exception) {
-            return $this->forwardExceptionFlashMessage($exception);
+
+            $sections[$table]     = $section;
+            $fieldTargets[$table] = array_values($this->typoScriptService->getFieldMappingByType($table));
+
+            if ($section['originMap'] !== null) {
+                $originMaps[$table] = $section['originMap'];
+            }
         }
 
         $this->moduleTemplate->assign(
@@ -177,7 +182,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      * @param string   $table             The database table name
      * @param int|null $overrideRecordUid A manually selected record UID, if any
      *
-     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: \MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap|null, noIndexingService: bool}
+     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: \MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap|null, noIndexingService: bool, error: string|null}
      */
     private function buildSection(string $table, ?int $overrideRecordUid): array
     {
@@ -186,23 +191,13 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             ->toArray();
 
         if ($indexingServices === []) {
-            return [
-                'recordUids'        => [],
-                'selectedRecordUid' => null,
-                'originMap'         => null,
-                'noIndexingService' => true,
-            ];
+            return $this->emptySection(true);
         }
 
         $indexer = $this->indexerFactory->makeInstanceByType($table);
 
         if (!($indexer instanceof IndexerInterface)) {
-            return [
-                'recordUids'        => [],
-                'selectedRecordUid' => null,
-                'originMap'         => null,
-                'noIndexingService' => true,
-            ];
+            return $this->emptySection(true);
         }
 
         // Record UID to the specific IndexingService it was actually found
@@ -233,12 +228,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         }
 
         if ($indexingServiceByRecordUid === []) {
-            return [
-                'recordUids'        => [],
-                'selectedRecordUid' => null,
-                'originMap'         => null,
-                'noIndexingService' => false,
-            ];
+            return $this->emptySection(false);
         }
 
         $recordUids = array_keys($indexingServiceByRecordUid);
@@ -280,6 +270,49 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             'selectedRecordUid' => $selectedRecordUid,
             'originMap'         => $this->attributeOriginResolver->resolve($document),
             'noIndexingService' => false,
+            'error'             => null,
+        ];
+    }
+
+    /**
+     * Builds the empty-section array shared by every "nothing to show" path
+     * in buildSection(): no indexing service configured at all, the
+     * resolved indexer implementation is unavailable, or an indexing
+     * service is configured but currently matches zero records.
+     *
+     * @param bool $noIndexingService Whether no indexing service is configured for this table at all
+     *
+     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: \MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap|null, noIndexingService: bool, error: string|null}
+     */
+    private function emptySection(bool $noIndexingService): array
+    {
+        return [
+            'recordUids'        => [],
+            'selectedRecordUid' => null,
+            'originMap'         => null,
+            'noIndexingService' => $noIndexingService,
+            'error'             => null,
+        ];
+    }
+
+    /**
+     * Builds the section array for a table whose buildSection() call threw,
+     * so the failure can be shown inline within that table's own section
+     * instead of aborting the whole module (see indexAction()'s per-table
+     * try/catch).
+     *
+     * @param string $errorMessage The caught exception's message
+     *
+     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: \MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap|null, noIndexingService: bool, error: string|null}
+     */
+    private function errorSection(string $errorMessage): array
+    {
+        return [
+            'recordUids'        => [],
+            'selectedRecordUid' => null,
+            'originMap'         => null,
+            'noIndexingService' => false,
+            'error'             => $errorMessage,
         ];
     }
 
