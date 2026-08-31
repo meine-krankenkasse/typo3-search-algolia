@@ -1,0 +1,88 @@
+<html data-namespace-typo3-fluid="true"
+      xmlns="http://www.w3.org/1999/xhtml" lang="en"
+      xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+>
+    <f:layout name="Module" />
+
+    <f:section name="Content">
+        <div class="col-md-12">
+            <h1><f:translate key="module.name" /></h1>
+            <h2><f:translate key="mod_attributes" /></h2>
+
+            <f:if condition="{runtimeGaps}">
+                <div class="mt-4">
+                    <h3 class="mb-3">Schema gaps (runtime)</h3>
+                    <ul>
+                        <f:for each="{runtimeGaps}" as="gap">
+                            <li>
+                                <code>{gap.attributeName}</code>:
+                                present on <f:for each="{gap.presentOn}" as="type" iteration="typeIter">{type}{f:if(condition: typeIter.isLast, else: ', ')}</f:for>,
+                                missing on <f:for each="{gap.missingOn}" as="type" iteration="typeIter">{type}{f:if(condition: typeIter.isLast, else: ', ')}</f:for>
+                            </li>
+                        </f:for>
+                    </ul>
+                </div>
+            </f:if>
+
+            <f:if condition="{configGaps}">
+                <div class="mt-4">
+                    <h3 class="mb-3">Schema gaps (config)</h3>
+                    <ul>
+                        <f:for each="{configGaps}" as="gap">
+                            <li>
+                                <code>{gap.attributeName}</code>:
+                                present on <f:for each="{gap.presentOn}" as="type" iteration="typeIter">{type}{f:if(condition: typeIter.isLast, else: ', ')}</f:for>,
+                                missing on <f:for each="{gap.missingOn}" as="type" iteration="typeIter">{type}{f:if(condition: typeIter.isLast, else: ', ')}</f:for>
+                            </li>
+                        </f:for>
+                    </ul>
+                </div>
+            </f:if>
+
+            <f:for each="{sections}" as="section" key="table">
+                <div class="mt-4">
+                    <h3 class="mb-3"><code>{table}</code></h3>
+
+                    <f:if condition="{section.noIndexingService}">
+                        <f:then>
+                            <p>No indexing service configured for this record type.</p>
+                        </f:then>
+                        <f:else>
+                            <f:if condition="{section.recordUids -> f:count()} == 0">
+                                <f:then>
+                                    <p>No record of this type is currently in scope.</p>
+                                </f:then>
+                                <f:else>
+                                    <f:form action="index" method="get">
+                                        <select name="selectedRecordUid[{table}]" onchange="this.form.submit()">
+                                            <f:for each="{section.recordUids}" as="uid">
+                                                <option value="{uid}" selected="{f:if(condition: '{uid} == {section.selectedRecordUid}', then: 'selected')}">{uid}</option>
+                                            </f:for>
+                                        </select>
+                                    </f:form>
+
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Attribute</th>
+                                                <th>Origin</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <f:for each="{section.originMap.origins}" as="originValue" key="attributeName">
+                                                <tr>
+                                                    <td><code>{attributeName}</code></td>
+                                                    <td><span class="badge">{originValue}</span></td>
+                                                </tr>
+                                            </f:for>
+                                        </tbody>
+                                    </table>
+                                </f:else>
+                            </f:if>
+                        </f:else>
+                    </f:if>
+                </div>
+            </f:for>
+        </div>
+    </f:section>
+</html>

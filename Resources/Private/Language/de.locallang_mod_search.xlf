@@ -19,6 +19,9 @@
             <trans-unit id="mod_queue">
                 <target>Warteschlange</target>
             </trans-unit>
+            <trans-unit id="mod_attributes">
+                <target>Attribute</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

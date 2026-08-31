@@ -19,6 +19,9 @@
             <trans-unit id="mod_queue">
                 <source>Queue</source>
             </trans-unit>
+            <trans-unit id="mod_attributes">
+                <source>Attributes</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>
