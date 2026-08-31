@@ -139,4 +139,26 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
 
         self::assertSame(AttributeOrigin::Default, $result->getOrigin('type'));
     }
+
+    /**
+     * A Document with no fields set at all (the degenerate edge case, e.g.
+     * a selected record that could not be fetched) must not crash and must
+     * simply classify nothing, an empty AttributeOriginMap.
+     */
+    #[Test]
+    public function resolveReturnsAnEmptyMapForADocumentWithNoFields(): void
+    {
+        $indexer = self::createStub(IndexerInterface::class);
+        $indexer->method('getTable')->willReturn('pages');
+
+        $document = new Document($indexer, []);
+
+        $typoScriptService = self::createStub(TypoScriptServiceInterface::class);
+        $typoScriptService->method('getFieldMappingByType')->willReturn([]);
+
+        $subject = new PredictAndDiffAttributeOriginResolver($typoScriptService);
+        $result  = $subject->resolve($document);
+
+        self::assertSame([], $result->getAttributeNames());
+    }
 }

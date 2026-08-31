@@ -13,8 +13,10 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
 use Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
+use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginResolverInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SchemaGapDetector;
@@ -24,7 +26,8 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 
-use function array_unique;
+use function array_column;
+use function array_keys;
 use function array_values;
 use function in_array;
 
@@ -32,8 +35,15 @@ use function in_array;
  * Backend module showing, per record type, every attribute sent to Algolia
  * for a representative record and its origin, plus cross-type schema gaps.
  *
- * Read-only: never triggers real indexing, queueing, or index writes.
- * See docs/superpowers/specs/2026-08-28-attribute-overview-module-design.md.
+ * Read-only: never triggers real indexing, queueing, or index writes. It
+ * only runs DocumentBuilder::assemble() as a dry run against a single
+ * representative record per table and reads back the result, it never
+ * enqueues, indexes, or writes to the search engine or the database.
+ *
+ * The record-type list is not hardcoded, it is derived live from
+ * IndexerRegistry (see getRecordTypes()), the same registry the built-in
+ * indexers populate themselves in ext_localconf.php, so this module only
+ * ever attempts a table an indexer is actually registered for.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -41,19 +51,6 @@ use function in_array;
  */
 class AttributeOverviewModuleController extends AbstractBaseModuleController
 {
-    /**
-     * The four record types this module covers, matching the tables the
-     * built-in indexers register for in ext_localconf.php.
-     *
-     * @var string[]
-     */
-    private const array RECORD_TYPES = [
-        'pages',
-        'tt_content',
-        'sys_file_metadata',
-        'tx_news_domain_model_news',
-    ];
-
     /**
      * @param ModuleTemplateFactory            $moduleTemplateFactory     Factory for creating module template instances
      * @param IconFactory                      $iconFactory               Factory for creating icon instances
@@ -101,7 +98,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         $fieldTargets = [];
 
         try {
-            foreach (self::RECORD_TYPES as $table) {
+            foreach ($this->getRecordTypes() as $table) {
                 $section = $this->buildSection(
                     $table,
                     isset($selectedRecordUid[$table]) ? (int) $selectedRecordUid[$table] : null,
@@ -132,6 +129,32 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         );
 
         return $this->moduleTemplate->renderResponse('AttributeOverviewModule/Index');
+    }
+
+    /**
+     * Returns the record types this module covers.
+     *
+     * Derived live from IndexerRegistry::getRegisteredIndexers() instead of a
+     * hardcoded list, so it always matches the tables an indexer is actually
+     * registered for. A hardcoded list would go stale (a new built-in
+     * indexer added later would silently be missed) and, worse, a table
+     * whose indexer class is registered only conditionally (e.g.
+     * NewsIndexer, registered in ext_localconf.php only when EXT:news is
+     * loaded) would otherwise always be attempted regardless of whether the
+     * indexer implementation is actually available. In that case
+     * buildSection() would report "no indexing service configured" for a
+     * table that in fact has an indexing service row, it is just that no
+     * indexer is registered for it, a misleading diagnosis. Deriving the
+     * list live avoids ever attempting such a table in the first place.
+     *
+     * @return string[] The database table names covered by this module
+     */
+    private function getRecordTypes(): array
+    {
+        return array_column(
+            IndexerRegistry::getRegisteredIndexers(),
+            'tableName',
+        );
     }
 
     /**
@@ -170,18 +193,24 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             ];
         }
 
-        $recordUids = [];
+        // Record UID to the specific IndexingService it was actually found
+        // under. A table can have more than one indexing service configured
+        // (e.g. different pages_recursive/include_content_elements scopes),
+        // and a record found under one service must later be assembled
+        // under that SAME service, not an arbitrary/first one, otherwise the
+        // attribute-origin output can reflect the wrong scope entirely.
+        /** @var array<int, IndexingService> $indexingServiceByRecordUid */
+        $indexingServiceByRecordUid = [];
 
         foreach ($indexingServices as $indexingService) {
-            $recordUids = [
-                ...$recordUids,
-                ...$indexer->withIndexingService($indexingService)->findRecordUidsInScope(),
-            ];
+            foreach ($indexer->withIndexingService($indexingService)->findRecordUidsInScope() as $recordUid) {
+                // A UID can legitimately be in scope under more than one
+                // indexing service; keep the first one found, deterministically.
+                $indexingServiceByRecordUid[$recordUid] ??= $indexingService;
+            }
         }
 
-        $recordUids = array_values(array_unique($recordUids));
-
-        if ($recordUids === []) {
+        if ($indexingServiceByRecordUid === []) {
             return [
                 'recordUids'        => [],
                 'selectedRecordUid' => null,
@@ -189,6 +218,8 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
                 'noIndexingService' => false,
             ];
         }
+
+        $recordUids = array_keys($indexingServiceByRecordUid);
 
         $selectedRecordUid = (($overrideRecordUid !== null) && in_array($overrideRecordUid, $recordUids, true))
             ? $overrideRecordUid
@@ -208,16 +239,17 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             ->executeQuery()
             ->fetchAssociative();
 
-        // The same indexer instance is re-scoped to the indexing service
-        // whose row the selected record was ultimately found under
-        // (indexingServices[0], consistent with how it was resolved above)
-        // before being handed to the builder, withIndexingService() is
-        // immutable, the returned clone is what DocumentBuilder needs, not
-        // the original, unscoped $indexer.
+        // The same indexer instance is re-scoped to the indexing service the
+        // selected record was actually found under (tracked above), before
+        // being handed to the builder, withIndexingService() is immutable,
+        // the returned clone is what DocumentBuilder needs, not the
+        // original, unscoped $indexer.
+        $selectedIndexingService = $indexingServiceByRecordUid[$selectedRecordUid];
+
         $document = $this->documentBuilder
-            ->setIndexer($indexer->withIndexingService($indexingServices[0]))
+            ->setIndexer($indexer->withIndexingService($selectedIndexingService))
             ->setRecord($record !== false ? $record : [])
-            ->setIndexingService($indexingServices[0])
+            ->setIndexingService($selectedIndexingService)
             ->assemble()
             ->getDocument();
 
@@ -251,6 +283,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
                 ),
             )
             ->orderBy($tstampField, 'DESC')
+            ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchOne();

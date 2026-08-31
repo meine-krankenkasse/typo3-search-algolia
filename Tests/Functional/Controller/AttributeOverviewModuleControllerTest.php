@@ -15,7 +15,9 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Controller\AttributeOverviewModuleController;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
+use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginResolverInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SchemaGapDetector;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptServiceInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
@@ -38,6 +40,7 @@ use TYPO3\CMS\Extbase\Mvc\Request;
 use TYPO3\CMS\Extbase\Mvc\RequestInterface;
 
 use function file_get_contents;
+use function substr_count;
 
 /**
  * Functional tests for AttributeOverviewModuleController.
@@ -61,13 +64,10 @@ use function file_get_contents;
  * indexing service row at all ('noIndexingService' => true). A table with no
  * indexing service is therefore excluded from SchemaGapDetector::diff()'s
  * $allTypes entirely - it can never appear as "missing on" for anything, it
- * is simply never compared. This matches the design doc's own documented
- * error handling ("no indexing service configured for a record type ...
- * skip it in gap detection (nothing to compare)",
- * docs/superpowers/specs/2026-08-28-attribute-overview-module-design.md,
- * "Error handling") and was independently verified during the Task 5 review
- * (SDD ledger, "Task 4 -> Task 5" row: "$originMaps/$fieldTargets shapes
- * matches exactly").
+ * is simply never compared. This is the module's intended error handling
+ * for that case: a record type with no indexing service configured at all
+ * has nothing to compare in the first place, so it is skipped in gap
+ * detection rather than reported as "missing" every attribute.
  *
  * The design doc's own worked example for the runtime gap
  * ("site: present on pages, tt_content, sys_file_metadata - missing on
@@ -160,6 +160,22 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         ];
 
         $this->get(TcaSchemaFactory::class)->rebuild($GLOBALS['TCA']);
+
+        // AttributeOverviewModuleController::getRecordTypes() derives the
+        // module's record-type list live from IndexerRegistry, the same
+        // registry ext_localconf.php populates itself, but only registers
+        // NewsIndexer there if (ExtensionManagementUtility::isLoaded('news')).
+        // Since EXT:news is not a hard dependency, that condition is false
+        // in this test bootstrap and the real ext_localconf.php never runs
+        // this registration. Reproduce it manually here, mirroring the exact
+        // registration ext_localconf.php performs, so tx_news_domain_model_news
+        // is actually covered by the module under test, matching the "News
+        // DOES have an indexing service" premise this test class relies on.
+        IndexerRegistry::register(
+            NewsIndexer::class,
+            NewsIndexer::TABLE,
+            'News',
+        );
     }
 
     /**
@@ -291,6 +307,18 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * (mostRecentlyChanged()); explicitly overriding to uid=2 ("First
      * Page") only proves the override took effect if the two differ, which
      * they do here.
+     *
+     * Also guards against a regression of the bug fixed in b5888ea: the
+     * record-selector's Fluid f:if originally had no f:else branch, so
+     * every non-matching <option> was rendered with a bare selected=""
+     * attribute, which HTML treats as truthy regardless of its value,
+     * marking every option "selected" at once. The plain
+     * assertStringContainsString() on 'selected="selected"' above passes
+     * identically whether that bug is present or fixed (both markups
+     * contain that substring on the true branch), so it alone would not go
+     * red on a revert. The extra assertions below do: they fail on the old
+     * markup (selected="" would be present, and more than one "selected"
+     * option would render), and pass on the current, fixed markup.
      */
     #[Test]
     public function indexActionUsesTheManuallySelectedRecordOverTheAutomaticOne(): void
@@ -311,6 +339,17 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         self::assertStringContainsString(
             '<option value="2" selected="selected">2</option>',
             $body,
+        );
+
+        self::assertStringNotContainsString(
+            'selected=""',
+            $body,
+        );
+
+        self::assertSame(
+            1,
+            substr_count($body, 'selected="selected"'),
+            'Exactly one <option> must carry selected="selected"; a re-introduced Fluid f:if without an f:else branch would mark every option selected at once.',
         );
     }
 }
