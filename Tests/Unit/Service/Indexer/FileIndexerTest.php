@@ -677,4 +677,156 @@ final class FileIndexerTest extends TestCase
 
         self::assertSame([203, 202], $recordUids);
     }
+
+    /**
+     * Proves the realistic production case: this is the shape most real
+     * file collections have (AttributeOverviewModuleController::SCOPE_RECORD_LIMIT
+     * is 200, and far fewer eligible files usually exist), so uasort() still
+     * runs but array_slice() is a no-op. All three eligible files must come
+     * back, fully sorted by tstamp descending, proving the non-truncating
+     * case does not accidentally drop or misorder items.
+     */
+    #[Test]
+    public function findRecordUidsInScopeWithALimitExceedingTheEligibleCountReturnsAllSorted(): void
+    {
+        $collection = new StaticFileCollectionTestSubject();
+
+        $eligibleMetadataUids = [301, 302, 303];
+
+        foreach ($eligibleMetadataUids as $metadataUid) {
+            $collection->add($this->createEligibleFileMock($metadataUid, 'pdf'));
+        }
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collection]);
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1');
+
+        $connectionPool = self::createStub(ConnectionPool::class);
+        $fileRepository = new FileRepository($connectionPool);
+
+        $indexer = new FileIndexer(
+            $connectionPool,
+            self::createStub(SiteFinder::class),
+            new PageRepository($connectionPool),
+            self::createStub(SearchEngineFactory::class),
+            self::createStub(QueueItemRepository::class),
+            self::createStub(DocumentBuilder::class),
+            self::createStub(ResourceFactory::class),
+            $fileCollectionRepositoryMock,
+            $fileRepository,
+            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
+            new FileCollectionService(
+                $fileCollectionRepositoryMock,
+                $fileRepository,
+                new CategoryRepository($connectionPool),
+            ),
+        );
+
+        $recordUids = $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->findRecordUidsInScope(10);
+
+        self::assertSame([303, 302, 301], $recordUids);
+    }
+
+    /**
+     * Proves the boundary case where the eligible-file count exactly equals
+     * $limit, the classic off-by-one zone: an accidental $limit - 1 in the
+     * slice would only surface here. Both eligible files must come back.
+     */
+    #[Test]
+    public function findRecordUidsInScopeWithALimitEqualToTheEligibleCountReturnsAll(): void
+    {
+        $collection = new StaticFileCollectionTestSubject();
+
+        $collection->add($this->createEligibleFileMock(401, 'pdf'));
+        $collection->add($this->createEligibleFileMock(402, 'pdf'));
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collection]);
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1');
+
+        $connectionPool = self::createStub(ConnectionPool::class);
+        $fileRepository = new FileRepository($connectionPool);
+
+        $indexer = new FileIndexer(
+            $connectionPool,
+            self::createStub(SiteFinder::class),
+            new PageRepository($connectionPool),
+            self::createStub(SearchEngineFactory::class),
+            self::createStub(QueueItemRepository::class),
+            self::createStub(DocumentBuilder::class),
+            self::createStub(ResourceFactory::class),
+            $fileCollectionRepositoryMock,
+            $fileRepository,
+            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
+            new FileCollectionService(
+                $fileCollectionRepositoryMock,
+                $fileRepository,
+                new CategoryRepository($connectionPool),
+            ),
+        );
+
+        $recordUids = $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->findRecordUidsInScope(2);
+
+        self::assertSame([402, 401], $recordUids);
+    }
+
+    /**
+     * Proves an empty eligible-files list with a positive $limit returns
+     * cleanly, no error or warning, when no file in any configured
+     * collection passes the eligibility check (here: wrong extension).
+     */
+    #[Test]
+    public function findRecordUidsInScopeWithNoEligibleFilesReturnsEmptyArray(): void
+    {
+        $collection = new StaticFileCollectionTestSubject();
+        $collection->add($this->createEligibleFileMock(501, 'jpg'));
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collection]);
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1');
+
+        $connectionPool = self::createStub(ConnectionPool::class);
+        $fileRepository = new FileRepository($connectionPool);
+
+        $indexer = new FileIndexer(
+            $connectionPool,
+            self::createStub(SiteFinder::class),
+            new PageRepository($connectionPool),
+            self::createStub(SearchEngineFactory::class),
+            self::createStub(QueueItemRepository::class),
+            self::createStub(DocumentBuilder::class),
+            self::createStub(ResourceFactory::class),
+            $fileCollectionRepositoryMock,
+            $fileRepository,
+            // Only 'pdf' is allowed, so the sole 'jpg' file is never eligible.
+            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
+            new FileCollectionService(
+                $fileCollectionRepositoryMock,
+                $fileRepository,
+                new CategoryRepository($connectionPool),
+            ),
+        );
+
+        $recordUids = $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->findRecordUidsInScope(10);
+
+        self::assertSame([], $recordUids);
+    }
 }
