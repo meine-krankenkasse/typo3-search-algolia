@@ -743,10 +743,10 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * table with more than 200 in-scope records genuinely gets its
      * selector list capped at exactly 200 rather than silently unbounded.
      *
-     * The pages fixture imports 205 in-scope records ("Page Indexer", no
-     * other scope-narrowing filter), five more than the real limit, so an
+     * The pages fixture imports 206 in-scope records ("Page Indexer", no
+     * other scope-narrowing filter), six more than the real limit, so an
      * unbounded/broken cap would materialize as a visibly different option
-     * count (205, or 0 if the argument or the constant were accidentally
+     * count (206, or 0 if the argument or the constant were accidentally
      * dropped/zeroed) rather than passing by coincidence.
      *
      * The expected count is read from the real
@@ -777,7 +777,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             $scopeRecordLimit,
             substr_count($pagesSectionHtml, '<option value='),
             'The record selector must be capped at exactly SCOPE_RECORD_LIMIT '
-            . '(205 in-scope records were made available), not left unbounded and not silently reduced.',
+            . '(206 in-scope records were made available), not left unbounded and not silently reduced.',
         );
     }
 
