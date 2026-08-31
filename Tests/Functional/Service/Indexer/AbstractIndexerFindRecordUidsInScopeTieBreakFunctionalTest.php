@@ -63,7 +63,7 @@ final class AbstractIndexerFindRecordUidsInScopeTieBreakFunctionalTest extends A
 
         $this->pageIndexer = new PageIndexer(
             $connectionPool,
-            $this->createMock(SiteFinder::class),
+            self::createStub(SiteFinder::class),
             new PageRepository($connectionPool),
             $this->createMock(SearchEngineFactory::class),
             $this->get(QueueItemRepository::class),
