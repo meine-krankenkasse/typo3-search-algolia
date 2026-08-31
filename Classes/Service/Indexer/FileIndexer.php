@@ -29,7 +29,8 @@ use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-use function count;
+use function array_slice;
+use function uasort;
 
 /**
  * Indexer for TYPO3 files and their metadata.
@@ -199,6 +200,32 @@ class FileIndexer extends AbstractIndexer
      * it retrieves files from file collections, filters them by extension and
      * indexability, and prepares them for indexing.
      *
+     * When a positive $limit is given, the collected candidates are ordered by
+     * the sys_file_metadata record's own tstamp descending (record_uid
+     * descending as a deterministic tie-break, matching the same tie-break
+     * AbstractIndexer::fetchRecords() and
+     * AttributeOverviewModuleController::mostRecentlyChanged() use) BEFORE the
+     * cap is applied, so a capped result reflects the actually
+     * most-recently-changed eligible files rather than whatever order file
+     * collection iteration happens to produce.
+     *
+     * This deliberately deviates from how AbstractIndexer::fetchRecords()
+     * achieves the same guarantee: that method orders and caps entirely at
+     * the SQL level (ORDER BY ... LIMIT), so the database itself discards
+     * the excess rows and never materializes more than $limit results in
+     * PHP. This override has no equivalent SQL-level hook to delegate to,
+     * files come from FAL's FileCollection/File API (loadContents() plus
+     * iteration), which exposes no ordering or capping primitive of its
+     * own. Ordering therefore requires first materializing every eligible
+     * candidate across all configured file collections (no more early
+     * break-2 exit once $limit > 0), then sorting that full in-memory set,
+     * then slicing to $limit. For a very large collection this is a real,
+     * accepted cost of correctness over the previous unordered early-exit
+     * behavior, only paid when $limit > 0. The unbounded case (no limit,
+     * used by enqueueAll() and enqueueMultiple() for the real indexing
+     * pipeline) is unaffected, it already had to materialize every eligible
+     * file regardless.
+     *
      * @param int[] $recordUids Unused parameter, kept for compatibility with the parent method
      * @param int   $limit      Maximum number of records to return, 0 for unbounded. Callers that need
      *                          the complete eligible set (enqueueAll(), enqueueMultiple()) must keep
@@ -222,6 +249,7 @@ class FileIndexer extends AbstractIndexer
         $serviceUid            = $this->indexingService?->getUid() ?? 0;
         $allowedFileExtensions = $this->typoScriptService->getAllowedFileExtensions();
         $items                 = [];
+        $tstampsByRecordUid    = [];
 
         foreach ($collections as $collection) {
             // Load content of the collection
@@ -252,10 +280,28 @@ class FileIndexer extends AbstractIndexer
                     'priority'    => $this->getPriority(),
                 ];
 
-                if (($limit > 0) && (count($items) >= $limit)) {
-                    break 2;
+                // Only needed when capping (see this method's docblock), the
+                // metadata is already loaded at this point via the offsetGet('uid')
+                // call above, so reading its tstamp here adds no extra query.
+                if ($limit > 0) {
+                    $tstampsByRecordUid[$metadataUid] = (int) $file->getMetaData()->offsetGet('tstamp');
                 }
             }
+        }
+
+        if ($limit > 0) {
+            uasort(
+                $items,
+                static function (array $itemA, array $itemB) use ($tstampsByRecordUid): int {
+                    $tstampComparison = $tstampsByRecordUid[$itemB['record_uid']] <=> $tstampsByRecordUid[$itemA['record_uid']];
+
+                    return $tstampComparison !== 0
+                        ? $tstampComparison
+                        : ($itemB['record_uid'] <=> $itemA['record_uid']);
+                },
+            );
+
+            $items = array_slice($items, 0, $limit, true);
         }
 
         return array_values($items);

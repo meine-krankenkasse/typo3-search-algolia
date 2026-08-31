@@ -45,7 +45,6 @@ use TYPO3\CMS\Core\TypoScript\Tokenizer\TokenizerInterface;
 use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
-use function array_unique;
 use function implode;
 
 /**
@@ -65,7 +64,7 @@ use function implode;
 #[UsesClass(FileCollectionService::class)]
 #[CoversClass(AbstractIndexer::class)]
 #[UsesClass(TypoScriptService::class)]
-class FileIndexerTest extends TestCase
+final class FileIndexerTest extends TestCase
 {
     private FileIndexer $subject;
 
@@ -527,23 +526,35 @@ class FileIndexerTest extends TestCase
      * indexed, an allowed extension, and metadata carrying 'no_search' => 0
      * (so isEligible() never triggers its GeneralUtility::makeInstance()
      * metadata-reload branch, which a plain mock cannot satisfy).
+     *
+     * $tstamp defaults to $metadataUid when omitted, giving each mocked file
+     * a distinct, deterministic sort key without every call site having to
+     * name one explicitly; pass an explicit value to construct a genuine
+     * tstamp tie between two or more mocks (see
+     * findRecordUidsInScopeWithALimitOrdersByTstampWithUidTieBreak()).
      */
-    private function createEligibleFileMock(int $metadataUid, string $extension): File
+    private function createEligibleFileMock(int $metadataUid, string $extension, ?int $tstamp = null): File
     {
+        $tstamp ??= $metadataUid;
+
         $metaDataAspectMock = self::createStub(MetaDataAspect::class);
         $metaDataAspectMock
             ->method('get')
             ->willReturn([
                 'uid'       => $metadataUid,
                 'no_search' => 0,
+                'tstamp'    => $tstamp,
             ]);
-        // FileIndexer::initQueueItemRecords() only ever reads the 'uid' offset,
-        // so a fixed return value (rather than a with('uid') argument matcher,
-        // deprecated on test stubs as of PHPUnit 12 and removed in 13) is
-        // sufficient here.
+        // FileIndexer::initQueueItemRecords() only ever reads the 'uid' and
+        // 'tstamp' offsets, so a fixed map (rather than a with() argument
+        // matcher, deprecated on test stubs as of PHPUnit 12 and removed in
+        // 13) is sufficient here.
         $metaDataAspectMock
             ->method('offsetGet')
-            ->willReturn($metadataUid);
+            ->willReturnMap([
+                ['uid', $metadataUid],
+                ['tstamp', $tstamp],
+            ]);
 
         $fileMock = self::createStub(File::class);
         $fileMock->method('isIndexed')->willReturn(true);
@@ -554,13 +565,18 @@ class FileIndexerTest extends TestCase
     }
 
     /**
-     * Verifies the break-2-based cap in FileIndexer::initQueueItemRecords()
-     * actually caps: five eligible files across the file collection, a
-     * limit of two, exactly two record UIDs must come back. Uses set
-     * membership + cardinality rather than an identity assertion on which
-     * two, since FileIndexer imposes no ordering guarantee on file
-     * collection iteration (see the class docblock note on this in
-     * FileIndexer::initQueueItemRecords()).
+     * Verifies the cap in FileIndexer::initQueueItemRecords() actually caps:
+     * five eligible files across the file collection, a limit of two,
+     * exactly two record UIDs must come back. Since capping now orders
+     * candidates by tstamp descending (record_uid descending as a
+     * deterministic tie-break) before applying the limit (see that method's
+     * docblock), each mock's default tstamp equal to its own metadataUid
+     * makes the result fully deterministic too, asserted here as an exact,
+     * ordered identity (the two highest metadataUids/tstamps win). The
+     * dedicated tie-break scenario below
+     * (findRecordUidsInScopeWithALimitOrdersByTstampWithUidTieBreak())
+     * additionally proves the uid DESC tie-break itself, using files that
+     * share the exact same tstamp.
      */
     #[Test]
     public function findRecordUidsInScopeAppliesTheLimitAcrossFileCollectionItems(): void
@@ -606,11 +622,59 @@ class FileIndexerTest extends TestCase
             ->withIndexingService($indexingServiceMock)
             ->findRecordUidsInScope(2);
 
-        self::assertCount(2, $recordUids);
-        self::assertCount(2, array_unique($recordUids));
+        self::assertSame([105, 104], $recordUids);
+    }
 
-        foreach ($recordUids as $recordUid) {
-            self::assertContains($recordUid, $eligibleMetadataUids);
-        }
+    /**
+     * Proves the uid DESC tie-break FileIndexer::initQueueItemRecords()
+     * documents (see that method's docblock) is actually load-bearing: three
+     * eligible files share the EXACT SAME tstamp, so only the tie-break can
+     * deterministically decide which two of the three make it under a
+     * limit of two. Without it, the outcome would depend on whatever order
+     * file collection iteration happens to produce.
+     */
+    #[Test]
+    public function findRecordUidsInScopeWithALimitOrdersByTstampWithUidTieBreak(): void
+    {
+        $collection = new StaticFileCollectionTestSubject();
+
+        $collection->add($this->createEligibleFileMock(201, 'pdf', 500));
+        $collection->add($this->createEligibleFileMock(202, 'pdf', 500));
+        $collection->add($this->createEligibleFileMock(203, 'pdf', 500));
+
+        $fileCollectionRepositoryMock = self::createStub(FileCollectionRepository::class);
+        $fileCollectionRepositoryMock
+            ->method('findAllByCollectionUids')
+            ->willReturn([$collection]);
+
+        $indexingServiceMock = self::createStub(IndexingService::class);
+        $indexingServiceMock->method('getFileCollections')->willReturn('1');
+
+        $connectionPool = self::createStub(ConnectionPool::class);
+        $fileRepository = new FileRepository($connectionPool);
+
+        $indexer = new FileIndexer(
+            $connectionPool,
+            self::createStub(SiteFinder::class),
+            new PageRepository($connectionPool),
+            self::createStub(SearchEngineFactory::class),
+            self::createStub(QueueItemRepository::class),
+            self::createStub(DocumentBuilder::class),
+            self::createStub(ResourceFactory::class),
+            $fileCollectionRepositoryMock,
+            $fileRepository,
+            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
+            new FileCollectionService(
+                $fileCollectionRepositoryMock,
+                $fileRepository,
+                new CategoryRepository($connectionPool),
+            ),
+        );
+
+        $recordUids = $indexer
+            ->withIndexingService($indexingServiceMock)
+            ->findRecordUidsInScope(2);
+
+        self::assertSame([203, 202], $recordUids);
     }
 }
