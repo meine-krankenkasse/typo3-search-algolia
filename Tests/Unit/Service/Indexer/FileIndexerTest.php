@@ -565,6 +565,41 @@ final class FileIndexerTest extends TestCase
     }
 
     /**
+     * Creates a FileIndexer with stubbed collaborators for the
+     * findRecordUidsInScope() test scenarios below: allowed file extensions
+     * fixed to 'pdf' (via createTypoScriptServiceWithAllowedFileExtensions())
+     * and every other collaborator a bare self::createStub(), matching the
+     * exact wiring every one of those tests needs. Only the
+     * FileCollectionRepository actually varies between call sites (it feeds
+     * both the FileIndexer constructor and the FileCollectionService it
+     * builds internally), so it is the sole parameter, mirroring this
+     * class's own createConfiguredSubject() helper pattern above.
+     */
+    private function createStubbedSubject(FileCollectionRepository $fileCollectionRepositoryMock): FileIndexer
+    {
+        $connectionPool = self::createStub(ConnectionPool::class);
+        $fileRepository = new FileRepository($connectionPool);
+
+        return new FileIndexer(
+            $connectionPool,
+            self::createStub(SiteFinder::class),
+            new PageRepository($connectionPool),
+            self::createStub(SearchEngineFactory::class),
+            self::createStub(QueueItemRepository::class),
+            self::createStub(DocumentBuilder::class),
+            self::createStub(ResourceFactory::class),
+            $fileCollectionRepositoryMock,
+            $fileRepository,
+            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
+            new FileCollectionService(
+                $fileCollectionRepositoryMock,
+                $fileRepository,
+                new CategoryRepository($connectionPool),
+            ),
+        );
+    }
+
+    /**
      * Verifies the cap in FileIndexer::initQueueItemRecords() actually caps:
      * five eligible files across the file collection, a limit of two,
      * exactly two record UIDs must come back. Since capping now orders
@@ -597,26 +632,7 @@ final class FileIndexerTest extends TestCase
         $indexingServiceMock = self::createStub(IndexingService::class);
         $indexingServiceMock->method('getFileCollections')->willReturn('1');
 
-        $connectionPool = self::createStub(ConnectionPool::class);
-        $fileRepository = new FileRepository($connectionPool);
-
-        $indexer = new FileIndexer(
-            $connectionPool,
-            self::createStub(SiteFinder::class),
-            new PageRepository($connectionPool),
-            self::createStub(SearchEngineFactory::class),
-            self::createStub(QueueItemRepository::class),
-            self::createStub(DocumentBuilder::class),
-            self::createStub(ResourceFactory::class),
-            $fileCollectionRepositoryMock,
-            $fileRepository,
-            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
-            new FileCollectionService(
-                $fileCollectionRepositoryMock,
-                $fileRepository,
-                new CategoryRepository($connectionPool),
-            ),
-        );
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock);
 
         $recordUids = $indexer
             ->withIndexingService($indexingServiceMock)
@@ -650,26 +666,7 @@ final class FileIndexerTest extends TestCase
         $indexingServiceMock = self::createStub(IndexingService::class);
         $indexingServiceMock->method('getFileCollections')->willReturn('1');
 
-        $connectionPool = self::createStub(ConnectionPool::class);
-        $fileRepository = new FileRepository($connectionPool);
-
-        $indexer = new FileIndexer(
-            $connectionPool,
-            self::createStub(SiteFinder::class),
-            new PageRepository($connectionPool),
-            self::createStub(SearchEngineFactory::class),
-            self::createStub(QueueItemRepository::class),
-            self::createStub(DocumentBuilder::class),
-            self::createStub(ResourceFactory::class),
-            $fileCollectionRepositoryMock,
-            $fileRepository,
-            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
-            new FileCollectionService(
-                $fileCollectionRepositoryMock,
-                $fileRepository,
-                new CategoryRepository($connectionPool),
-            ),
-        );
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock);
 
         $recordUids = $indexer
             ->withIndexingService($indexingServiceMock)
@@ -679,10 +676,11 @@ final class FileIndexerTest extends TestCase
     }
 
     /**
-     * Proves the realistic production case: this is the shape most real
-     * file collections have (AttributeOverviewModuleController::SCOPE_RECORD_LIMIT
-     * is 200, and far fewer eligible files usually exist), so uasort() still
-     * runs but array_slice() is a no-op. All three eligible files must come
+     * Proves the non-truncating case (limit exceeds eligible count), which
+     * we expect to be the common case since AttributeOverviewModuleController::SCOPE_RECORD_LIMIT
+     * is 200 and typical file collections are assumed to be smaller than
+     * that (not verified against production data), so uasort() still runs
+     * but array_slice() is a no-op. All three eligible files must come
      * back, fully sorted by tstamp descending, proving the non-truncating
      * case does not accidentally drop or misorder items.
      */
@@ -705,26 +703,7 @@ final class FileIndexerTest extends TestCase
         $indexingServiceMock = self::createStub(IndexingService::class);
         $indexingServiceMock->method('getFileCollections')->willReturn('1');
 
-        $connectionPool = self::createStub(ConnectionPool::class);
-        $fileRepository = new FileRepository($connectionPool);
-
-        $indexer = new FileIndexer(
-            $connectionPool,
-            self::createStub(SiteFinder::class),
-            new PageRepository($connectionPool),
-            self::createStub(SearchEngineFactory::class),
-            self::createStub(QueueItemRepository::class),
-            self::createStub(DocumentBuilder::class),
-            self::createStub(ResourceFactory::class),
-            $fileCollectionRepositoryMock,
-            $fileRepository,
-            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
-            new FileCollectionService(
-                $fileCollectionRepositoryMock,
-                $fileRepository,
-                new CategoryRepository($connectionPool),
-            ),
-        );
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock);
 
         $recordUids = $indexer
             ->withIndexingService($indexingServiceMock)
@@ -754,26 +733,7 @@ final class FileIndexerTest extends TestCase
         $indexingServiceMock = self::createStub(IndexingService::class);
         $indexingServiceMock->method('getFileCollections')->willReturn('1');
 
-        $connectionPool = self::createStub(ConnectionPool::class);
-        $fileRepository = new FileRepository($connectionPool);
-
-        $indexer = new FileIndexer(
-            $connectionPool,
-            self::createStub(SiteFinder::class),
-            new PageRepository($connectionPool),
-            self::createStub(SearchEngineFactory::class),
-            self::createStub(QueueItemRepository::class),
-            self::createStub(DocumentBuilder::class),
-            self::createStub(ResourceFactory::class),
-            $fileCollectionRepositoryMock,
-            $fileRepository,
-            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
-            new FileCollectionService(
-                $fileCollectionRepositoryMock,
-                $fileRepository,
-                new CategoryRepository($connectionPool),
-            ),
-        );
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock);
 
         $recordUids = $indexer
             ->withIndexingService($indexingServiceMock)
@@ -801,27 +761,9 @@ final class FileIndexerTest extends TestCase
         $indexingServiceMock = self::createStub(IndexingService::class);
         $indexingServiceMock->method('getFileCollections')->willReturn('1');
 
-        $connectionPool = self::createStub(ConnectionPool::class);
-        $fileRepository = new FileRepository($connectionPool);
-
-        $indexer = new FileIndexer(
-            $connectionPool,
-            self::createStub(SiteFinder::class),
-            new PageRepository($connectionPool),
-            self::createStub(SearchEngineFactory::class),
-            self::createStub(QueueItemRepository::class),
-            self::createStub(DocumentBuilder::class),
-            self::createStub(ResourceFactory::class),
-            $fileCollectionRepositoryMock,
-            $fileRepository,
-            // Only 'pdf' is allowed, so the sole 'jpg' file is never eligible.
-            $this->createTypoScriptServiceWithAllowedFileExtensions(['pdf']),
-            new FileCollectionService(
-                $fileCollectionRepositoryMock,
-                $fileRepository,
-                new CategoryRepository($connectionPool),
-            ),
-        );
+        // Only 'pdf' is allowed (see createStubbedSubject()), so the sole
+        // 'jpg' file is never eligible.
+        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock);
 
         $recordUids = $indexer
             ->withIndexingService($indexingServiceMock)
