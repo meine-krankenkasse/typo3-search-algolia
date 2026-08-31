@@ -333,6 +333,9 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
     {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
 
+        // Defensive fallback: every currently-registered indexer's table
+        // defines ctrl.tstamp; this only engages if a future indexer's
+        // table doesn't.
         $tstampField = $GLOBALS['TCA'][$table]['ctrl']['tstamp'] ?? 'uid';
 
         $result = $queryBuilder

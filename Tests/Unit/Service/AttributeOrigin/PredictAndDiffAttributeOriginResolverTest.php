@@ -35,6 +35,11 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(AttributeOrigin::class)]
 final class PredictAndDiffAttributeOriginResolverTest extends TestCase
 {
+    /**
+     * Creates an IndexerInterface stub whose getTable() reports the given
+     * table name, standing in for the real indexer a resolved Document
+     * would otherwise be built with.
+     */
     private function createIndexerStub(string $table): IndexerInterface
     {
         $indexer = self::createStub(IndexerInterface::class);
@@ -44,6 +49,10 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
     }
 
     /**
+     * Creates a TypoScriptServiceInterface stub whose getFieldMappingByType()
+     * returns the given TypoScript field mapping, standing in for the real
+     * TypoScript configuration resolution.
+     *
      * @param array<string, string> $mapping
      */
     private function createTypoScriptServiceStub(array $mapping = []): TypoScriptServiceInterface

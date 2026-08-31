@@ -530,6 +530,9 @@ abstract class AbstractIndexer implements IndexerInterface
             ->where(...$constraints);
 
         if ($limit > 0) {
+            // Defensive fallback: every currently-registered indexer's table
+            // defines ctrl.tstamp; this only engages if a future indexer's
+            // table doesn't.
             $tstampField = $GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 'uid';
 
             $queryBuilder

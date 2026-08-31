@@ -40,6 +40,8 @@ use function in_array;
 final class SchemaGapDetector
 {
     /**
+     * Diffs runtime attribute-name sets and returns the resulting gaps.
+     *
      * @param array<string, AttributeOriginMap> $originMapsByType Record type name to its AttributeOriginMap
      *
      * @return SchemaGap[]
@@ -55,6 +57,8 @@ final class SchemaGapDetector
     }
 
     /**
+     * Diffs config-level attribute-name sets and returns the resulting gaps.
+     *
      * @param array<string, string[]> $fieldMappingTargetsByType Record type name to its TypoScript-mapped target attribute names
      *
      * @return SchemaGap[]
@@ -65,6 +69,9 @@ final class SchemaGapDetector
     }
 
     /**
+     * Compares the given attribute-name sets across all record types and
+     * builds a SchemaGap for every attribute that is not present on all of them.
+     *
      * @param array<string, string[]> $attributeNamesByType Record type name to its attribute-name list
      *
      * @return SchemaGap[]
