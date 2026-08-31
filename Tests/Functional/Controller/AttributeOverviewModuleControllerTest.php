@@ -29,6 +29,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use ReflectionClass;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
@@ -729,6 +730,54 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             . '("Overlap Indexer A", includeContentElements=false) must win, so no "content" attribute may '
             . 'appear. A reintroduced last-match-wins behaviour would instead assemble page 40 under '
             . '"Overlap Indexer B" (includeContentElements=true) and this assertion would fail.',
+        );
+    }
+
+    /**
+     * Proves AttributeOverviewModuleController::SCOPE_RECORD_LIMIT is
+     * genuinely wired through to findRecordUidsInScope() end-to-end, not
+     * only correct at the indexer level. AbstractIndexer-level tests already
+     * cover findRecordUidsInScope($limit) capping/ordering correctly for
+     * small test limits (2, 10), but nothing previously proved the
+     * controller actually passes the real 200 value through, or that a
+     * table with more than 200 in-scope records genuinely gets its
+     * selector list capped at exactly 200 rather than silently unbounded.
+     *
+     * The pages fixture imports 205 in-scope records ("Page Indexer", no
+     * other scope-narrowing filter), five more than the real limit, so an
+     * unbounded/broken cap would materialize as a visibly different option
+     * count (205, or 0 if the argument or the constant were accidentally
+     * dropped/zeroed) rather than passing by coincidence.
+     *
+     * The expected count is read from the real
+     * AttributeOverviewModuleController::SCOPE_RECORD_LIMIT constant via
+     * ReflectionClass rather than a hardcoded "200" duplicate, so this
+     * assertion cannot silently drift from the production value if the
+     * constant is ever deliberately changed.
+     */
+    #[Test]
+    public function indexActionCapsTheRecordSelectorAtTheRealScopeRecordLimit(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages_scope_limit.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_service_scope_limit.csv');
+
+        $subject = $this->createDrivenSubject(['id' => 0]);
+
+        $response = $subject->callIndexAction();
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $pagesSectionHtml = $this->extractSectionHtml($body, 'pages');
+
+        $scopeRecordLimit = (int) (new ReflectionClass(AttributeOverviewModuleController::class))
+            ->getConstant('SCOPE_RECORD_LIMIT');
+
+        self::assertSame(
+            $scopeRecordLimit,
+            substr_count($pagesSectionHtml, '<option value='),
+            'The record selector must be capped at exactly SCOPE_RECORD_LIMIT '
+            . '(205 in-scope records were made available), not left unbounded and not silently reduced.',
         );
     }
 
