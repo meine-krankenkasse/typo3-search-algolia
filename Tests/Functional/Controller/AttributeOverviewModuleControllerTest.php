@@ -54,7 +54,9 @@ use TYPO3\CMS\Extbase\Mvc\Request;
 use TYPO3\CMS\Extbase\Mvc\RequestInterface;
 
 use function file_get_contents;
+use function preg_match_all;
 use function preg_quote;
+use function str_repeat;
 use function strpos;
 use function substr_count;
 
