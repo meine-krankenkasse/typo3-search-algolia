@@ -997,6 +997,67 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     }
 
     /**
+     * Verifies mergeTableAttributes()'s guard is a strict "!== ''" check,
+     * not a loose/truthy one: the string "0" is falsy in PHP but is a
+     * genuinely populated example value that a later table's contribution
+     * must not overwrite. A loose check (e.g. "$existingExampleValue ?
+     * $existingExampleValue : ...") would wrongly treat "0" the same as an
+     * empty string, silently losing the first table's real value. This is
+     * a reachable production scenario, not a contrived one: pid = 0 for
+     * every top-level record, and formatExampleValue()'s is_scalar branch
+     * casts it to the string "0".
+     *
+     * Revert-confirms-red verified: loosening mergeTableAttributes()'s
+     * "$existingExampleValue !== ''" guard to a truthy check
+     * ("$existingExampleValue") makes this assertion fail (the row renders
+     * tt_content's value instead of pages' "0").
+     */
+    #[Test]
+    public function attributeOverviewKeepsAFalsyButNonEmptyExampleValueFromAnEarlierTable(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $ttContentInjectingDocumentBuilder = new StringFieldInjectingDocumentBuilder(
+            $this->get(EventDispatcherInterface::class),
+            $this->get(TypoScriptService::class),
+            $this->get(DocumentBuilder::class),
+            'tt_content',
+            'sharedExampleValueField',
+            'Real Value From tt_content',
+        );
+
+        $pagesInjectingDocumentBuilder = new StringFieldInjectingDocumentBuilder(
+            $this->get(EventDispatcherInterface::class),
+            $this->get(TypoScriptService::class),
+            $ttContentInjectingDocumentBuilder,
+            'pages',
+            'sharedExampleValueField',
+            '0',
+        );
+
+        $subject = $this->createDrivenSubject(
+            ['id' => 0],
+            $pagesInjectingDocumentBuilder,
+        );
+
+        $body = $this->callIndexActionAndAssertOk($subject);
+
+        $rowHtml = $this->extractAttributeRowHtml(
+            $body,
+            'sharedExampleValueField',
+        );
+
+        $this->assertExampleValueCellContains(
+            '0',
+            $rowHtml,
+            "pages' own falsy-but-non-empty '0' contribution must not be treated as unpopulated and "
+            . "overwritten by tt_content's later value for the same attribute name.",
+        );
+    }
+
+    /**
      * Verifies formatExampleValue()'s own claim that Fluid's default
      * auto-escaping already handles HTML-safety on output, since that
      * method deliberately does not pre-escape (see its own docblock).
