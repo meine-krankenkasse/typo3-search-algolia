@@ -64,7 +64,6 @@ use function implode;
 #[UsesClass(FileCollectionService::class)]
 #[CoversClass(AbstractIndexer::class)]
 #[UsesClass(TypoScriptService::class)]
-#[UsesClass(StaticFileCollectionTestSubject::class)]
 final class FileIndexerTest extends TestCase
 {
     private FileIndexer $subject;
