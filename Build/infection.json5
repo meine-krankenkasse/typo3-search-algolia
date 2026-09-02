@@ -20,7 +20,7 @@
     // 433 killed, 105 escaped, 100% mutation code coverage, so overall MSI
     // equals covered MSI here). Floor set to 80 as a precautionary margin
     // below the measured value (no run-to-run variance was actually
-    // observed — two independent CI runs of the same commit both landed at
+    // observed — three independent CI runs of the same commit all landed at
     // exactly 80.48%), not to demand improvement immediately.
     // Raise this in small steps as escaped mutants get killed (open
     // .build/infection/infection.log, pick a surviving mutant, write a test
