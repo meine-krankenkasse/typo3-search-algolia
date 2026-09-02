@@ -660,9 +660,18 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         // fields are assembled). Revert-confirms-red verified: removing
         // ksort() (or replacing it with krsort()) makes this assertion
         // fail.
-        $sitePosition  = strpos($body, 'data-attribute="site"');
-        $titlePosition = strpos($body, 'data-attribute="title"');
-        $uidPosition   = strpos($body, 'data-attribute="uid"');
+        $sitePosition = strpos(
+            $body,
+            'data-attribute="site"',
+        );
+        $titlePosition = strpos(
+            $body,
+            'data-attribute="title"',
+        );
+        $uidPosition = strpos(
+            $body,
+            'data-attribute="uid"',
+        );
 
         self::assertNotFalse($sitePosition);
         self::assertNotFalse($titlePosition);
@@ -918,8 +927,14 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'title',
         );
 
-        $ttContentPosition       = strpos($titleRowHtml, '<code>tt_content</code>');
-        $sysFileMetadataPosition = strpos($titleRowHtml, '<code>sys_file_metadata</code>');
+        $ttContentPosition = strpos(
+            $titleRowHtml,
+            '<code>tt_content</code>',
+        );
+        $sysFileMetadataPosition = strpos(
+            $titleRowHtml,
+            '<code>sys_file_metadata</code>',
+        );
 
         self::assertNotFalse($ttContentPosition);
         self::assertNotFalse($sysFileMetadataPosition);
