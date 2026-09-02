@@ -38,33 +38,37 @@
                 </div>
             </f:if>
 
-            <table class="table table-striped mt-4">
+            <table class="table attribute-overview-table mt-4">
                 <thead>
                     <tr>
                         <th><f:translate key="attribute_overview.table.header.attribute" /></th>
+                        <th><f:translate key="attribute_overview.table.header.origin" /></th>
                         <th><f:translate key="attribute_overview.table.header.occurs_on" /></th>
+                        <th><f:translate key="attribute_overview.table.header.path" /></th>
                         <th><f:translate key="attribute_overview.table.header.example_value" /></th>
                     </tr>
                 </thead>
-                <tbody>
-                    <f:for each="{attributeRows}" as="row" key="attributeName">
-                        <tr>
-                            <td><code>{attributeName}</code></td>
-                            <td>
-                                <f:for each="{row.occurrences}" as="occurrence" key="table">
-                                    <div>
-                                        <span class="badge">{occurrence.origin}</span>
-                                        <code>{table}</code>
-                                        <f:if condition="{occurrence.detail}">
-                                            <code class="ms-2">{occurrence.detail}</code>
-                                        </f:if>
-                                    </div>
-                                </f:for>
-                            </td>
-                            <td>{row.exampleValue}</td>
-                        </tr>
-                    </f:for>
-                </tbody>
+                <f:for each="{attributeRows}" as="row" key="attributeName">
+                    <tbody data-attribute="{attributeName}">
+                        <f:for each="{row.occurrences}" as="occurrence" key="table" iteration="occurrenceIterator">
+                            <tr{f:if(condition: '!{occurrenceIterator.isFirst}', then: ' class="attribute-overview-table_continued-row"')}>
+                                <f:if condition="{occurrenceIterator.isFirst}">
+                                    <td rowspan="{occurrenceIterator.total}"><code>{attributeName}</code></td>
+                                </f:if>
+                                <td><span class="badge">{occurrence.origin}</span></td>
+                                <td><code>{table}</code></td>
+                                <td>
+                                    <f:if condition="{occurrence.detail}">
+                                        <code>{occurrence.detail}</code>
+                                    </f:if>
+                                </td>
+                                <f:if condition="{occurrenceIterator.isFirst}">
+                                    <td rowspan="{occurrenceIterator.total}">{row.exampleValue}</td>
+                                </f:if>
+                            </tr>
+                        </f:for>
+                    </tbody>
+                </f:for>
             </table>
         </div>
     </f:section>

@@ -55,6 +55,7 @@ use TYPO3\CMS\Extbase\Mvc\RequestInterface;
 
 use function file_get_contents;
 use function preg_quote;
+use function strpos;
 use function substr_count;
 
 /**
@@ -278,7 +279,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      */
     private function assertSingleMatch(string $pattern, string $body, string $message): string
     {
-        $matched = preg_match(
+        $matchCount = preg_match_all(
             $pattern,
             $body,
             $matches,
@@ -286,28 +287,31 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
 
         self::assertSame(
             1,
-            $matched,
+            $matchCount,
             $message,
         );
 
-        return $matches[0];
+        return $matches[0][0];
     }
 
     /**
-     * Extracts one attribute's own rendered row from the flat overview
-     * table, so an assertion can be scoped to that one row and not
-     * accidentally match content belonging to a different row or to the
-     * table-status list above it.
+     * Extracts one attribute's own rendered <tbody> group from the flat
+     * overview table, so an assertion can be scoped to that one attribute
+     * and not accidentally match content belonging to a different attribute
+     * or to the table-status list above it. Each attribute gets its own
+     * <tbody data-attribute="..."> (see Index.html), holding one <tr> per
+     * table it occurs on, with only the first row carrying the rowspanned
+     * attribute-name/example-value cells.
      */
     private function extractAttributeRowHtml(string $body, string $attributeName): string
     {
         return $this->assertSingleMatch(
-            '#<tr>\s*<td><code>' . preg_quote(
+            '#<tbody data-attribute="' . preg_quote(
                 $attributeName,
                 '#',
-            ) . '</code></td>.*?</tr>#s',
+            ) . '">.*?</tbody>#s',
             $body,
-            'Expected exactly one rendered row for attribute "' . $attributeName . '".',
+            'Expected exactly one rendered row group for attribute "' . $attributeName . '".',
         );
     }
 
@@ -336,9 +340,26 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     private function extractAttributeTableHtml(string $body): string
     {
         return $this->assertSingleMatch(
-            '#<table class="table table-striped mt-4">.*?</table>#s',
+            '#<table class="table attribute-overview-table mt-4">.*?</table>#s',
             $body,
             'Expected exactly one rendered attribute table.',
+        );
+    }
+
+    /**
+     * Asserts $value is rendered as the row group's rowspanned example-value
+     * cell content, regardless of the exact rowspan count (which varies with
+     * how many tables the attribute occurs on, see Index.html).
+     */
+    private function assertExampleValueCellContains(string $value, string $rowHtml, string $message = ''): void
+    {
+        self::assertMatchesRegularExpression(
+            '#<td rowspan="\d+">' . preg_quote(
+                $value,
+                '#',
+            ) . '</td>#',
+            $rowHtml,
+            $message,
         );
     }
 
@@ -452,12 +473,34 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'The attribute-table column headers must render real text, not an unresolved translation key.',
         );
         self::assertStringContainsString(
+            '<th>Origin</th>',
+            $body,
+        );
+        self::assertStringContainsString(
             '<th>Occurs on</th>',
+            $body,
+        );
+        self::assertStringContainsString(
+            '<th>Path</th>',
             $body,
         );
         self::assertStringContainsString(
             '<th>Example value</th>',
             $body,
+        );
+
+        // The five assertStringContainsString() calls above only pin
+        // presence, not relative order - a swapped <th>Origin</th> /
+        // <th>Occurs on</th> pair (headers pointing at the wrong data
+        // beneath them) would still pass all five. Pin the actual header
+        // sequence too. Revert-confirms-red verified: swapping the Origin
+        // and Occurs on <th> elements in Index.html makes this fail.
+        self::assertMatchesRegularExpression(
+            '#<th>Attribute</th>\s*<th>Origin</th>\s*<th>Occurs on</th>\s*<th>Path</th>\s*'
+            . '<th>Example value</th>#',
+            $body,
+            'The attribute-table column headers must render in Attribute, Origin, Occurs on, Path, '
+            . 'Example value order, matching the data cells beneath them.',
         );
 
         self::assertMatchesRegularExpression(
@@ -480,6 +523,32 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             $body,
             'The last record type in the "Record types checked" line must not be followed by a '
             . 'trailing separator.',
+        );
+
+        // Pins ksort($attributeRows)'s alphabetical-sort contract: the
+        // three <tbody data-attribute="..."> groups checked below must
+        // appear in that exact relative order in the response body, not
+        // registration/assembly-insertion order (which would put 'site'
+        // last, since it's Listener-set only after the TypoScript-mapped
+        // fields are assembled). Revert-confirms-red verified: removing
+        // ksort() (or replacing it with krsort()) makes this assertion
+        // fail.
+        $sitePosition  = strpos($body, 'data-attribute="site"');
+        $titlePosition = strpos($body, 'data-attribute="title"');
+        $uidPosition   = strpos($body, 'data-attribute="uid"');
+
+        self::assertNotFalse($sitePosition);
+        self::assertNotFalse($titlePosition);
+        self::assertNotFalse($uidPosition);
+        self::assertLessThan(
+            $titlePosition,
+            $sitePosition,
+            "The 'site' row must be rendered before the 'title' row (alphabetical order).",
+        );
+        self::assertLessThan(
+            $uidPosition,
+            $titlePosition,
+            "The 'title' row must be rendered before the 'uid' row (alphabetical order).",
         );
 
         $siteRowHtml = $this->extractAttributeRowHtml(
@@ -509,17 +578,22 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'The "site" row must show exactly two Listener-origin occurrences (pages, tt_content).',
         );
 
-        // Guards the opposite direction of the "ms-2" detail assertions
-        // elsewhere in this test (e.g. the TypoScript-origin "title" row):
-        // Index.html's <f:if condition="{occurrence.detail}"> around the
-        // detail <code> element must suppress it entirely for a
-        // Listener-origin occurrence, whose detail is always NULL, not
-        // render an empty <code class="ms-2"></code>. Revert-confirms-red
-        // verified: removing that f:if condition makes this assertion fail.
+        // Guards the opposite direction of the Path-column detail
+        // assertions elsewhere in this test (e.g. the TypoScript-origin
+        // "title" row): Index.html's <f:if condition="{occurrence.detail}">
+        // around the Path column's <code> element must suppress it
+        // entirely for a Listener-origin occurrence, whose detail is
+        // always NULL, leaving that cell empty, not an empty <code></code>.
+        // Checking for the literal empty tag (not a content-specific
+        // substring like "module.") is what actually discriminates this:
+        // a NULL {occurrence.detail} interpolated into an unguarded
+        // <code>{occurrence.detail}</code> renders exactly "<code></code>",
+        // with no "module." text to catch. Revert-confirms-red verified:
+        // removing that f:if condition makes this assertion fail.
         self::assertStringNotContainsString(
-            '<code class="ms-2">',
+            '<code></code>',
             $siteRowHtml,
-            'A Listener-origin occurrence has no detail and must not render the ms-2 detail element.',
+            'A Listener-origin occurrence has no detail and must not render an empty Path column <code> element.',
         );
 
         $uidRowHtml = $this->extractAttributeRowHtml(
@@ -530,6 +604,23 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         self::assertStringContainsString(
             '<span class="badge">default</span>',
             $uidRowHtml,
+        );
+
+        // Pins formatExampleValue()'s is_scalar() branch for a non-string
+        // scalar: 'uid' is always an int (DocumentBuilder::assemble()'s
+        // setField('uid', $this->record['uid'])), never a string, so this
+        // is the only assertion in the file that ever exercises that
+        // branch's actual rendered content - every other
+        // assertExampleValueCellContains() call site targets a string
+        // value. Revert-confirms-red verified: narrowing is_scalar($value)
+        // to is_string($value) in formatExampleValue() leaves the rest of
+        // this file green but makes this assertion fail (the cell renders
+        // '' instead of the page uid).
+        $this->assertExampleValueCellContains(
+            '3',
+            $uidRowHtml,
+            "The 'uid' row's example value must render the auto-picked page's actual int uid (cast to "
+            . 'string), not an empty value from a formatter that only handles strings.',
         );
 
         $titleRowHtml = $this->extractAttributeRowHtml(
@@ -547,16 +638,170 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             . 'tx_news_domain_model_news), proving a row can aggregate more than two occurrences.',
         );
         self::assertStringContainsString(
-            '<code class="ms-2">module.tx_typo3searchalgolia.indexer.pages.fields.title</code>',
+            '<code>module.tx_typo3searchalgolia.indexer.pages.fields.title</code>',
             $titleRowHtml,
         );
         self::assertStringContainsString(
-            '<code class="ms-2">module.tx_typo3searchalgolia.indexer.tt_content.fields.header</code>',
+            '<code>module.tx_typo3searchalgolia.indexer.tt_content.fields.header</code>',
             $titleRowHtml,
         );
         self::assertStringContainsString(
-            '<code class="ms-2">module.tx_typo3searchalgolia.indexer.tx_news_domain_model_news.fields.title</code>',
+            '<code>module.tx_typo3searchalgolia.indexer.tx_news_domain_model_news.fields.title</code>',
             $titleRowHtml,
+        );
+
+        // Pins the rowspan wiring itself, not just its tolerant presence
+        // (assertExampleValueCellContains() deliberately wildcards the
+        // count via "rowspan=\d+", since it varies per attribute): with
+        // 3 occurrences, {occurrenceIterator.total} must render "3", and
+        // the rowspanned attribute-name/example-value cells must appear
+        // exactly once each (not once per <tr>), never duplicated onto
+        // the continuation rows. Revert-confirms-red verified: removing
+        // <f:if condition="{occurrenceIterator.isFirst}"> around either
+        // rowspanned <td> in Index.html makes the exact-count assertion
+        // fail (3 becomes 4, one per <tr> plus the duplicate).
+        self::assertSame(
+            2,
+            substr_count(
+                $titleRowHtml,
+                'rowspan="3"',
+            ),
+            'The "title" row\'s 3 occurrences must produce exactly two rowspan="3" cells (attribute-name, '
+            . 'example-value), not one per <tr>.',
+        );
+
+        // Pins the "attribute-overview-table_continued-row" class the
+        // Module.css border/padding fixes key off (see that file's own
+        // comments): it must land on exactly the 2 continuation <tr>s
+        // (tt_content, tx_news_domain_model_news), never on the group's
+        // first row. Revert-confirms-red verified: inverting the
+        // "!{occurrenceIterator.isFirst}" condition in Index.html - so it
+        // applies to the FIRST row instead - makes this exact-count
+        // assertion fail (the count stays 2, but on the wrong rows; an
+        // f:if dropped entirely would make it fail 0 vs 2).
+        self::assertSame(
+            2,
+            substr_count(
+                $titleRowHtml,
+                'attribute-overview-table_continued-row',
+            ),
+            'The "title" row\'s 3 occurrences must mark exactly the 2 continuation rows with the '
+            . 'continued-row class, never the group\'s first row.',
+        );
+
+        // The presence-only assertions above (badge/table/path checks)
+        // don't pin which column each cell actually renders into - e.g. a
+        // swapped Origin/Occurs-on <td> pair in Index.html (badge and
+        // table name in the wrong columns) would still pass all of them.
+        // Pin the group's first <tr>'s actual cell sequence: attribute
+        // name, origin badge, table, path, example value, matching the
+        // header order pinned above. Revert-confirms-red verified:
+        // swapping the origin-badge and table-name <td> elements in
+        // Index.html makes this fail.
+        self::assertMatchesRegularExpression(
+            '#<td rowspan="3"><code>title</code></td>\s*<td><span class="badge">typoscript</span></td>\s*'
+            . '<td><code>pages</code></td>\s*<td>\s*'
+            . '<code>module\.tx_typo3searchalgolia\.indexer\.pages\.fields\.title</code>\s*</td>\s*'
+            . '<td rowspan="3">#s',
+            $titleRowHtml,
+            'The "title" row\'s first <tr> must render its cells in Attribute, Origin, Occurs on '
+            . '(table), Path, Example value order.',
+        );
+    }
+
+    /**
+     * Verifies mergeTableAttributes()'s occurrence order within one
+     * attribute's row group follows getRecordTypes()'s registration order
+     * (pages, tt_content, sys_file_metadata, tx_news_domain_model_news),
+     * never alphabetical order. Every other multi-occurrence test in this
+     * class only ever combines pages/tt_content/tx_news_domain_model_news,
+     * whose alphabetical and registration order happen to coincide -
+     * sys_file_metadata is the one registered table whose alphabetical
+     * position ('s', 2nd) diverges from its registration position (3rd,
+     * after tt_content), so only a row containing BOTH tt_content and
+     * sys_file_metadata can actually distinguish the two orderings.
+     *
+     * sys_file_metadata's row only ever comes from a real, auto-indexed
+     * file (see attributeOverviewSuppressesTheStatusSectionWhenEveryRecordTypeHasPreviewData()'s
+     * docblock), and the fixture PDF carries no embedded /Title metadata,
+     * so its 'title' field is empty and skipped by
+     * DocumentBuilder::addConfiguredFieldsToDocument() ("Skip empty
+     * strings.") on a first pass. Calling indexAction() once first drives
+     * the real filesystem scan that auto-creates the sys_file_metadata row
+     * (a documented, real side effect of FileIndexer's scope query, not a
+     * test artifact), then this test overwrites that row's title directly
+     * so a second indexAction() call has a genuinely non-empty value to
+     * classify as a TypoScript-origin 'title' occurrence.
+     *
+     * Revert-confirms-red verified: replacing mergeTableAttributes()'s
+     * insertion-order occurrences array with one built via ksort() (a
+     * plausible "sort for display consistency" mutation) leaves every
+     * other test in this class green, but makes this test's order
+     * assertion fail (sys_file_metadata would render before tt_content).
+     */
+    #[Test]
+    public function attributeOverviewOrdersOccurrencesWithinARowByRecordTypeRegistrationOrderNotAlphabetically(): void
+    {
+        // attribute_overview_pages.csv is imported not because pages' own
+        // 'title' occurrence matters to this test (the assertion below only
+        // compares tt_content against sys_file_metadata), but because
+        // tt_content's own scope query resolves recursively from the page
+        // tree - without a real page 1 to recurse from, tt_content's fixture
+        // row (pid=2) never enters scope at all, and the row this test
+        // extracts wouldn't contain a tt_content occurrence to compare.
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services_all_tables_ok.csv');
+
+        $subject = $this->createDrivenSubject(['id' => 0]);
+
+        // First pass: no assertions, this only drives the real filesystem
+        // scan that auto-creates the sys_file_metadata row for
+        // fileadmin/test.pdf.
+        $this->callIndexActionAndAssertOk($subject);
+
+        $connectionPool = $this->getConnectionPool();
+
+        $fileUid = $connectionPool
+            ->getConnectionForTable('sys_file')
+            ->select(
+                ['uid'],
+                'sys_file',
+                ['name' => 'test.pdf'],
+            )
+            ->fetchOne();
+
+        self::assertIsInt(
+            $fileUid,
+            'The fixture file must have been auto-indexed into sys_file by the first indexAction() call above.',
+        );
+
+        $connectionPool
+            ->getConnectionForTable('sys_file_metadata')
+            ->update(
+                'sys_file_metadata',
+                ['title' => 'File title'],
+                ['file' => $fileUid],
+            );
+
+        $body = $this->callIndexActionAndAssertOk($subject);
+
+        $titleRowHtml = $this->extractAttributeRowHtml(
+            $body,
+            'title',
+        );
+
+        $ttContentPosition       = strpos($titleRowHtml, '<code>tt_content</code>');
+        $sysFileMetadataPosition = strpos($titleRowHtml, '<code>sys_file_metadata</code>');
+
+        self::assertNotFalse($ttContentPosition);
+        self::assertNotFalse($sysFileMetadataPosition);
+        self::assertLessThan(
+            $sysFileMetadataPosition,
+            $ttContentPosition,
+            "The 'title' row's tt_content occurrence must be rendered before its sys_file_metadata "
+            . 'occurrence (registration order: tt_content is registered before sys_file_metadata), not '
+            . 'alphabetically ("sys_file_metadata" < "tt_content").',
         );
     }
 
@@ -642,11 +887,11 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         );
 
         self::assertStringContainsString(
-            '<code class="ms-2">module.tx_typo3searchalgolia.indexer.pages.fields.title</code>',
+            '<code>module.tx_typo3searchalgolia.indexer.pages.fields.title</code>',
             $titleRowHtml,
         );
         self::assertStringContainsString(
-            '<code class="ms-2">module.tx_typo3searchalgolia.indexer.tt_content.fields.header</code>',
+            '<code>module.tx_typo3searchalgolia.indexer.tt_content.fields.header</code>',
             $titleRowHtml,
         );
     }
@@ -676,14 +921,14 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'title',
         );
 
-        self::assertStringContainsString(
-            '<td>Second Page</td>',
+        $this->assertExampleValueCellContains(
+            'Second Page',
             $titleRowHtml,
             "The example value must be pages' own title (the auto-picked, highest-tstamp page), "
             . "not tt_content's header, even though both map to the 'title' attribute.",
         );
         self::assertStringNotContainsString(
-            '<td>Content On Page</td>',
+            'Content On Page',
             $titleRowHtml,
         );
     }
@@ -743,8 +988,8 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'sharedExampleValueField',
         );
 
-        self::assertStringContainsString(
-            '<td>Real Value From tt_content</td>',
+        $this->assertExampleValueCellContains(
+            'Real Value From tt_content',
             $rowHtml,
             "pages' own empty contribution must not permanently suppress tt_content's real value "
             . 'for the same attribute name.',
@@ -796,8 +1041,8 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'htmlSignificantField',
         );
 
-        self::assertStringContainsString(
-            '<td>&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;quoted&quot;</td>',
+        $this->assertExampleValueCellContains(
+            '&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;quoted&quot;',
             $rowHtml,
             "The example value must be HTML-entity-encoded by Fluid's default auto-escaping, "
             . 'not rendered as raw markup.',
@@ -828,8 +1073,8 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'categories',
         );
 
-        self::assertStringContainsString(
-            '<td>Category A, Category B</td>',
+        $this->assertExampleValueCellContains(
+            'Category A, Category B',
             $categoriesRowHtml,
         );
     }
@@ -880,8 +1125,8 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'nonScalarArrayField',
         );
 
-        self::assertStringContainsString(
-            '<td>a, , b</td>',
+        $this->assertExampleValueCellContains(
+            'a, , b',
             $rowHtml,
             'The non-scalar (nested array) item must be rendered as an empty string in its own position, '
             . 'surrounded by the correctly-rendered scalar items.',
@@ -934,8 +1179,8 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'objectField',
         );
 
-        self::assertStringContainsString(
-            '<td></td>',
+        $this->assertExampleValueCellContains(
+            '',
             $rowHtml,
             'A non-array, non-scalar field value must be rendered as an empty string.',
         );
@@ -993,8 +1238,8 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'phantomAttribute',
         );
 
-        self::assertStringContainsString(
-            '<td></td>',
+        $this->assertExampleValueCellContains(
+            '',
             $rowHtml,
             "An attribute name absent from the document's own fields must render as an empty string.",
         );
@@ -1024,11 +1269,11 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'description',
         );
 
-        self::assertStringContainsString(
-            '<td>' . str_repeat(
+        $this->assertExampleValueCellContains(
+            str_repeat(
                 'A',
                 150,
-            ) . '</td>',
+            ),
             $descriptionRowHtml,
             'An exactly-150-character value must be shown in full, not truncated.',
         );
@@ -1060,11 +1305,11 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'description',
         );
 
-        self::assertStringContainsString(
-            '<td>' . str_repeat(
+        $this->assertExampleValueCellContains(
+            str_repeat(
                 'A',
                 150,
-            ) . '…</td>',
+            ) . '…',
             $descriptionRowHtml,
             'A 151-character value must be truncated to exactly 150 characters plus an ellipsis marker.',
         );
@@ -1109,11 +1354,11 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'description',
         );
 
-        self::assertStringContainsString(
-            '<td>' . str_repeat(
+        $this->assertExampleValueCellContains(
+            str_repeat(
                 'A',
                 149,
-            ) . 'é</td>',
+            ) . 'é',
             $descriptionRowHtml,
             'A value of exactly 150 real characters (149 ASCII + 1 multi-byte) must be shown in full, not truncated.',
         );
@@ -1166,11 +1411,11 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'description',
         );
 
-        self::assertStringContainsString(
-            '<td>é' . str_repeat(
+        $this->assertExampleValueCellContains(
+            'é' . str_repeat(
                 'A',
                 149,
-            ) . '…</td>',
+            ) . '…',
             $descriptionRowHtml,
             "A 151-real-character value ('é' + 150 ASCII) must be truncated to exactly the first 150 real "
             . "characters ('é' + 149 'A's, dropping only the last 'A') plus an ellipsis marker.",
@@ -1493,12 +1738,12 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'title',
         );
 
-        self::assertStringContainsString(
-            '<td>Second Page</td>',
+        $this->assertExampleValueCellContains(
+            'Second Page',
             $titleRowHtml,
         );
         self::assertStringNotContainsString(
-            '<td>First Page</td>',
+            'First Page',
             $titleRowHtml,
         );
     }
@@ -1552,14 +1797,14 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
             'title',
         );
 
-        self::assertStringContainsString(
-            '<td>News with the highest uid, lowest tstamp</td>',
+        $this->assertExampleValueCellContains(
+            'News with the highest uid, lowest tstamp',
             $titleRowHtml,
             'With ctrl.tstamp removed, the fallback field is uid, so the highest-uid record (3, the '
             . 'lowest-tstamp of the three) must be auto-picked, not uid=1 (the highest-tstamp record).',
         );
         self::assertStringNotContainsString(
-            '<td>News with the highest tstamp</td>',
+            'News with the highest tstamp',
             $titleRowHtml,
         );
     }

@@ -309,8 +309,14 @@
             <trans-unit id="attribute_overview.table.header.attribute">
                 <source>Attribute</source>
             </trans-unit>
+            <trans-unit id="attribute_overview.table.header.origin">
+                <source>Origin</source>
+            </trans-unit>
             <trans-unit id="attribute_overview.table.header.occurs_on">
                 <source>Occurs on</source>
+            </trans-unit>
+            <trans-unit id="attribute_overview.table.header.path">
+                <source>Path</source>
             </trans-unit>
             <trans-unit id="attribute_overview.table.header.example_value">
                 <source>Example value</source>

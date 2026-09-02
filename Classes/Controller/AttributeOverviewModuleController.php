@@ -30,6 +30,7 @@ use function array_keys;
 use function implode;
 use function is_array;
 use function is_scalar;
+use function ksort;
 use function mb_strlen;
 use function mb_substr;
 
@@ -212,6 +213,12 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
                 $result['fields'],
             );
         }
+
+        // Sorted alphabetically by attribute name so a reader can scan for a
+        // specific attribute, rather than in table-processing/field-assembly
+        // insertion order, which carries no meaning to someone reading this
+        // diagnostic overview.
+        ksort($attributeRows);
 
         $this->moduleTemplate->assignMultiple([
             'recordTypes'   => $recordTypes,

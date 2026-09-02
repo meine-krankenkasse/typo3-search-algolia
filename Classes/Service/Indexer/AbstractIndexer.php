@@ -359,8 +359,9 @@ abstract class AbstractIndexer implements IndexerInterface
      * @param int $limit Maximum number of UIDs to return (applied as an SQL LIMIT
      *                   where supported), 0 for unbounded, i.e. the full in-scope
      *                   set enqueueAll() would queue. Pass a positive limit when
-     *                   only a bounded preview is needed (e.g. to populate a UI
-     *                   selector) instead of materializing the full set.
+     *                   only a bounded preview is needed (e.g. the Attribute
+     *                   Overview module's per-table representative record)
+     *                   instead of materializing the full set.
      *
      * @return int[] The in-scope record UIDs
      *
