@@ -493,6 +493,45 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     }
 
     /**
+     * Complementary smoke test to
+     * attributeOverviewForwardsToTheErrorActionWhenTheDatabaseIsNotAvailable()
+     * above: that test only proves indexAction() forwards to the 'error'
+     * action, it never actually resolves or renders Error.html, since
+     * ForwardResponse is only interpreted by the full Extbase dispatch
+     * loop, which the direct test-subject call pattern used throughout
+     * this file deliberately bypasses (see
+     * AttributeOverviewModuleControllerTestSubject's own docblock).
+     * Mirrors
+     * AbstractBaseModuleControllerTest::errorActionRendersTheConcreteControllersOwnErrorTemplate()'s
+     * approach: drives errorAction() directly and asserts a real 200
+     * response, proving the shipped AttributeOverviewModule/Error.html
+     * template actually resolves and renders without a Fluid error, not
+     * just that some ForwardResponse object was returned.
+     *
+     * Revert-confirms-red verified: pointing Error.html's <f:layout> at a
+     * non-existent layout name makes this assertion fail with a real
+     * Fluid template-resolution error instead of a 200 response.
+     */
+    #[Test]
+    public function attributeOverviewErrorTemplateRendersSuccessfully(): void
+    {
+        $request = $this->createModuleRequest(['id' => 0]);
+
+        $subject = $this->createSubject();
+        $subject->setRequestForTest($request);
+        $subject->setModuleTemplateForTest(
+            $this->get(ModuleTemplateFactory::class)->create($request),
+        );
+
+        $response = $subject->callErrorAction();
+
+        self::assertSame(
+            200,
+            $response->getStatusCode(),
+        );
+    }
+
+    /**
      * Verifies the core aggregation mechanism: 'site' is set by both
      * UpdateAssembledPageDocumentEventListener and
      * UpdateAssembledContentElementDocumentEventListener (Classes/EventListener/),
