@@ -45,6 +45,7 @@ use TYPO3\CMS\Core\TypoScript\Tokenizer\TokenizerInterface;
 use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
+use function count;
 use function implode;
 
 /**
