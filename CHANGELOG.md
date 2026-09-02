@@ -1,9 +1,12 @@
-# 3.1.0
+# 4.0.0
+
+## BREAKING
+
+- WEB-1351: Add IndexerInterface::findRecordUidsInScope() as a new @api interface method - any third-party class implementing IndexerInterface directly (not extending AbstractIndexer) must add this method
 
 ## MISC
 
 - WEB-1351: Add an "Attribute Overview" backend module showing one flat table, sorted alphabetically by attribute name, of every attribute sent to Algolia, aggregated across every configured record type's automatically picked, representative record, together with each occurrence's origin, table, and TypoScript path in their own columns
-- WEB-1351: Add IndexerInterface::findRecordUidsInScope() as a new @api interface method
 
 ## Contributors
 
