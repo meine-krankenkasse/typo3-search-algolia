@@ -302,6 +302,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             // this admin-only module.
             $scopedRecordUids = $indexer
                 ->withIndexingService($indexingService)
+                ->withExcludeHiddenPages(true)
                 ->findRecordUidsInScope(self::SCOPE_RECORD_LIMIT);
 
             foreach ($scopedRecordUids as $recordUid) {

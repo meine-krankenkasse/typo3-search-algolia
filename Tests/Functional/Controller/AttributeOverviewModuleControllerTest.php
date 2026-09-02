@@ -2151,6 +2151,59 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     }
 
     /**
+     * Verifies buildTableAttributes()'s scope query excludes hidden pages,
+     * matching what the real indexing pipeline actually queues: the only
+     * real production trigger for enqueueAll() (QueueModuleController::
+     * queueAction()) always chains withExcludeHiddenPages(true) before it.
+     * Without the same call here, this diagnostic module could report a
+     * table as STATUS_OK and show an example value sourced from a record
+     * that would never actually be indexed, directly undermining its
+     * stated purpose (see IndexerInterface::findRecordUidsInScope()'s own
+     * "the same set enqueueAll() would queue" docblock claim).
+     *
+     * The tt_content row itself is not hidden, only its parent page is -
+     * this isolates the guard to page-tree-hidden exclusion specifically,
+     * not a hidden-record check on tt_content's own 'hidden' column (a
+     * different, already-covered mechanism via the indexing service's own
+     * enabled-fields handling).
+     *
+     * Revert-confirms-red verified: removing buildTableAttributes()'s
+     * withExcludeHiddenPages(true) call makes this assertion fail (the
+     * hidden page's content becomes STATUS_OK instead of
+     * STATUS_NO_RECORD_IN_SCOPE).
+     */
+    #[Test]
+    public function buildTableAttributesExcludesRecordsOnlyReachableThroughAHiddenPage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages_with_hidden_subpage.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content_on_hidden_page.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $subject = $this->createDrivenSubject(['id' => 0]);
+
+        $body = $this->callIndexActionAndAssertOk($subject);
+
+        $statusLineHtml = $this->extractStatusLineHtml(
+            $body,
+            'tt_content',
+        );
+
+        self::assertStringContainsString(
+            'No record of this type is currently in scope.',
+            $statusLineHtml,
+            'A tt_content record whose only page is hidden must be excluded from scope, matching what '
+            . 'the real indexing pipeline would actually queue.',
+        );
+
+        $attributeTableHtml = $this->extractAttributeTableHtml($body);
+
+        self::assertStringNotContainsString(
+            'Content On Hidden Page',
+            $attributeTableHtml,
+        );
+    }
+
+    /**
      * Guards the opposite direction of the module's "table status" section:
      * <f:if condition="{tableStatuses}"> in Index.html must suppress the
      * "Record types without preview data" heading and list entirely once
