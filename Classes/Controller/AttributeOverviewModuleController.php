@@ -16,6 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
+use MeineKrankenkasse\Typo3SearchAlgolia\Model\TableAttributesResult;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginResolverInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -200,8 +201,8 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
                 continue;
             }
 
-            if ($result['status'] !== self::STATUS_OK) {
-                $tableStatuses[$table] = $this->tableStatus($result['status']);
+            if ($result->status !== self::STATUS_OK) {
+                $tableStatuses[$table] = $this->tableStatus($result->status);
 
                 continue;
             }
@@ -209,8 +210,8 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             $attributeRows = $this->mergeTableAttributes(
                 $attributeRows,
                 $table,
-                $result['originDetails'],
-                $result['fields'],
+                $result->originDetails,
+                $result->fields,
             );
         }
 
@@ -265,9 +266,9 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      *
      * @param string $table The database table name
      *
-     * @return array{status: string, originDetails: array<string, array{origin: string, detail: string|null}>, fields: array<string, mixed>}
+     * @return TableAttributesResult
      */
-    private function buildTableAttributes(string $table): array
+    private function buildTableAttributes(string $table): TableAttributesResult
     {
         $indexingServices = $this->indexingServiceRepository
             ->findAllByTableName($table)
@@ -359,15 +360,15 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             ->assemble()
             ->getDocument();
 
-        return [
-            'status'        => self::STATUS_OK,
-            'originDetails' => $this->attributeOriginResolver->resolve($document)->getOriginDetails(),
-            'fields'        => $document->getFields(),
-        ];
+        return new TableAttributesResult(
+            self::STATUS_OK,
+            $this->attributeOriginResolver->resolve($document)->getOriginDetails(),
+            $document->getFields(),
+        );
     }
 
     /**
-     * Builds the empty result array shared by every "nothing to preview"
+     * Builds the empty result shared by every "nothing to preview"
      * outcome buildTableAttributes() can return: no indexing service
      * configured at all, or the resolved indexer implementation is
      * unavailable (both map to STATUS_NO_INDEXING_SERVICE), and an indexing
@@ -377,15 +378,15 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      *
      * @param string $status One of the STATUS_* constants except STATUS_OK
      *
-     * @return array{status: string, originDetails: array<string, array{origin: string, detail: string|null}>, fields: array<string, mixed>}
+     * @return TableAttributesResult
      */
-    private function emptyTableAttributes(string $status): array
+    private function emptyTableAttributes(string $status): TableAttributesResult
     {
-        return [
-            'status'        => $status,
-            'originDetails' => [],
-            'fields'        => [],
-        ];
+        return new TableAttributesResult(
+            $status,
+            [],
+            [],
+        );
     }
 
     /**
