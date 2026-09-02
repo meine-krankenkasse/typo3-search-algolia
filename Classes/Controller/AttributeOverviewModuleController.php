@@ -16,11 +16,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginMap;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginResolverInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\SchemaGapDetector;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptServiceInterface;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
@@ -28,26 +25,45 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 
 use function array_column;
+use function array_key_exists;
 use function array_keys;
-use function array_values;
-use function in_array;
+use function implode;
 use function is_array;
+use function is_scalar;
+use function mb_strlen;
+use function mb_substr;
 
 /**
- * Backend module showing, per record type, every attribute sent to Algolia
- * for a representative record and its origin, plus cross-type schema gaps.
+ * Backend module showing one flat table, one row per attribute name sent to
+ * Algolia, aggregated across every configured record type's automatically
+ * picked, most-recently-changed record.
+ *
+ * Attribute presence is shown positively: a row's "occurrences" simply lists
+ * every table that actually carries the attribute right now, on its own
+ * automatically picked record. A table NOT appearing among a row's
+ * occurrences already communicates "this table currently doesn't carry this
+ * attribute", there is no separate negatively-framed "missing on" list. An
+ * earlier design compared attribute-name sets across every table
+ * symmetrically (SchemaGapDetector) and flagged every structural difference
+ * as a "gap", which produced permanent, unfixable noise for record types
+ * that are legitimately different by design (e.g. only file records ever
+ * carry 'extension'/'mimeType'), so that comparison was dropped entirely in
+ * favour of this table's positive framing.
  *
  * This module itself never enqueues records, indexes anything, or writes to
- * the search engine or the database, it only reads. However, buildSection()
+ * the search engine or the database, it only reads. However, buildTableAttributes()
  * does run DocumentBuilder::assemble() as a dry run against a single
  * representative record per table, and assemble() dispatches the real
- * AfterDocumentAssembledEvent, the same event real indexing uses. Nothing
- * in that event's contract requires listeners to be side-effect-free, so a
+ * AfterDocumentAssembledEvent, the same event real indexing uses. Nothing in
+ * that event's contract requires listeners to be side-effect-free, so a
  * third-party listener with a real side effect (an external API call, an
  * audit-log write, a cache invalidation) will also fire for real just from
  * an admin opening this diagnostic page. This is a known, accepted
  * characteristic of the preview mechanism, not a defect, it must simply not
- * be mistaken for "never triggers real indexing" in the literal sense.
+ * be mistaken for "never triggers real indexing" in the literal sense. It is
+ * bounded to at most one dry-run assembly per table per page load, there is
+ * no manual per-record selection any more, so this dispatch can no longer be
+ * triggered repeatedly per user click as in an earlier design.
  *
  * The record-type list is not hardcoded, it is derived live from
  * IndexerRegistry (see getRecordTypes()), the same registry the built-in
@@ -61,14 +77,66 @@ use function is_array;
 class AttributeOverviewModuleController extends AbstractBaseModuleController
 {
     /**
-     * Maximum number of in-scope record UIDs buildSection() will
-     * materialize per configured indexing service, to populate the record
-     * selector dropdown and to bound mostRecentlyChanged()'s IN (...)
-     * clause. This module is a diagnostic preview, not the real indexing
-     * pipeline (see IndexerInterface::enqueueAll()), so it never needs the
-     * full in-scope set, a low three-digit cap is more than enough to offer
-     * a useful selection of candidate records without materializing the
-     * same volume a real enqueueAll() run would on every page load.
+     * The table-status outcome for a table that built a representative
+     * document successfully.
+     */
+    private const string STATUS_OK = 'ok';
+
+    /**
+     * No indexing service is configured for this table at all.
+     */
+    private const string STATUS_NO_INDEXING_SERVICE = 'no_indexing_service';
+
+    /**
+     * An indexing service is configured for this table, but it currently
+     * matches zero in-scope records.
+     */
+    private const string STATUS_NO_RECORD_IN_SCOPE = 'no_record_in_scope';
+
+    /**
+     * Building this table's preview document threw.
+     */
+    private const string STATUS_ERROR = 'error';
+
+    /**
+     * An example value longer than this many characters is truncated with a
+     * trailing ellipsis marker, so one outsized value (e.g. the 'content'
+     * field's full aggregated page text) cannot dominate the table.
+     */
+    private const int EXAMPLE_VALUE_MAX_LENGTH = 150;
+
+    /**
+     * Maximum number of in-scope record UIDs buildTableAttributes() will
+     * materialize per configured indexing service, to bound
+     * mostRecentlyChanged()'s IN (...) clause. This module is a diagnostic
+     * preview, not the real indexing pipeline (see IndexerInterface::enqueueAll()),
+     * so it never needs the full in-scope set, a low three-digit cap is more
+     * than enough to reliably find the most recently changed candidate.
+     *
+     * This caps the SQL-level result for every indexer whose
+     * findRecordUidsInScope() pushes the limit down to the database (see
+     * AbstractIndexer::fetchRecords()'s ORDER BY ... LIMIT), which is every
+     * indexer except FileIndexer: FAL's File/FileCollection API exposes no
+     * such SQL-level ordering/capping primitive, so FileIndexer::
+     * initQueueItemRecords() must materialize every eligible file across
+     * every configured file collection before this limit is applied
+     * in-memory (see that method's own docblock). For the file table this
+     * constant therefore bounds the returned set, not the scanned one, and
+     * buildTableAttributes() pays that full scan once per configured
+     * file-type indexing service, not once per page load.
+     *
+     * The SQL-backed indexers (pages, tt_content, and tx_news_domain_model_news
+     * when EXT:news is loaded) push the ORDER BY ... LIMIT to the database.
+     * For pages/tt_content specifically, TYPO3 core's own schema carries no
+     * index on ctrl.tstamp, so the database still has to filesort the full
+     * WHERE-matched (pre-LIMIT) set server-side, on a large recursive
+     * page-tree scope, before this constant discards the rest. Adding a
+     * supporting index is not this extension's call to make, pages/
+     * tt_content are TYPO3 core tables, not owned by this extension's
+     * schema. EXT:news's own schema is a third-party dependency not
+     * verified here. Accepted the same way as the FileIndexer trade-off
+     * above, this diagnostic module is admin-only and opened rarely, not
+     * the real indexing pipeline.
      */
     private const int SCOPE_RECORD_LIMIT = 200;
 
@@ -76,12 +144,10 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      * @param ModuleTemplateFactory            $moduleTemplateFactory     Factory for creating module template instances
      * @param IconFactory                      $iconFactory               Factory for creating icon instances
      * @param IndexingServiceRepository        $indexingServiceRepository Repository for accessing indexing service configurations
-     * @param ConnectionPool                   $connectionPool            The database connection pool, used to fetch the candidate/selected record
+     * @param ConnectionPool                   $connectionPool            The database connection pool, used to fetch the representative record
      * @param IndexerFactory                   $indexerFactory            Factory resolving a record type to its registered indexer instance
      * @param DocumentBuilder                  $documentBuilder           Builder used to run the real, write-free document assembly for the preview
      * @param AttributeOriginResolverInterface $attributeOriginResolver   Classifies each assembled field by its origin
-     * @param SchemaGapDetector                $schemaGapDetector         Compares attribute-name sets across record types
-     * @param TypoScriptServiceInterface       $typoScriptService         Field-mapping lookup, used for the config-level gap comparison
      */
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
@@ -91,8 +157,6 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         private readonly IndexerFactory $indexerFactory,
         private readonly DocumentBuilder $documentBuilder,
         private readonly AttributeOriginResolverInterface $attributeOriginResolver,
-        private readonly SchemaGapDetector $schemaGapDetector,
-        private readonly TypoScriptServiceInterface $typoScriptService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -101,8 +165,10 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
     }
 
     /**
-     * Displays, per record type, every attribute sent to Algolia for a
-     * representative record and its origin, plus cross-type schema gaps.
+     * Displays one flat table, one row per attribute name, aggregated across
+     * every configured record type's automatically picked, most-recently-
+     * changed record, plus a short status list for every table that
+     * currently has nothing to preview.
      *
      * @return ResponseInterface
      */
@@ -112,69 +178,46 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             return $this->forwardErrorFlashMessage('error.databaseAvailability');
         }
 
-        // The shared record-selector form is submitted via POST (see
-        // Resources/Private/Templates/AttributeOverviewModule/Index.html for
-        // why: a GET <f:form>'s "action" attribute bakes the page ID and the
-        // backend route token into its query string, but per the HTML form
-        // submission algorithm a GET submission discards that query string
-        // entirely in favour of the form's own field values, silently
-        // dropping both and triggering TYPO3's missing-token safety redirect
-        // on every selector change). getParsedBody() is checked first and
-        // getQueryParams() kept as a fallback for a plain GET-driven request
-        // (e.g. a hand-built bookmark/link, or this action invoked directly
-        // in a test), mirroring the same dual lookup
-        // AbstractBaseModuleController::getPageId() already uses for 'id'.
-        $parsedBody        = $this->request->getParsedBody();
-        $selectedRecordUid = is_array($parsedBody) ? ($parsedBody['selectedRecordUid'] ?? null) : null;
-        $selectedRecordUid ??= $this->request->getQueryParams()['selectedRecordUid'] ?? [];
+        $recordTypes   = $this->getRecordTypes();
+        $tableStatuses = [];
+        $attributeRows = [];
 
-        $sections     = [];
-        $originMaps   = [];
-        $fieldTargets = [];
-
-        foreach ($this->getRecordTypes() as $table) {
+        foreach ($recordTypes as $table) {
             // Scoped per table rather than around the whole loop: a failure
-            // building one table's section (e.g. a third-party
+            // building one table's preview (e.g. a third-party
             // AfterDocumentAssembledEvent listener throwing while processing
             // that table) must not prevent every other, successfully built
-            // table's diagnostic data from rendering.
+            // table's attributes from appearing.
             try {
-                $section = $this->buildSection(
-                    $table,
-                    isset($selectedRecordUid[$table]) ? (int) $selectedRecordUid[$table] : null,
-                );
+                $result = $this->buildTableAttributes($table);
             } catch (Throwable $exception) {
-                $section = $this->errorSection($exception->getMessage());
+                $tableStatuses[$table] = $this->tableStatus(
+                    self::STATUS_ERROR,
+                    $exception->getMessage(),
+                );
+
+                continue;
             }
 
-            $sections[$table]     = $section;
-            $fieldTargets[$table] = array_values($this->typoScriptService->getFieldMappingByType($table));
+            if ($result['status'] !== self::STATUS_OK) {
+                $tableStatuses[$table] = $this->tableStatus($result['status']);
 
-            if ($section['originMap'] !== null) {
-                $originMaps[$table] = $section['originMap'];
+                continue;
             }
+
+            $attributeRows = $this->mergeTableAttributes(
+                $attributeRows,
+                $table,
+                $result['originDetails'],
+                $result['fields'],
+            );
         }
 
-        $this->moduleTemplate->assign(
-            'sections',
-            $sections,
-        );
-        $this->moduleTemplate->assign(
-            'runtimeGaps',
-            $this->schemaGapDetector->detectRuntimeGaps($originMaps),
-        );
-        $this->moduleTemplate->assign(
-            'configGaps',
-            $this->schemaGapDetector->detectConfigGaps($fieldTargets),
-        );
-        // Carried into the shared record-selector form as a hidden 'id'
-        // field (see Index.html), so the page context set by the module's
-        // own page-tree navigation survives the form's POST round trip
-        // instead of being silently dropped.
-        $this->moduleTemplate->assign(
-            'pageUid',
-            $this->pageUid,
-        );
+        $this->moduleTemplate->assignMultiple([
+            'recordTypes'   => $recordTypes,
+            'tableStatuses' => $tableStatuses,
+            'attributeRows' => $attributeRows,
+        ]);
 
         return $this->moduleTemplate->renderResponse('AttributeOverviewModule/Index');
     }
@@ -190,10 +233,13 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      * NewsIndexer, registered in ext_localconf.php only when EXT:news is
      * loaded) would otherwise always be attempted regardless of whether the
      * indexer implementation is actually available. In that case
-     * buildSection() would report "no indexing service configured" for a
-     * table that in fact has an indexing service row, it is just that no
-     * indexer is registered for it, a misleading diagnosis. Deriving the
+     * buildTableAttributes() would report "no indexing service configured"
+     * for a table that in fact has an indexing service row, it is just that
+     * no indexer is registered for it, a misleading diagnosis. Deriving the
      * list live avoids ever attempting such a table in the first place.
+     *
+     * Also the order every aggregation in this module treats as "first
+     * table registered", see mergeTableAttributes()'s exampleValue rule.
      *
      * @return string[] The database table names covered by this module
      */
@@ -206,29 +252,28 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
     }
 
     /**
-     * Builds the display section for one record type: resolves the in-scope
-     * record UIDs, picks the automatic or manually-overridden record, runs
-     * the dry-run assembly, and classifies the result.
+     * Builds one table's contribution to the aggregation: resolves the
+     * in-scope record UIDs, picks the automatically most-recently-changed
+     * record, runs the dry-run assembly, and classifies the result.
      *
-     * @param string   $table             The database table name
-     * @param int|null $overrideRecordUid A manually selected record UID, if any
+     * @param string $table The database table name
      *
-     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: AttributeOriginMap|null, noIndexingService: bool, error: string|null}
+     * @return array{status: string, originDetails: array<string, array{origin: string, detail: string|null}>, fields: array<string, mixed>}
      */
-    private function buildSection(string $table, ?int $overrideRecordUid): array
+    private function buildTableAttributes(string $table): array
     {
         $indexingServices = $this->indexingServiceRepository
             ->findAllByTableName($table)
             ->toArray();
 
         if ($indexingServices === []) {
-            return $this->emptySection(true);
+            return $this->emptyTableAttributes(self::STATUS_NO_INDEXING_SERVICE);
         }
 
         $indexer = $this->indexerFactory->makeInstanceByType($table);
 
         if (!($indexer instanceof IndexerInterface)) {
-            return $this->emptySection(true);
+            return $this->emptyTableAttributes(self::STATUS_NO_INDEXING_SERVICE);
         }
 
         // Record UID to the specific IndexingService it was actually found
@@ -241,12 +286,12 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         $indexingServiceByRecordUid = [];
 
         foreach ($indexingServices as $indexingService) {
-            // Capped at SCOPE_RECORD_LIMIT: this is a diagnostic preview
-            // populating a UI selector, not the real indexing pipeline
-            // (IndexerInterface::enqueueAll() is unaffected, it never passes
-            // a limit), so it never needs to materialize the full in-scope
-            // set, which on a large table would be an unbounded, uncached DB
-            // scan on every page load of this admin-only module.
+            // Capped at SCOPE_RECORD_LIMIT: this is a diagnostic preview, not
+            // the real indexing pipeline (IndexerInterface::enqueueAll() is
+            // unaffected, it never passes a limit), so it never needs to
+            // materialize the full in-scope set, which on a large table
+            // would be an unbounded, uncached DB scan on every page load of
+            // this admin-only module.
             $scopedRecordUids = $indexer
                 ->withIndexingService($indexingService)
                 ->findRecordUidsInScope(self::SCOPE_RECORD_LIMIT);
@@ -259,14 +304,14 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         }
 
         if ($indexingServiceByRecordUid === []) {
-            return $this->emptySection(false);
+            return $this->emptyTableAttributes(self::STATUS_NO_RECORD_IN_SCOPE);
         }
 
-        $recordUids = array_keys($indexingServiceByRecordUid);
-
-        $selectedRecordUid = (($overrideRecordUid !== null) && in_array($overrideRecordUid, $recordUids, true))
-            ? $overrideRecordUid
-            : $this->mostRecentlyChanged($table, $recordUids);
+        $recordUids          = array_keys($indexingServiceByRecordUid);
+        $mostRecentRecordUid = $this->mostRecentlyChanged(
+            $table,
+            $recordUids,
+        );
 
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
 
@@ -276,75 +321,179 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             ->where(
                 $queryBuilder->expr()->eq(
                     'uid',
-                    $selectedRecordUid,
+                    $mostRecentRecordUid,
                 ),
             )
             ->executeQuery()
             ->fetchAssociative();
 
+        // The record picked by mostRecentlyChanged() a moment ago can still
+        // have vanished by the time this select runs (deleted concurrently,
+        // or a custom findRecordUidsInScope() implementation returning a
+        // stale UID). DocumentBuilder::assemble() reads $record['uid']
+        // unconditionally, so passing an empty array through would surface
+        // as a PHP warning instead of the same "nothing to preview" outcome
+        // an empty scope already produces.
+        if ($record === false) {
+            return $this->emptyTableAttributes(self::STATUS_NO_RECORD_IN_SCOPE);
+        }
+
         // The same indexer instance is re-scoped to the indexing service the
-        // selected record was actually found under (tracked above), before
+        // picked record was actually found under (tracked above), before
         // being handed to the builder, withIndexingService() is immutable,
         // the returned clone is what DocumentBuilder needs, not the
         // original, unscoped $indexer.
-        $selectedIndexingService = $indexingServiceByRecordUid[$selectedRecordUid];
+        $selectedIndexingService = $indexingServiceByRecordUid[$mostRecentRecordUid];
 
         $document = $this->documentBuilder
             ->setIndexer($indexer->withIndexingService($selectedIndexingService))
-            ->setRecord($record !== false ? $record : [])
+            ->setRecord($record)
             ->setIndexingService($selectedIndexingService)
             ->assemble()
             ->getDocument();
 
         return [
-            'recordUids'        => $recordUids,
-            'selectedRecordUid' => $selectedRecordUid,
-            'originMap'         => $this->attributeOriginResolver->resolve($document),
-            'noIndexingService' => false,
-            'error'             => null,
+            'status'        => self::STATUS_OK,
+            'originDetails' => $this->attributeOriginResolver->resolve($document)->getOriginDetails(),
+            'fields'        => $document->getFields(),
         ];
     }
 
     /**
-     * Builds the empty-section array shared by every "nothing to show" path
-     * in buildSection(): no indexing service configured at all, the
-     * resolved indexer implementation is unavailable, or an indexing
-     * service is configured but currently matches zero records.
+     * Builds the empty result array shared by every "nothing to preview"
+     * outcome buildTableAttributes() can return: no indexing service
+     * configured at all, or the resolved indexer implementation is
+     * unavailable (both map to STATUS_NO_INDEXING_SERVICE), and an indexing
+     * service is configured but currently matches zero records, or the
+     * one record picked from that scope no longer exists by the time it
+     * is fetched (both map to STATUS_NO_RECORD_IN_SCOPE).
      *
-     * @param bool $noIndexingService Whether no indexing service is configured for this table at all
+     * @param string $status One of the STATUS_* constants except STATUS_OK
      *
-     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: AttributeOriginMap|null, noIndexingService: bool, error: string|null}
+     * @return array{status: string, originDetails: array<string, array{origin: string, detail: string|null}>, fields: array<string, mixed>}
      */
-    private function emptySection(bool $noIndexingService): array
+    private function emptyTableAttributes(string $status): array
     {
         return [
-            'recordUids'        => [],
-            'selectedRecordUid' => null,
-            'originMap'         => null,
-            'noIndexingService' => $noIndexingService,
-            'error'             => null,
+            'status'        => $status,
+            'originDetails' => [],
+            'fields'        => [],
         ];
     }
 
     /**
-     * Builds the section array for a table whose buildSection() call threw,
-     * so the failure can be shown inline within that table's own section
-     * instead of aborting the whole module (see indexAction()'s per-table
-     * try/catch).
+     * Builds one entry of the table-status list rendered for every table
+     * that has nothing to preview.
      *
-     * @param string $errorMessage The caught exception's message
+     * @param string      $type    One of the STATUS_* constants except STATUS_OK
+     * @param string|null $message The caught exception's message, only set for STATUS_ERROR
      *
-     * @return array{recordUids: int[], selectedRecordUid: int|null, originMap: AttributeOriginMap|null, noIndexingService: bool, error: string|null}
+     * @return array{type: string, message: string|null}
      */
-    private function errorSection(string $errorMessage): array
+    private function tableStatus(string $type, ?string $message = null): array
     {
         return [
-            'recordUids'        => [],
-            'selectedRecordUid' => null,
-            'originMap'         => null,
-            'noIndexingService' => false,
-            'error'             => $errorMessage,
+            'type'    => $type,
+            'message' => $message,
         ];
+    }
+
+    /**
+     * Merges one table's classified attributes into the running, flat,
+     * cross-table aggregation, keyed by attribute name.
+     *
+     * The exampleValue is taken from the FIRST table (in getRecordTypes()'s
+     * own registration order, since indexAction() processes tables in that
+     * order and calls this method at most once per table) whose
+     * contribution to a given attribute name yields a non-empty value, an
+     * already populated exampleValue for a name is never overwritten by a
+     * later table's value for the same name. A table whose own value is
+     * empty (e.g. formatExampleValue() falling back to '') does not count
+     * as "populated", so a later table's genuinely non-empty value for the
+     * same name is never permanently suppressed by an earlier table's blank
+     * one - see this extension's own Configuration/TypoScript/setup.
+     * typoscript, where both pages.subtitle and tt_content.subheader map to
+     * the same 'subTitle' target attribute.
+     *
+     * @param array<string, array{occurrences: array<string, array{origin: string, detail: string|null}>, exampleValue: string}> $attributeRows The aggregation built so far
+     * @param string                                                                                                             $table         The database table name this contribution came from
+     * @param array<string, array{origin: string, detail: string|null}>                                                          $originDetails One table's attribute name to {origin, detail} pairs, see AttributeOriginMap::getOriginDetails()
+     * @param array<string, mixed>                                                                                               $fields        The same table's assembled document fields, see Document::getFields()
+     *
+     * @return array<string, array{occurrences: array<string, array{origin: string, detail: string|null}>, exampleValue: string}> The aggregation with this table's contribution merged in
+     */
+    private function mergeTableAttributes(array $attributeRows, string $table, array $originDetails, array $fields): array
+    {
+        foreach ($originDetails as $attributeName => $originDetail) {
+            $attributeRows[$attributeName]['occurrences'][$table] = $originDetail;
+
+            $existingExampleValue = $attributeRows[$attributeName]['exampleValue'] ?? '';
+
+            $attributeRows[$attributeName]['exampleValue'] = $existingExampleValue !== ''
+                ? $existingExampleValue
+                : $this->formatExampleValue(
+                    $fields,
+                    $attributeName,
+                );
+        }
+
+        return $attributeRows;
+    }
+
+    /**
+     * Formats one document field's raw value for safe, readable display in
+     * the attribute overview table: an array (e.g. the 'categories' field, a
+     * string[]) is comma-joined, any other scalar is cast to a string, and
+     * the result is truncated with a trailing ellipsis marker if it exceeds
+     * EXAMPLE_VALUE_MAX_LENGTH characters, so one outsized value (e.g. the
+     * 'content' field's full aggregated page text) cannot dominate the
+     * table. Fluid's default auto-escaping already handles HTML-safety on
+     * output, this method does not pre-escape.
+     *
+     * @param array<string, mixed> $fields        The assembled document's fields, see Document::getFields()
+     * @param string               $attributeName The field name to format
+     *
+     * @return string The formatted, display-ready example value
+     */
+    private function formatExampleValue(array $fields, string $attributeName): string
+    {
+        // Guards against an AttributeOriginResolverInterface implementation
+        // (a documented public-API extension point, see that interface's own
+        // docblock) classifying an attribute name not present in this same
+        // document's own fields - nothing in the interface's contract rules
+        // that out, only the one shipped resolver's own behaviour does.
+        if (!array_key_exists($attributeName, $fields)) {
+            return '';
+        }
+
+        $value = $fields[$attributeName];
+
+        if (is_array($value)) {
+            $parts = [];
+
+            foreach ($value as $item) {
+                $parts[] = is_scalar($item) ? (string) $item : '';
+            }
+
+            $stringValue = implode(
+                ', ',
+                $parts,
+            );
+        } elseif (is_scalar($value)) {
+            $stringValue = (string) $value;
+        } else {
+            $stringValue = '';
+        }
+
+        if (mb_strlen($stringValue) > self::EXAMPLE_VALUE_MAX_LENGTH) {
+            return mb_substr(
+                $stringValue,
+                0,
+                self::EXAMPLE_VALUE_MAX_LENGTH,
+            ) . '…';
+        }
+
+        return $stringValue;
     }
 
     /**
@@ -360,7 +509,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
         // Defensive fallback: every currently-registered indexer's table
         // defines ctrl.tstamp, so a table without one only occurs with a
         // future indexer. Covered by
-        // AttributeOverviewModuleControllerTest::indexActionAutoPicksByUidDescendingWhenTheTablesTcaHasNoTstampField(),
+        // AttributeOverviewModuleControllerTest::attributeOverviewAutoPicksByUidDescendingWhenTheTablesTcaHasNoTstampField(),
         // which removes ctrl.tstamp from a real table's TCA at runtime and
         // asserts the auto-pick falls back to ordering by 'uid'.
         $tstampField = $GLOBALS['TCA'][$table]['ctrl']['tstamp'] ?? 'uid';

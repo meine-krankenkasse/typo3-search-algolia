@@ -115,9 +115,103 @@ final class PredictAndDiffAttributeOriginResolverTest extends TestCase
     }
 
     /**
+     * Verifies a TypoScript-origin attribute's detail names the exact
+     * TypoScript path it was mapped through, source field included, not
+     * just the generic "typoscript" classification alone.
+     */
+    #[Test]
+    public function resolveSetsTheExactTypoScriptPathAsTheDetailForATypoScriptOriginAttribute(): void
+    {
+        $indexer = $this->createIndexerStub('tt_content');
+
+        $document = new Document($indexer, []);
+        $document->setField('title', 'Camino Francés');
+
+        $typoScriptService = $this->createTypoScriptServiceStub([
+            'header' => 'title',
+        ]);
+
+        $subject = new PredictAndDiffAttributeOriginResolver($typoScriptService);
+        $result  = $subject->resolve($document);
+
+        self::assertSame(
+            'module.tx_typo3searchalgolia.indexer.tt_content.fields.header',
+            $result->getOriginDetails()['title']['detail'],
+        );
+    }
+
+    /**
+     * Pins buildTypoScriptPath()'s documented, accepted limitation for the
+     * degenerate case where TWO source fields on the same table map to the
+     * SAME target attribute name (not reachable via this extension's own
+     * shipped Configuration/TypoScript/setup.typoscript, where every
+     * table's mapping is one-to-one, but TypoScript field mapping is
+     * site-configurable): the detail names the FIRST such source field in
+     * $fieldMapping's own declaration order ('header' here, declared before
+     * 'alt_header'), regardless of which source field the actually-rendered
+     * value came from (DocumentBuilder::addConfiguredFieldsToDocument()
+     * iterates the DB record in column order and overwrites, so the ACTUAL
+     * value can come from either field depending on column order, which
+     * this unit test - operating on an already-assembled Document - cannot
+     * influence). See that method's own docblock for the full rationale.
+     */
+    #[Test]
+    public function resolveNamesTheFirstDeclaredSourceFieldWhenTwoSourceFieldsMapToTheSameTarget(): void
+    {
+        $indexer = $this->createIndexerStub('tt_content');
+
+        $document = new Document($indexer, []);
+        $document->setField('title', 'Camino Francés');
+
+        $typoScriptService = $this->createTypoScriptServiceStub([
+            'header'     => 'title',
+            'alt_header' => 'title',
+        ]);
+
+        $subject = new PredictAndDiffAttributeOriginResolver($typoScriptService);
+        $result  = $subject->resolve($document);
+
+        self::assertSame(
+            'module.tx_typo3searchalgolia.indexer.tt_content.fields.header',
+            $result->getOriginDetails()['title']['detail'],
+        );
+    }
+
+    /**
+     * Verifies a Default-origin attribute carries no detail at all (NULL,
+     * not an empty string), the detail is exclusively a TypoScript-origin
+     * concept. The stub's mapping deliberately targets 'uid' itself (a
+     * degenerate config, also covered by
+     * resolveClassifiesADefaultFieldNameAsDefaultEvenWhenAlsoTypoScriptMapped()
+     * above): classify() still returns Default first (DEFAULT_FIELD_NAMES
+     * is checked before the TypoScript-target check), but resolve()'s own
+     * origin-gate must be what suppresses the detail here, not merely an
+     * empty mapping making buildTypoScriptPath() independently return
+     * NULL on its own, which a non-discriminating version of this test
+     * (an empty stub mapping) would not be able to tell apart.
+     */
+    #[Test]
+    public function resolveSetsNoDetailForADefaultOriginAttribute(): void
+    {
+        $indexer = $this->createIndexerStub('pages');
+
+        $document = new Document($indexer, []);
+        $document->setField('uid', 1);
+
+        $typoScriptService = $this->createTypoScriptServiceStub([
+            'some_ts_source_field' => 'uid',
+        ]);
+
+        $subject = new PredictAndDiffAttributeOriginResolver($typoScriptService);
+        $result  = $subject->resolve($document);
+
+        self::assertNull($result->getOriginDetails()['uid']['detail']);
+    }
+
+    /**
      * Verifies a field present on the real document but not in either the
      * hardcoded default set or the TypoScript mapping is classified as
-     * AttributeOrigin::Listener — the collective, un-attributed bucket.
+     * AttributeOrigin::Listener, the collective, un-attributed bucket.
      */
     #[Test]
     public function resolveClassifiesUnpredictedFieldsAsListener(): void

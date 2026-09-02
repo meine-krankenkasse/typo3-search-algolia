@@ -375,7 +375,10 @@ abstract class AbstractIndexer implements IndexerInterface
 
         return array_map(
             static fn (array $row): int => (int) $row['record_uid'],
-            $this->initQueueItemRecords([], $limit),
+            $this->initQueueItemRecords(
+                [],
+                $limit,
+            ),
         );
     }
 

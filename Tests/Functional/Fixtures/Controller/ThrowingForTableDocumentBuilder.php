@@ -13,9 +13,6 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Control
 
 use Error;
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
-use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
-use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -41,46 +38,23 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * \Exception, and a test using \RuntimeException here would pass
  * identically whether the catch clause were widened or not.
  */
-final class ThrowingForTableDocumentBuilder extends DocumentBuilder
+final class ThrowingForTableDocumentBuilder extends AbstractDelegatingDocumentBuilder
 {
-    private ?IndexerInterface $indexerForTest = null;
-
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
         TypoScriptService $typoScriptService,
-        private readonly DocumentBuilder $realDocumentBuilder,
+        DocumentBuilder $realDocumentBuilder,
         private readonly string $tableToFailFor,
     ) {
-        parent::__construct($eventDispatcher, $typoScriptService);
+        parent::__construct(
+            $eventDispatcher,
+            $typoScriptService,
+            $realDocumentBuilder,
+        );
     }
 
     #[Override]
-    public function setIndexer(?IndexerInterface $indexer): ThrowingForTableDocumentBuilder
-    {
-        $this->indexerForTest = $indexer;
-        $this->realDocumentBuilder->setIndexer($indexer);
-
-        return $this;
-    }
-
-    #[Override]
-    public function setRecord(array $record): ThrowingForTableDocumentBuilder
-    {
-        $this->realDocumentBuilder->setRecord($record);
-
-        return $this;
-    }
-
-    #[Override]
-    public function setIndexingService(IndexingService $indexingService): ThrowingForTableDocumentBuilder
-    {
-        $this->realDocumentBuilder->setIndexingService($indexingService);
-
-        return $this;
-    }
-
-    #[Override]
-    public function assemble(): ThrowingForTableDocumentBuilder
+    public function assemble(): static
     {
         if ($this->indexerForTest?->getTable() === $this->tableToFailFor) {
             throw new Error(
@@ -91,11 +65,5 @@ final class ThrowingForTableDocumentBuilder extends DocumentBuilder
         $this->realDocumentBuilder->assemble();
 
         return $this;
-    }
-
-    #[Override]
-    public function getDocument(): Document
-    {
-        return $this->realDocumentBuilder->getDocument();
     }
 }

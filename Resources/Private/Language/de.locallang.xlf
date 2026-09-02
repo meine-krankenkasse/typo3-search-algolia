@@ -287,6 +287,34 @@
             <trans-unit id="flash_message.success.message.enqueueOne">
                 <target>Die Datei "%s" wurde erfolgreich zur Warteschlange hinzugefügt.</target>
             </trans-unit>
+            <!-- AttributeOverviewModule -->
+            <trans-unit id="attribute_overview">
+                <target>Attribute</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.record_types_checked">
+                <target>Geprüfte Datensatztypen:</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.status.heading">
+                <target>Datensatztypen ohne Vorschaudaten</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.section.error">
+                <target>Aufbau der Vorschau für diesen Datensatztyp fehlgeschlagen: %s</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.section.no_indexing_service">
+                <target>Für diesen Datensatztyp ist kein Indexierungsdienst konfiguriert.</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.section.no_record_in_scope">
+                <target>Für diesen Datensatztyp liegt aktuell kein Datensatz vor.</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.table.header.attribute">
+                <target>Attribut</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.table.header.occurs_on">
+                <target>Kommt vor bei</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.table.header.example_value">
+                <target>Beispielwert</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

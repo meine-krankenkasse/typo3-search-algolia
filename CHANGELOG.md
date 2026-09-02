@@ -1,12 +1,9 @@
-# 4.0.0
-
-## BREAKING
-
-- WEB-1351: Add IndexerInterface::findRecordUidsInScope() as a new @api interface method, breaking for any third-party indexer implementing IndexerInterface directly instead of extending AbstractIndexer
+# 3.1.0
 
 ## MISC
 
-- WEB-1351: Add an "Attribute Overview" backend module showing, per record type, every attribute sent to Algolia for a representative record and its origin, plus cross-type schema gaps
+- WEB-1351: Add an "Attribute Overview" backend module showing one flat table of every attribute sent to Algolia, aggregated across every configured record type's automatically picked, representative record, together with each occurrence's origin
+- WEB-1351: Add IndexerInterface::findRecordUidsInScope() as a new @api interface method
 
 ## Contributors
 

@@ -23,8 +23,8 @@ var/
 .phplint.cache
 .phpunit.result.cache
 
-# Subagent-driven-development scratch workspace (ledgers, briefs, reports)
+# Local scratch workspace (ledgers, briefs, reports), not part of the shipped extension
 .superpowers/
 
-# Subagent-driven-development planning workspace (specs, plans), local-only
+# Local planning workspace (specs, plans), not part of the shipped extension
 docs/superpowers/

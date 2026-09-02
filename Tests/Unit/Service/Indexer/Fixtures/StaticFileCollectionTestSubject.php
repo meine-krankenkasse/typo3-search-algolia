@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Service\Indexer\Fixtures;
 
+use Override;
 use TYPO3\CMS\Core\Resource\Collection\StaticFileCollection;
 
 /**
@@ -24,6 +25,7 @@ use TYPO3\CMS\Core\Resource\Collection\StaticFileCollection;
  */
 final class StaticFileCollectionTestSubject extends StaticFileCollection
 {
+    #[Override]
     public function loadContents(): void
     {
         // Intentionally empty: files are added directly via add() by the test.

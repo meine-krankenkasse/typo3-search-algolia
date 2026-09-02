@@ -75,8 +75,15 @@ return [
         'labels'         => [
             'title' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang_mod_search.xlf:mod_attributes',
         ],
-        'extensionName'     => 'Typo3SearchAlgolia',
-        'controllerActions' => [
+        'extensionName' => 'Typo3SearchAlgolia',
+        // This module spans multiple, unrelated record tables (pages,
+        // tt_content, files, ...) at once, so a single-tree page selector
+        // has no natural target and would otherwise be silently inherited
+        // and ignored (see AttributeOverviewModuleController, which never
+        // reads the page id for record selection).
+        'inheritNavigationComponentFromMainModule' => false,
+        'navigationComponent'                      => '',
+        'controllerActions'                        => [
             AttributeOverviewModuleController::class => [
                 'index',
             ],

@@ -301,7 +301,12 @@ class FileIndexer extends AbstractIndexer
                 },
             );
 
-            $items = array_slice($items, 0, $limit, true);
+            $items = array_slice(
+                $items,
+                0,
+                $limit,
+                true,
+            );
         }
 
         return array_values($items);

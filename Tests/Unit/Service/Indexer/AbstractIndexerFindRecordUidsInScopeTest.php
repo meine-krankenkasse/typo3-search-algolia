@@ -48,13 +48,14 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
     /**
      * This is a thin-wrapper contract test: initQueueItemRecords() (the
      * delegate) is already covered by this repo's existing functional
-     * indexer tests for the real SQL/scoping behavior — this test only
+     * indexer tests for the real SQL/scoping behavior. This test only
      * covers findRecordUidsInScope() itself (record_uid extraction + the
-     * int cast), and does NOT independently prove real DB scoping; that
-     * is additionally exercised end-to-end by Task 6's functional test.
+     * int cast), and does NOT independently prove real DB scoping. That
+     * is additionally exercised end-to-end by AttributeOverviewModuleController's
+     * own functional coverage of the real SCOPE_RECORD_LIMIT wiring.
      * Fixture values are deliberately strings, matching what
      * QueryBuilder::fetchAllAssociative() actually returns for an
-     * unmapped/text-typed select column — this exercises the (int) cast
+     * unmapped/text-typed select column, so this exercises the (int) cast
      * for real, a literal-int fixture would pass even if the cast were
      * accidentally dropped.
      *
@@ -90,7 +91,7 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
     /**
      * Verifies the $limit argument reaches initQueueItemRecords() as given,
      * for a positive limit specifically (the zero/default case is already
-     * covered above) — the case that actually matters for
+     * covered above), the case that actually matters for
      * AttributeOverviewModuleController's SCOPE_RECORD_LIMIT cap.
      */
     #[Test]
@@ -116,8 +117,9 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
 
     /**
      * Verifies findRecordUidsInScope() throws when no indexing service is
-     * set, matching the @throws contract on IndexerInterface and the same
-     * guard every sibling method (enqueueOne(), dequeueOne(), etc.) uses.
+     * set, matching the throws contract documented on IndexerInterface and
+     * the same guard every sibling method (enqueueOne(), dequeueOne(),
+     * etc.) uses.
      */
     #[Test]
     public function findRecordUidsInScopeThrowsWithoutAnIndexingService(): void

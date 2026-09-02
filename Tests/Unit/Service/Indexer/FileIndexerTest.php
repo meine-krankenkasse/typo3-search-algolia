@@ -64,6 +64,7 @@ use function implode;
 #[UsesClass(FileCollectionService::class)]
 #[CoversClass(AbstractIndexer::class)]
 #[UsesClass(TypoScriptService::class)]
+#[UsesClass(StaticFileCollectionTestSubject::class)]
 final class FileIndexerTest extends TestCase
 {
     private FileIndexer $subject;
@@ -505,7 +506,10 @@ final class FileIndexerTest extends TestCase
                     'tx_typo3searchalgolia.' => [
                         'indexer.' => [
                             'sys_file_metadata.' => [
-                                'extensions' => implode(',', $allowedFileExtensions),
+                                'extensions' => implode(
+                                    ',',
+                                    $allowedFileExtensions,
+                                ),
                             ],
                         ],
                     ],
@@ -873,7 +877,10 @@ final class FileIndexerTest extends TestCase
                 return count($records);
             });
 
-        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock, $queueItemRepositoryMock);
+        $indexer = $this->createStubbedSubject(
+            $fileCollectionRepositoryMock,
+            $queueItemRepositoryMock,
+        );
 
         $insertedCount = $indexer
             ->withIndexingService($indexingServiceMock)
@@ -996,7 +1003,10 @@ final class FileIndexerTest extends TestCase
                 return count($records);
             });
 
-        $indexer = $this->createStubbedSubject($fileCollectionRepositoryMock, $queueItemRepositoryMock);
+        $indexer = $this->createStubbedSubject(
+            $fileCollectionRepositoryMock,
+            $queueItemRepositoryMock,
+        );
 
         $indexer
             ->withIndexingService($indexingServiceMock)

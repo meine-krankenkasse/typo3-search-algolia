@@ -1,0 +1,14 @@
+pages,,,,,,,,,
+,uid,pid,title,is_siteroot,doktype,deleted,hidden,no_search,tstamp,crdate
+,1,0,"Root Page",1,1,0,0,0,1000,1000
+,2,1,"Categorized Page",0,1,0,0,0,5000,1000
+
+sys_category,,,,,,
+,uid,pid,title,parent,deleted,hidden
+,1,1,"Category A",0,0,0
+,2,1,"Category B",0,0,0
+
+sys_category_record_mm,,,,
+,uid_local,uid_foreign,tablenames,fieldname
+,1,2,pages,categories
+,2,2,pages,categories

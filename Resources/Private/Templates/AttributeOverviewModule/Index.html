@@ -5,125 +5,67 @@
     <f:layout name="Module" />
 
     <f:section name="Content">
-        <f:be.pageRenderer
-            includeJavaScriptModules="{
-                0: '@meine-krankenkasse/typo3-search-algolia/attribute-overview-module.js',
-            }"
-        />
-
         <div class="col-md-12">
             <h1><f:translate key="module.name" /></h1>
-            <h2><f:translate key="mod_attributes" /></h2>
+            <h2><f:translate key="attribute_overview" /></h2>
 
-            <f:if condition="{runtimeGaps}">
+            <p>
+                <f:translate key="attribute_overview.record_types_checked" />
+                <f:for each="{recordTypes}" as="recordType" iteration="typeIter"><code>{recordType}</code>{f:if(condition: typeIter.isLast, else: ', ')}</f:for>
+            </p>
+
+            <f:if condition="{tableStatuses}">
                 <div class="mt-4">
-                    <h3 class="mb-3">Schema gaps (runtime)</h3>
+                    <h3 class="mb-3"><f:translate key="attribute_overview.status.heading" /></h3>
                     <ul>
-                        <f:for each="{runtimeGaps}" as="gap">
+                        <f:for each="{tableStatuses}" as="status" key="table">
                             <li>
-                                <code>{gap.attributeName}</code>:
-                                present on <f:for each="{gap.presentOn}" as="type" iteration="typeIter">{type}{f:if(condition: typeIter.isLast, else: ', ')}</f:for>,
-                                missing on <f:for each="{gap.missingOn}" as="type" iteration="typeIter">{type}{f:if(condition: typeIter.isLast, else: ', ')}</f:for>
+                                <code>{table}</code>:
+                                <f:switch expression="{status.type}">
+                                    <f:case value="no_indexing_service">
+                                        <f:translate key="attribute_overview.section.no_indexing_service" />
+                                    </f:case>
+                                    <f:case value="no_record_in_scope">
+                                        <f:translate key="attribute_overview.section.no_record_in_scope" />
+                                    </f:case>
+                                    <f:case value="error">
+                                        <f:translate key="attribute_overview.section.error" arguments="{0: status.message}" />
+                                    </f:case>
+                                </f:switch>
                             </li>
                         </f:for>
                     </ul>
                 </div>
             </f:if>
 
-            <f:if condition="{configGaps}">
-                <div class="mt-4">
-                    <h3 class="mb-3">Schema gaps (config)</h3>
-                    <ul>
-                        <f:for each="{configGaps}" as="gap">
-                            <li>
-                                <code>{gap.attributeName}</code>:
-                                present on <f:for each="{gap.presentOn}" as="type" iteration="typeIter">{type}{f:if(condition: typeIter.isLast, else: ', ')}</f:for>,
-                                missing on <f:for each="{gap.missingOn}" as="type" iteration="typeIter">{type}{f:if(condition: typeIter.isLast, else: ', ')}</f:for>
-                            </li>
-                        </f:for>
-                    </ul>
-                </div>
-            </f:if>
-
-            <f:form action="index" method="post">
-                <!--
-                    Deliberately POST, not GET: this form's "action"
-                    attribute is built by TYPO3's backend UriBuilder and
-                    carries the page ID and the backend route's CSRF-style
-                    token in its query string. Per the HTML form submission
-                    algorithm, a GET submission discards that query string
-                    entirely and replaces it with the form's own field
-                    values, so both were silently dropped on every selector
-                    change. The missing token then trips TYPO3's route-token
-                    safety net (RouteDispatcher::assertRequestToken()),
-                    which redirects through /typo3/main and can render the
-                    whole backend shell nested inside this module's own
-                    content iframe. POST submits to the "action" URL
-                    unchanged, keeping both intact. The hidden "id" field
-                    below additionally restores the page ID for
-                    AbstractBaseModuleController::getPageId(), which already
-                    prefers a POSTed "id" over a GET one for exactly this
-                    reason.
-                -->
-                <f:form.hidden name="id" value="{pageUid}" />
-
-                <f:for each="{sections}" as="section" key="table">
-                    <div class="mt-4">
-                        <h3 class="mb-3"><code>{table}</code></h3>
-
-                        <f:if condition="{section.error}">
-                            <f:then>
-                                <p class="text-danger">Failed to build this section: {section.error}</p>
-                            </f:then>
-                            <f:else>
-                                <f:if condition="{section.noIndexingService}">
-                                    <f:then>
-                                        <p>No indexing service configured for this record type.</p>
-                                    </f:then>
-                                    <f:else>
-                                        <f:if condition="{section.recordUids -> f:count()} == 0">
-                                            <f:then>
-                                                <p>No record of this type is currently in scope.</p>
-                                            </f:then>
-                                            <f:else>
-                                                <select name="selectedRecordUid[{table}]" class="tx-typo3searchalgolia-attribute-overview-select">
-                                                    <f:for each="{section.recordUids}" as="uid">
-                                                        <f:if condition="{uid} == {section.selectedRecordUid}">
-                                                            <f:then>
-                                                                <option value="{uid}" selected="selected">{uid}</option>
-                                                            </f:then>
-                                                            <f:else>
-                                                                <option value="{uid}">{uid}</option>
-                                                            </f:else>
-                                                        </f:if>
-                                                    </f:for>
-                                                </select>
-
-                                                <table class="table table-striped">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Attribute</th>
-                                                            <th>Origin</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <f:for each="{section.originMap.origins}" as="originValue" key="attributeName">
-                                                            <tr>
-                                                                <td><code>{attributeName}</code></td>
-                                                                <td><span class="badge">{originValue}</span></td>
-                                                            </tr>
-                                                        </f:for>
-                                                    </tbody>
-                                                </table>
-                                            </f:else>
+            <table class="table table-striped mt-4">
+                <thead>
+                    <tr>
+                        <th><f:translate key="attribute_overview.table.header.attribute" /></th>
+                        <th><f:translate key="attribute_overview.table.header.occurs_on" /></th>
+                        <th><f:translate key="attribute_overview.table.header.example_value" /></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <f:for each="{attributeRows}" as="row" key="attributeName">
+                        <tr>
+                            <td><code>{attributeName}</code></td>
+                            <td>
+                                <f:for each="{row.occurrences}" as="occurrence" key="table">
+                                    <div>
+                                        <span class="badge">{occurrence.origin}</span>
+                                        <code>{table}</code>
+                                        <f:if condition="{occurrence.detail}">
+                                            <code class="ms-2">{occurrence.detail}</code>
                                         </f:if>
-                                    </f:else>
-                                </f:if>
-                            </f:else>
-                        </f:if>
-                    </div>
-                </f:for>
-            </f:form>
+                                    </div>
+                                </f:for>
+                            </td>
+                            <td>{row.exampleValue}</td>
+                        </tr>
+                    </f:for>
+                </tbody>
+            </table>
         </div>
     </f:section>
 </html>

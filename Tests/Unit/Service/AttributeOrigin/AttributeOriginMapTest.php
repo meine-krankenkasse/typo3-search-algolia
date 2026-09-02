@@ -71,23 +71,69 @@ final class AttributeOriginMapTest extends TestCase
     }
 
     /**
-     * Verifies getOrigins() returns a plain array mapping each attribute
-     * name to its origin's string value, for consumption by the Fluid
-     * template (see Task 5).
+     * Verifies getOriginDetails() carries the detail through for an
+     * attribute assigned one, alongside its origin's string value.
      */
     #[Test]
-    public function getOriginsReturnsAttributeNameToOriginValueMapping(): void
+    public function getOriginDetailsCarriesTheDetailThroughWhenProvided(): void
     {
         $map = (new AttributeOriginMap())
-            ->withAttribute('uid', AttributeOrigin::Default)
-            ->withAttribute('site', AttributeOrigin::TypoScript);
+            ->withAttribute(
+                'title',
+                AttributeOrigin::TypoScript,
+                'module.tx_typo3searchalgolia.indexer.pages.fields.title',
+            );
 
         self::assertSame(
             [
-                'uid'  => 'default',
-                'site' => 'typoscript',
+                'title' => [
+                    'origin' => 'typoscript',
+                    'detail' => 'module.tx_typo3searchalgolia.indexer.pages.fields.title',
+                ],
             ],
-            $map->getOrigins(),
+            $map->getOriginDetails(),
         );
+    }
+
+    /**
+     * Verifies getOriginDetails() reports NULL, not an empty string or a
+     * missing array key, for an attribute assigned no detail at all.
+     */
+    #[Test]
+    public function getOriginDetailsReportsNullDetailWhenNoneProvided(): void
+    {
+        $map = (new AttributeOriginMap())
+            ->withAttribute('uid', AttributeOrigin::Default);
+
+        self::assertSame(
+            [
+                'uid' => [
+                    'origin' => 'default',
+                    'detail' => null,
+                ],
+            ],
+            $map->getOriginDetails(),
+        );
+    }
+
+    /**
+     * Verifies re-assigning the SAME attribute name without a detail
+     * clears an already-stored one, rather than leaving it dangling from
+     * the earlier assignment. withAttribute() clones and overwrites
+     * origins[$name] unconditionally either way, this proves details[$name]
+     * is kept in sync with it, not merely additive.
+     */
+    #[Test]
+    public function withAttributeClearsAPreviouslyStoredDetailWhenReassignedWithoutOne(): void
+    {
+        $map = (new AttributeOriginMap())
+            ->withAttribute(
+                'title',
+                AttributeOrigin::TypoScript,
+                'module.tx_typo3searchalgolia.indexer.pages.fields.title',
+            )
+            ->withAttribute('title', AttributeOrigin::Listener);
+
+        self::assertNull($map->getOriginDetails()['title']['detail']);
     }
 }
