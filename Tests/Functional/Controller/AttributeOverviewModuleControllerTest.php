@@ -48,7 +48,10 @@ use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use TYPO3\CMS\Extbase\Http\ForwardResponse;
 use TYPO3\CMS\Extbase\Mvc\ExtbaseRequestParameters;
 use TYPO3\CMS\Extbase\Mvc\Request;
 use TYPO3\CMS\Extbase\Mvc\RequestInterface;
@@ -404,6 +407,89 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         );
 
         return (string) $response->getBody();
+    }
+
+    /**
+     * Verifies indexAction()'s checkDatabaseAvailability() guard: every
+     * other test in this class runs against a fully-migrated functional-test
+     * database, so that guard's condition is always true and its "not
+     * available" branch (forward to the error action, never reaching the
+     * attribute-aggregation logic at all) has otherwise never been
+     * exercised. Drops one of the three tables checkDatabaseAvailability()
+     * checks for, so the guard genuinely evaluates to false here, not
+     * simulated any other way. TYPO3 testing-framework's SQLite functional
+     * tests restore a pristine schema snapshot before every test method, so
+     * this drop is isolated to this one test and doesn't affect any other
+     * test in the class (see FunctionalTestCase::setUp()'s
+     * "empty.sqlite" snapshot copy).
+     *
+     * Revert-confirms-red verified: removing indexAction()'s
+     * checkDatabaseAvailability() guard makes this assertion fail (the
+     * response becomes the normal 200 attribute table instead of a
+     * ForwardResponse to the error action).
+     */
+    #[Test]
+    public function attributeOverviewForwardsToTheErrorActionWhenTheDatabaseIsNotAvailable(): void
+    {
+        $this->getConnectionPool()
+            ->getConnectionForTable('tx_typo3searchalgolia_domain_model_searchengine')
+            ->executeStatement('DROP TABLE tx_typo3searchalgolia_domain_model_searchengine');
+
+        $subject = $this->createDrivenSubject(['id' => 0]);
+
+        $response = $subject->callIndexAction();
+
+        self::assertInstanceOf(
+            ForwardResponse::class,
+            $response,
+            'An unavailable database must forward to the error action instead of rendering the attribute '
+            . 'table.',
+        );
+        self::assertSame(
+            'error',
+            $response->getActionName(),
+        );
+
+        // The routing assertions above only pin WHERE the request ends up,
+        // not WHAT an admin actually sees. forwardErrorFlashMessage() is
+        // shared AbstractBaseModuleController logic (also used by
+        // QueueModuleController and AdministrationModuleController for the
+        // same guard), but nothing anywhere in this test suite had ever
+        // asserted its actual enqueued content before this test.
+        $flashMessages = $this->get(FlashMessageService::class)
+            ->getMessageQueueByIdentifier()
+            ->getAllMessages();
+
+        self::assertCount(
+            1,
+            $flashMessages,
+            'checkDatabaseAvailability() must enqueue exactly one flash message.',
+        );
+        self::assertSame(
+            ContextualFeedbackSeverity::ERROR,
+            $flashMessages[0]->getSeverity(),
+        );
+        self::assertSame(
+            'Please ensure that the database structure is up to date.',
+            $flashMessages[0]->getMessage(),
+        );
+
+        // The assertions above only read the queue back out, they never
+        // render anything. ModuleTemplate's flash-message queue is sourced
+        // from the same FlashMessageService::getMessageQueueByIdentifier()
+        // singleton regardless of instance, so calling errorAction() on
+        // this SAME, already-used $subject renders the message this test's
+        // own indexAction() call just enqueued, via the Module layout's
+        // <f:flashMessages> - the actual end-to-end path an admin
+        // experiences.
+        $errorResponse = $subject->callErrorAction();
+
+        self::assertStringContainsString(
+            'Please ensure that the database structure is up to date.',
+            (string) $errorResponse->getBody(),
+            'The Error.html render must actually show the enqueued flash message text, not just accept '
+            . 'it into the queue.',
+        );
     }
 
     /**

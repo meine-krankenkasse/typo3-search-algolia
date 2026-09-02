@@ -19,8 +19,8 @@ use TYPO3\CMS\Extbase\Mvc\RequestInterface;
 /**
  * Test subject for AttributeOverviewModuleController.
  *
- * Exposes the protected indexAction() entry point and the protected
- * request/moduleTemplate properties, so a test can drive indexAction()
+ * Exposes the protected indexAction()/errorAction() entry points and the
+ * protected request/moduleTemplate properties, so a test can drive them
  * directly with a real, DI-resolved controller instance without going
  * through the full Extbase dispatch machinery - mirrors the exact same
  * pattern already established for AbstractBaseModuleController by
@@ -45,5 +45,10 @@ class AttributeOverviewModuleControllerTestSubject extends AttributeOverviewModu
     public function callIndexAction(): ResponseInterface
     {
         return $this->indexAction();
+    }
+
+    public function callErrorAction(): ResponseInterface
+    {
+        return $this->errorAction();
     }
 }
