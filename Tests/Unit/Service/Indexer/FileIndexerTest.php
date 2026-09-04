@@ -847,13 +847,17 @@ final class FileIndexerTest extends TestCase
      *    (table_name/record_uid/service_uid/changed/priority), not just a
      *    record_uid, since the real indexing queue table needs all five
      *    columns to route this record back to the right table and
-     *    indexing service on the next run.
+     *    indexing service on the next run. 'changed' is deliberately given
+     *    a tstamp distinct from its own record_uid (99999 vs. 701), so this
+     *    assertion cannot pass by 'changed' accidentally coinciding with
+     *    record_uid, it must genuinely come from the file's own metadata
+     *    tstamp.
      */
     #[Test]
     public function enqueueAllPreparesTheFullRecordShapeForEveryEligibleFileUncapped(): void
     {
         $collection = new StaticFileCollectionTestSubject();
-        $collection->add($this->createEligibleFileMock(701, 'pdf'));
+        $collection->add($this->createEligibleFileMock(701, 'pdf', 99999));
         $collection->add($this->createEligibleFileMock(702, 'pdf'));
         $collection->add($this->createEligibleFileMock(703, 'pdf'));
 
@@ -902,7 +906,7 @@ final class FileIndexerTest extends TestCase
                 'table_name'  => 'sys_file_metadata',
                 'record_uid'  => 701,
                 'service_uid' => 9,
-                'changed'     => 0,
+                'changed'     => 99999,
                 'priority'    => 0,
             ],
             $capturedRecords[0],

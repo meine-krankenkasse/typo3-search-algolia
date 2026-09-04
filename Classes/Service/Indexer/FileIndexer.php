@@ -187,7 +187,7 @@ class FileIndexer extends AbstractIndexer
             'table_name'  => $this->getTable(),
             'record_uid'  => $file->getMetaData()->offsetGet('uid'),
             'service_uid' => $this->indexingService?->getUid() ?? 0,
-            'changed'     => (int) ($GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 0),
+            'changed'     => (int) $file->getMetaData()->offsetGet('tstamp'),
             'priority'    => $this->getPriority(),
         ];
     }
@@ -272,11 +272,13 @@ class FileIndexer extends AbstractIndexer
                     continue;
                 }
 
+                $changed = (int) $file->getMetaData()->offsetGet('tstamp');
+
                 $items[$uniqueKey] = [
                     'table_name'  => $this->getTable(),
                     'record_uid'  => $metadataUid,
                     'service_uid' => $serviceUid,
-                    'changed'     => (int) ($GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 0),
+                    'changed'     => $changed,
                     'priority'    => $this->getPriority(),
                 ];
 
@@ -284,7 +286,7 @@ class FileIndexer extends AbstractIndexer
                 // metadata is already loaded at this point via the offsetGet('uid')
                 // call above, so reading its tstamp here adds no extra query.
                 if ($limit > 0) {
-                    $tstampsByRecordUid[$metadataUid] = (int) $file->getMetaData()->offsetGet('tstamp');
+                    $tstampsByRecordUid[$metadataUid] = $changed;
                 }
             }
         }
