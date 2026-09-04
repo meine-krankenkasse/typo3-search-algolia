@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Controller;
 
+use Doctrine\DBAL\ArrayParameterType;
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
@@ -22,6 +23,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 
@@ -330,7 +332,10 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             ->where(
                 $queryBuilder->expr()->eq(
                     'uid',
-                    $mostRecentRecordUid,
+                    $queryBuilder->createNamedParameter(
+                        $mostRecentRecordUid,
+                        Connection::PARAM_INT,
+                    ),
                 ),
             )
             ->executeQuery()
@@ -529,7 +534,10 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             ->where(
                 $queryBuilder->expr()->in(
                     'uid',
-                    $recordUids,
+                    $queryBuilder->createNamedParameter(
+                        $recordUids,
+                        ArrayParameterType::INTEGER,
+                    ),
                 ),
             )
             ->orderBy($tstampField, 'DESC')
