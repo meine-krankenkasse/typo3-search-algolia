@@ -50,6 +50,25 @@ interface IndexerInterface extends SingletonInterface
     public function getTable(): string;
 
     /**
+     * Returns the UIDs of records of this indexer's table that are currently
+     * in scope for the current indexing service, i.e. the same set
+     * enqueueAll() would queue (when $limit is 0). Read-only, does not touch
+     * the queue.
+     *
+     * @param int $limit Maximum number of UIDs to return (applied as an SQL LIMIT
+     *                   where supported), 0 for unbounded, i.e. the full in-scope
+     *                   set enqueueAll() would queue. Pass a positive limit when
+     *                   only a bounded preview is needed (e.g. the Attribute
+     *                   Overview module's per-table representative record)
+     *                   instead of materializing the full set.
+     *
+     * @return int[] The in-scope record UIDs
+     *
+     * @throws RuntimeException If no indexing service is set
+     */
+    public function findRecordUidsInScope(int $limit = 0): array;
+
+    /**
      * Creates a new instance with the specified indexing service configuration.
      *
      * This method implements the immutable pattern, returning a new instance

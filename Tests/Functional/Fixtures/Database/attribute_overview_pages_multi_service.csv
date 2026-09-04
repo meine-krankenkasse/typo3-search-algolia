@@ -1,0 +1,5 @@
+pages,,,,,,,,,
+,uid,pid,title,is_siteroot,doktype,deleted,hidden,no_search,tstamp,crdate
+,1,0,"Root Page",1,1,0,0,0,1000,1000
+,20,1,"Service A Page",0,1,0,0,0,1000,1000
+,21,1,"Service B Page",0,4,0,0,0,2000,1000

@@ -15,6 +15,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Exception\InvalidQueryException;
 use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
+use TYPO3\CMS\Extbase\Persistence\QueryInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 use TYPO3\CMS\Extbase\Persistence\Repository;
 
@@ -103,6 +104,9 @@ class IndexingServiceRepository extends Repository
      * - Respects enable fields (only returns visible records)
      * - Ignores storage page restrictions (finds records regardless of their location)
      * - Filters records to match the provided table name in the 'type' field
+     * - Orders results by 'uid' ascending, so callers can rely on a deterministic,
+     *   pinned row order (e.g. to establish a stable "first configured" tie-break)
+     *   instead of incidental database/execution-plan order.
      *
      * This is typically used when processing records of a specific type, such as
      * when a page or content element is updated and all relevant indexing services
@@ -126,6 +130,11 @@ class IndexingServiceRepository extends Repository
                 'type',
                 $tableName,
             ),
+        );
+        $query->setOrderings(
+            [
+                'uid' => QueryInterface::ORDER_ASCENDING,
+            ],
         );
 
         return $query->execute();

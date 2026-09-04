@@ -5,6 +5,63 @@
  * including the brand logo and other module-specific elements.
  */
 
+/*
+ * Attribute Overview table: one <tbody> per attribute, holding one <tr>
+ * per table it occurs on (rowspanned attribute-name/example-value cells on
+ * the first row only). Striped PER ATTRIBUTE, not per row, so every row
+ * belonging to one attribute shares the same background regardless of how
+ * many tables it occurs on - unlike TYPO3 backend.css's .table-striped,
+ * which stripes tbody>tr:nth-of-type(odd) and would make a 3-row group's
+ * middle row look like a different attribute. tbody:nth-of-type(odd)
+ * mirrors that same mechanism one level up (per <tbody>, i.e. per
+ * attribute, since each attribute gets its own <tbody> here), reusing
+ * .table-striped's own color (backend.css) so this stays visually and
+ * dark-mode consistent with the rest of the backend.
+ *
+ * Two more things TYPO3's own base .table CSS gets wrong for a rowspanned
+ * group specifically, fixed below:
+ *
+ * 1. .table > :not(caption) > * > :first-child gets extra
+ *    padding-inline-start (backend.css). In a continuation row (no
+ *    rowspanned cell), the badge <td> IS that row's :first-child and so
+ *    gets that extra padding, while the badge <td> in the group's first
+ *    row is the SECOND cell (after the rowspanned one) and doesn't -
+ *    visually misaligning/indenting every continuation row's badge one
+ *    notch to the right. Neutralized by resetting it to the normal,
+ *    non-first-child padding. TYPO3 core hits the exact same issue in
+ *    EXT:beuser's rowspanned online-sessions table and fixes it the same
+ *    way (.beuser-online-table_row td:first-child).
+ * 2. border-collapse draws a border between every <tr>, including
+ *    continuation rows of the same attribute, making one logical group
+ *    look like several unrelated rows.
+ */
+.attribute-overview-table tbody:nth-of-type(odd) > tr > * {
+    --typo3-table-bg-type: color-mix(in srgb, var(--typo3-table-bg), var(--typo3-table-color) 3%);
+}
+
+.attribute-overview-table_continued-row td:first-child {
+    padding-inline-start: calc(var(--typo3-table-padding-x) / 2);
+}
+
+/*
+ * This table's border-top is always 0-width (backend.css), only
+ * border-bottom ever renders a visible line, so hiding the divider between
+ * two rows of the same group only ever means clearing border-bottom on the
+ * row above (the group's first row, or an earlier continuation row in a
+ * 3+-row group). The last row of a group is never followed by a
+ * continuation row, so it correctly keeps its bottom border, separating
+ * it from the next attribute's group.
+ *
+ * :not([rowspan]) excludes the rowspanned attribute-name/example-value
+ * cells: a rowspanned cell only has ONE border-bottom at all, at its
+ * actual bottom edge several rows down, which for the group's first row
+ * IS the group-boundary border, not an internal one - those two columns
+ * must keep it.
+ */
+.attribute-overview-table tr:has(+ .attribute-overview-table_continued-row) td:not([rowspan]) {
+    border-bottom: none;
+}
+
 /* Module container styles */
 .typo3-module-typo3-search {
     /* Brand logo container */

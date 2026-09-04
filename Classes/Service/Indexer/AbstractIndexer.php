@@ -30,6 +30,8 @@ use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use function array_map;
+
 /**
  * Abstract base class for all indexers.
  *
@@ -350,6 +352,38 @@ abstract class AbstractIndexer implements IndexerInterface
     }
 
     /**
+     * Returns the UIDs of records currently in scope for the current
+     * indexing service, the same set enqueueAll() would queue, without
+     * touching the queue.
+     *
+     * @param int $limit Maximum number of UIDs to return (applied as an SQL LIMIT
+     *                   where supported), 0 for unbounded, i.e. the full in-scope
+     *                   set enqueueAll() would queue. Pass a positive limit when
+     *                   only a bounded preview is needed (e.g. the Attribute
+     *                   Overview module's per-table representative record)
+     *                   instead of materializing the full set.
+     *
+     * @return int[] The in-scope record UIDs
+     *
+     * @throws RuntimeException If no indexing service is set
+     */
+    #[Override]
+    public function findRecordUidsInScope(int $limit = 0): array
+    {
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
+
+        return array_map(
+            static fn (array $row): int => (int) $row['record_uid'],
+            $this->initQueueItemRecords(
+                [],
+                $limit,
+            ),
+        );
+    }
+
+    /**
      * Prepares a single record for addition to the indexing queue.
      *
      * This method retrieves a record from the database and formats it for
@@ -396,12 +430,17 @@ abstract class AbstractIndexer implements IndexerInterface
      * constraints) will be prepared for queuing.
      *
      * @param int[] $recordUids Optional array of record UIDs to prepare
+     * @param int   $limit      Maximum number of records to fetch (via SQL LIMIT),
+     *                          0 for unbounded. Callers that need the complete
+     *                          eligible set (enqueueAll(), enqueueMultiple()) must
+     *                          keep passing 0, the default, so their queueing
+     *                          behavior is unaffected by this parameter.
      *
      * @return array<array-key, array<string, int|string>> Array of prepared record data
      *
      * @throws Exception If a database error occurs
      */
-    protected function initQueueItemRecords(array $recordUids = []): array
+    protected function initQueueItemRecords(array $recordUids = [], int $limit = 0): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
@@ -420,7 +459,7 @@ abstract class AbstractIndexer implements IndexerInterface
         }
 
         return $this
-            ->fetchRecords($queryBuilder, $constraints)
+            ->fetchRecords($queryBuilder, $constraints, $limit)
             ->fetchAllAssociative();
     }
 
@@ -439,14 +478,28 @@ abstract class AbstractIndexer implements IndexerInterface
      * - changed: The timestamp when the record was last changed
      * - priority: The indexing priority for the record
      *
+     * When a positive $limit is given, the result is additionally ordered by
+     * the table's tstamp column descending (uid descending as a deterministic
+     * tie-break, matching the same tie-break
+     * AttributeOverviewModuleController::mostRecentlyChanged() uses), applied
+     * BEFORE the SQL LIMIT. Without an ORDER BY, row order under LIMIT is
+     * unspecified, so a capped result could silently omit the table's actual
+     * most-recently-changed record whenever the table has more in-scope rows
+     * than the limit. The unbounded case (no limit, used by enqueueAll() and
+     * enqueueMultiple() for the real indexing pipeline) intentionally keeps
+     * no ORDER BY, this would only add cost with no behavioral benefit since
+     * every in-scope row is fetched anyway.
+     *
      * @param QueryBuilder $queryBuilder The query builder to use for the query
      * @param string[]     $constraints  An array of SQL constraint expressions
+     * @param int          $limit        Maximum number of rows to fetch (via SQL LIMIT), 0 for unbounded
      *
      * @return Result The database query result object
      */
     private function fetchRecords(
         QueryBuilder $queryBuilder,
         array $constraints,
+        int $limit = 0,
     ): Result {
         // Set up the query restrictions
         $queryBuilder->getRestrictions()
@@ -473,13 +526,30 @@ abstract class AbstractIndexer implements IndexerInterface
             "'" . $this->getPriority() . "' AS priority",
         ];
 
-        // Build and execute the query
-        return $queryBuilder
+        // Build the query
+        $queryBuilder
             ->select('uid AS record_uid')
             ->addSelectLiteral(...$selectLiterals)
             ->from($this->getTable())
-            ->where(...$constraints)
-            ->executeQuery();
+            ->where(...$constraints);
+
+        if ($limit > 0) {
+            // Defensive fallback: every currently-registered indexer's table
+            // defines ctrl.tstamp, so a table without one only occurs with a
+            // future indexer. Covered by
+            // AbstractIndexerFindRecordUidsInScopeTstampFallbackFunctionalTest,
+            // which removes ctrl.tstamp from a real table's TCA at runtime and
+            // asserts the ORDER BY falls back to 'uid'.
+            $tstampField = $GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 'uid';
+
+            $queryBuilder
+                ->orderBy($tstampField, 'DESC')
+                ->addOrderBy('uid', 'DESC');
+
+            $queryBuilder->setMaxResults($limit);
+        }
+
+        return $queryBuilder->executeQuery();
     }
 
     /**

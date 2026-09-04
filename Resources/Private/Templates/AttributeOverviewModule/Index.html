@@ -1,0 +1,75 @@
+<html data-namespace-typo3-fluid="true"
+      xmlns="http://www.w3.org/1999/xhtml" lang="en"
+      xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+>
+    <f:layout name="Module" />
+
+    <f:section name="Content">
+        <div class="col-md-12">
+            <h1><f:translate key="module.name" /></h1>
+            <h2><f:translate key="attribute_overview" /></h2>
+
+            <p>
+                <f:translate key="attribute_overview.record_types_checked" />
+                <f:for each="{recordTypes}" as="recordType" iteration="typeIter"><code>{recordType}</code>{f:if(condition: typeIter.isLast, else: ', ')}</f:for>
+            </p>
+
+            <f:if condition="{tableStatuses}">
+                <div class="mt-4">
+                    <h3 class="mb-3"><f:translate key="attribute_overview.status.heading" /></h3>
+                    <ul>
+                        <f:for each="{tableStatuses}" as="status" key="table">
+                            <li>
+                                <code>{table}</code>:
+                                <f:switch expression="{status.type}">
+                                    <f:case value="no_indexing_service">
+                                        <f:translate key="attribute_overview.section.no_indexing_service" />
+                                    </f:case>
+                                    <f:case value="no_record_in_scope">
+                                        <f:translate key="attribute_overview.section.no_record_in_scope" />
+                                    </f:case>
+                                    <f:case value="error">
+                                        <f:translate key="attribute_overview.section.error" arguments="{0: status.message}" />
+                                    </f:case>
+                                </f:switch>
+                            </li>
+                        </f:for>
+                    </ul>
+                </div>
+            </f:if>
+
+            <table class="table attribute-overview-table mt-4">
+                <thead>
+                    <tr>
+                        <th><f:translate key="attribute_overview.table.header.attribute" /></th>
+                        <th><f:translate key="attribute_overview.table.header.origin" /></th>
+                        <th><f:translate key="attribute_overview.table.header.occurs_on" /></th>
+                        <th><f:translate key="attribute_overview.table.header.path" /></th>
+                        <th><f:translate key="attribute_overview.table.header.example_value" /></th>
+                    </tr>
+                </thead>
+                <f:for each="{attributeRows}" as="row" key="attributeName">
+                    <tbody data-attribute="{attributeName}">
+                        <f:for each="{row.occurrences}" as="occurrence" key="table" iteration="occurrenceIterator">
+                            <tr{f:if(condition: '!{occurrenceIterator.isFirst}', then: ' class="attribute-overview-table_continued-row"')}>
+                                <f:if condition="{occurrenceIterator.isFirst}">
+                                    <td rowspan="{occurrenceIterator.total}"><code>{attributeName}</code></td>
+                                </f:if>
+                                <td><span class="badge">{occurrence.origin}</span></td>
+                                <td><code>{table}</code></td>
+                                <td>
+                                    <f:if condition="{occurrence.detail}">
+                                        <code>{occurrence.detail}</code>
+                                    </f:if>
+                                </td>
+                                <f:if condition="{occurrenceIterator.isFirst}">
+                                    <td rowspan="{occurrenceIterator.total}">{row.exampleValue}</td>
+                                </f:if>
+                            </tr>
+                        </f:for>
+                    </tbody>
+                </f:for>
+            </table>
+        </div>
+    </f:section>
+</html>

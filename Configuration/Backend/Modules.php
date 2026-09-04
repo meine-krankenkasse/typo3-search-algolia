@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Controller\AdministrationModuleController;
+use MeineKrankenkasse\Typo3SearchAlgolia\Controller\AttributeOverviewModuleController;
 use MeineKrankenkasse\Typo3SearchAlgolia\Controller\QueueModuleController;
 
 // Caution, variable name must not exist within \TYPO3\CMS\Core\Package\AbstractServiceProvider::configureBackendModules
@@ -62,6 +63,28 @@ return [
         'extensionName'     => 'Typo3SearchAlgolia',
         'controllerActions' => [
             QueueModuleController::class => [
+                'index',
+            ],
+        ],
+    ],
+    'mkk_typo3_search_attributes' => [
+        'parent'         => 'mkk_typo3_search',
+        'access'         => 'admin',
+        'path'           => '/module/meine-krankenkasse/typo3-search/attributes',
+        'iconIdentifier' => 'extension-mkk-typo3-search',
+        'labels'         => [
+            'title' => 'LLL:EXT:typo3_search_algolia/Resources/Private/Language/locallang_mod_search.xlf:mod_attributes',
+        ],
+        'extensionName' => 'Typo3SearchAlgolia',
+        // This module spans multiple, unrelated record tables (pages,
+        // tt_content, files, ...) at once, so a single-tree page selector
+        // has no natural target and would otherwise be silently inherited
+        // and ignored (see AttributeOverviewModuleController, which never
+        // reads the page id for record selection).
+        'inheritNavigationComponentFromMainModule' => false,
+        'navigationComponent'                      => '',
+        'controllerActions'                        => [
+            AttributeOverviewModuleController::class => [
                 'index',
             ],
         ],

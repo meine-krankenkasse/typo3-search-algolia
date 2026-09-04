@@ -22,3 +22,9 @@ var/
 .php-cs-fixer.cache
 .phplint.cache
 .phpunit.result.cache
+
+# Local scratch workspace (ledgers, briefs, reports), not part of the shipped extension
+.superpowers/
+
+# Local planning workspace (specs, plans), not part of the shipped extension
+docs/superpowers/

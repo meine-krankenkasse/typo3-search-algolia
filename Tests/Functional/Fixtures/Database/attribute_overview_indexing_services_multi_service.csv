@@ -1,0 +1,8 @@
+tx_typo3searchalgolia_domain_model_searchengine,,,,,,
+,uid,pid,title,engine,index_name,deleted
+,1,1,"Test Engine","algolia","test_index",0
+
+tx_typo3searchalgolia_domain_model_indexingservice,,,,,,,,,,,
+,uid,pid,title,type,search_engine,deleted,pages_recursive,pages_single,pages_doktype,content_element_types,include_content_elements
+,1,1,"Page Indexer A","pages",1,0,"1","","1","",0
+,2,1,"Page Indexer B","pages",1,0,"1","","4","",1
