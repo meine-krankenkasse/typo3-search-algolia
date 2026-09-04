@@ -822,7 +822,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
                 'attribute-overview-table_continued-row',
             ),
             'The "title" row\'s 3 occurrences must mark exactly the 2 continuation rows with the '
-            . 'continued-row class, never the group\'s first row.',
+            . "continued-row class, never the group's first row.",
         );
 
         // The presence-only assertions above (badge/table/path checks)
