@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener;
 
 use Exception;
+use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledFileDocumentEventListener;
@@ -36,6 +37,7 @@ use TYPO3\CMS\Core\Resource\ResourceStorage;
  */
 #[CoversClass(UpdateAssembledFileDocumentEventListener::class)]
 #[UsesClass(AfterDocumentAssembledEvent::class)]
+#[UsesClass(ContentExtractor::class)]
 #[UsesClass(Document::class)]
 class UpdateAssembledFileDocumentEventListenerTest extends TestCase
 {

@@ -78,6 +78,29 @@ class RecordUpdateEventListenerTest extends TestCase
     }
 
     /**
+     * Stubs pageRepositoryMock::getPageRecord() to return $hiddenExtendToSubpagesResult
+     * for the "hidden, extendToSubpages" lookup used by isSubpageUpdateRequired(),
+     * and $defaultResult for every other lookup.
+     *
+     * @param array<string, int> $hiddenExtendToSubpagesResult
+     * @param array<string, int> $defaultResult
+     */
+    private function stubPageRecordLookup(
+        array $hiddenExtendToSubpagesResult,
+        array $defaultResult = ['hidden' => 0, 'deleted' => 0, 'no_search' => 0],
+    ): void {
+        $this->pageRepositoryMock
+            ->method('getPageRecord')
+            ->willReturnCallback(function (string $table, int $uid, string $fields = '*') use ($hiddenExtendToSubpagesResult, $defaultResult): array {
+                if ($fields === 'hidden, extendToSubpages') {
+                    return $hiddenExtendToSubpagesResult;
+                }
+
+                return $defaultResult;
+            });
+    }
+
+    /**
      * Tests that the listener enqueues the record when the page record
      * is enabled (not hidden, not deleted) and has matching indexers.
      */
@@ -283,15 +306,7 @@ class RecordUpdateEventListenerTest extends TestCase
     {
         // First call: getPageRecord for the event record itself
         // Second call: getPageRecord for isSubpageUpdateRequired
-        $this->pageRepositoryMock
-            ->method('getPageRecord')
-            ->willReturnCallback(function (string $table, int $uid, string $fields = '*', bool $respectRestrictions = true): array {
-                if ($fields === 'hidden, extendToSubpages') {
-                    return ['hidden' => 1, 'extendToSubpages' => 1];
-                }
-
-                return ['hidden' => 0, 'deleted' => 0, 'no_search' => 0];
-            });
+        $this->stubPageRecordLookup(['hidden' => 1, 'extendToSubpages' => 1]);
 
         $this->recordHandlerMock
             ->method('getRecordRootPageId')
@@ -328,15 +343,7 @@ class RecordUpdateEventListenerTest extends TestCase
     #[Test]
     public function invokeSkipsSubpageProcessingWhenNotRequired(): void
     {
-        $this->pageRepositoryMock
-            ->method('getPageRecord')
-            ->willReturnCallback(function (string $table, int $uid, string $fields = '*', bool $respectRestrictions = true): array {
-                if ($fields === 'hidden, extendToSubpages') {
-                    return ['hidden' => 0, 'extendToSubpages' => 0];
-                }
-
-                return ['hidden' => 0, 'deleted' => 0, 'no_search' => 0];
-            });
+        $this->stubPageRecordLookup(['hidden' => 0, 'extendToSubpages' => 0]);
 
         $this->recordHandlerMock
             ->method('getRecordRootPageId')
@@ -454,16 +461,11 @@ class RecordUpdateEventListenerTest extends TestCase
     #[Test]
     public function invokeDoesNotEnqueueSubpagesWhenTheParentPageIsDisabled(): void
     {
-        $this->pageRepositoryMock
-            ->method('getPageRecord')
-            ->willReturnCallback(function (string $table, int $uid, string $fields = '*', bool $respectRestrictions = true): array {
-                if ($fields === 'hidden, extendToSubpages') {
-                    return ['hidden' => 0, 'extendToSubpages' => 0];
-                }
-
-                // The event record itself (uid 42) is disabled (hidden)
-                return ['hidden' => 1, 'deleted' => 0, 'no_search' => 0];
-            });
+        $this->stubPageRecordLookup(
+            ['hidden' => 0, 'extendToSubpages' => 0],
+            // The event record itself (uid 42) is disabled (hidden)
+            ['hidden' => 1, 'deleted' => 0, 'no_search' => 0],
+        );
 
         $this->recordHandlerMock
             ->method('getRecordRootPageId')
@@ -497,6 +499,8 @@ class RecordUpdateEventListenerTest extends TestCase
     }
 
     /**
+     * Boundary values for the three hidden/extendToSubpages branches (A/B/C) of isSubpageUpdateRequired().
+     *
      * @return array<string, array{0: array<string, int>, 1: array<string, int>, 2: bool}>
      */
     public static function subpageUpdateRequiredBoundaryProvider(): array
@@ -566,15 +570,7 @@ class RecordUpdateEventListenerTest extends TestCase
         array $updatedFields,
         bool $expectsSubpageLookup,
     ): void {
-        $this->pageRepositoryMock
-            ->method('getPageRecord')
-            ->willReturnCallback(function (string $table, int $uid, string $fields = '*', bool $respectRestrictions = true) use ($record): array {
-                if ($fields === 'hidden, extendToSubpages') {
-                    return $record;
-                }
-
-                return ['hidden' => 0, 'deleted' => 0, 'no_search' => 0];
-            });
+        $this->stubPageRecordLookup($record);
 
         $this->recordHandlerMock
             ->method('getRecordRootPageId')

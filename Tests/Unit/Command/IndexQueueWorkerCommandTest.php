@@ -337,7 +337,7 @@ class IndexQueueWorkerCommandTest extends TestCase
     /**
      * Tests that indexItems() persists its progress into the TYPO3
      * registry during a run, proving the write side of progress tracking
-     * actually executes (getProgress() only tests the read side).
+     * actually executes.
      */
     #[Test]
     public function indexItemsPersistsProgressToTheRegistry(): void
