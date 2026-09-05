@@ -261,7 +261,7 @@ class RecordHandlerTest extends TestCase
             $index = 0;
         });
         $queryResultMock->method('valid')->willReturnCallback(static function () use (&$positions, &$index): bool {
-            return isset($positions[$index]);
+            return $index < count($positions);
         });
         $queryResultMock->method('current')->willReturnCallback(static function () use (&$positions, &$index): IndexingService {
             return $positions[$index];

@@ -555,6 +555,9 @@ class RecordUpdateEventListenerTest extends TestCase
      * conditions in isSubpageUpdateRequired() by observing whether the
      * subpage tree lookup (getPageIdsRecursive) is triggered, without
      * reaching into the private method via reflection.
+     *
+     * @param array<string, int> $record
+     * @param array<string, int> $updatedFields
      */
     #[Test]
     #[DataProvider('subpageUpdateRequiredBoundaryProvider')]

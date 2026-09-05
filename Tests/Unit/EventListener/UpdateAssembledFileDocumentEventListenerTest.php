@@ -211,6 +211,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             ->willReturn('Local');
 
         $pdfContents = file_get_contents(__DIR__ . '/Fixtures/text-content.pdf');
+        self::assertIsString($pdfContents);
 
         $fileMock = $this->createMock(File::class);
         $fileMock->method('getExtension')->willReturn('pdf');
