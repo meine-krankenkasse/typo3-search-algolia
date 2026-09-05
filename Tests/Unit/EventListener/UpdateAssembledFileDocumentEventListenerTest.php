@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\EventListener;
 
 use Exception;
+use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledFileDocumentEventListener;
@@ -36,6 +37,7 @@ use TYPO3\CMS\Core\Resource\ResourceStorage;
  */
 #[CoversClass(UpdateAssembledFileDocumentEventListener::class)]
 #[UsesClass(AfterDocumentAssembledEvent::class)]
+#[UsesClass(ContentExtractor::class)]
 #[UsesClass(Document::class)]
 class UpdateAssembledFileDocumentEventListenerTest extends TestCase
 {
@@ -196,5 +198,57 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
 
         // Content is null for non-PDF files, so the field should not exist (setField with null removes the field)
         self::assertArrayNotHasKey('content', $document->getFields());
+    }
+
+    /**
+     * Tests that the listener extracts and sets the real text content of a
+     * PDF file, proving getFileContent() actually parses the file instead
+     * of always resolving to null.
+     */
+    #[Test]
+    public function invokeExtractsRealTextContentFromAPdfFile(): void
+    {
+        $storageMock = $this->createMock(ResourceStorage::class);
+        $storageMock->method('getDriverType')
+            ->willReturn('Local');
+
+        $pdfContents = file_get_contents(__DIR__ . '/Fixtures/text-content.pdf');
+        self::assertIsString($pdfContents);
+
+        $fileMock = $this->createMock(File::class);
+        $fileMock->method('getExtension')->willReturn('pdf');
+        $fileMock->method('getMimeType')->willReturn('application/pdf');
+        $fileMock->method('getName')->willReturn('text-content.pdf');
+        $fileMock->method('getSize')->willReturn(strlen($pdfContents));
+        $fileMock->method('getPublicUrl')->willReturn('/fileadmin/text-content.pdf');
+        $fileMock->method('getStorage')->willReturn($storageMock);
+        $fileMock->method('getContents')->willReturn($pdfContents);
+
+        $fileRepositoryMock = $this->createMock(FileRepository::class);
+        $fileRepositoryMock->method('findByUid')
+            ->with(5)
+            ->willReturn($fileMock);
+
+        $indexerMock = $this->createMock(FileIndexer::class);
+        $indexerMock->method('getTable')
+            ->willReturn('sys_file_metadata');
+
+        $indexingServiceMock = $this->createMock(IndexingService::class);
+
+        $record   = ['uid' => 42, 'file' => 5];
+        $document = new Document($indexerMock, $record);
+
+        $event = new AfterDocumentAssembledEvent(
+            $document,
+            $indexerMock,
+            $indexingServiceMock,
+            $record,
+        );
+
+        $listener = new UpdateAssembledFileDocumentEventListener($fileRepositoryMock, $this->createMock(LoggerInterface::class));
+        $listener($event);
+
+        self::assertArrayHasKey('content', $document->getFields());
+        self::assertStringContainsString('Algolia Mutation Test', $document->getFields()['content']);
     }
 }

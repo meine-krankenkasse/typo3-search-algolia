@@ -333,4 +333,56 @@ class IndexQueueWorkerCommandTest extends TestCase
         $commandTester = new CommandTester($command);
         $commandTester->execute(['--documentsToIndex' => 2]);
     }
+
+    /**
+     * Tests that indexItems() persists its progress into the TYPO3
+     * registry during a run, proving the write side of progress tracking
+     * actually executes.
+     */
+    #[Test]
+    public function indexItemsPersistsProgressToTheRegistry(): void
+    {
+        $item = (new QueueItem())
+            ->setTableName('pages')
+            ->setRecordUid(1)
+            ->setServiceUid(1);
+
+        $this->queueItemRepositoryMock
+            ->method('findAllLimited')
+            ->willReturn($this->createQueueItemsResult([$item]));
+
+        $this->stubFetchableRecord();
+
+        $indexingService = new IndexingService();
+
+        $this->indexingServiceRepositoryMock
+            ->method('findByUid')
+            ->with(1)
+            ->willReturn($indexingService);
+
+        $indexerMock = self::createStub(IndexerInterface::class);
+        $indexerMock
+            ->method('indexRecord')
+            ->willReturn(true);
+
+        $this->indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->with('pages')
+            ->willReturn($indexerMock);
+
+        $this->registryMock
+            ->expects(self::once())
+            ->method('set')
+            ->with(
+                Constants::EXTENSION_NAME,
+                'index-queue-worker-progress',
+                self::isFloat(),
+            );
+
+        $command = $this->createCommand();
+        $command->setName('mkk:queue:index:worker');
+
+        $commandTester = new CommandTester($command);
+        $commandTester->execute(['--documentsToIndex' => 1]);
+    }
 }
