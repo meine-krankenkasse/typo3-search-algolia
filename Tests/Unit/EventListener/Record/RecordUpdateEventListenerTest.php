@@ -22,6 +22,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -491,6 +492,112 @@ class RecordUpdateEventListenerTest extends TestCase
             ->with(self::anything(), self::anything(), 'pages', [100], true);
 
         $event = new DataHandlerRecordUpdateEvent('pages', 42, ['hidden' => 0, 'extendToSubpages' => 0]);
+
+        $this->createListener()($event);
+    }
+
+    /**
+     * @return array<string, array{0: array<string, int>, 1: array<string, int>, 2: bool}>
+     */
+    public static function subpageUpdateRequiredBoundaryProvider(): array
+    {
+        return [
+            'branch A: hidden=0 and extendToSubpages=0 changed together' => [
+                ['hidden' => 0, 'extendToSubpages' => 0],
+                ['hidden' => 0, 'extendToSubpages' => 0],
+                true,
+            ],
+            'branch A: hidden changed to non-zero' => [
+                ['hidden' => 0, 'extendToSubpages' => 0],
+                ['hidden' => 1, 'extendToSubpages' => 0],
+                false,
+            ],
+            'branch A: extendToSubpages changed to non-zero' => [
+                ['hidden' => 0, 'extendToSubpages' => 0],
+                ['hidden' => 0, 'extendToSubpages' => 1],
+                false,
+            ],
+            'branch B: extendToSubpages enabled on the page, hidden changed to 0' => [
+                ['hidden' => 0, 'extendToSubpages' => 1],
+                ['hidden' => 0],
+                true,
+            ],
+            'branch B: extendToSubpages not enabled on the page' => [
+                ['hidden' => 0, 'extendToSubpages' => 0],
+                ['hidden' => 0],
+                false,
+            ],
+            'branch B: hidden changed to non-zero' => [
+                ['hidden' => 0, 'extendToSubpages' => 1],
+                ['hidden' => 1],
+                false,
+            ],
+            'branch C: hidden enabled on the page, extendToSubpages changed to 0' => [
+                ['hidden' => 1, 'extendToSubpages' => 0],
+                ['extendToSubpages' => 0],
+                true,
+            ],
+            'branch C: hidden not enabled on the page' => [
+                ['hidden' => 0, 'extendToSubpages' => 0],
+                ['extendToSubpages' => 0],
+                false,
+            ],
+            'branch C: extendToSubpages changed to non-zero' => [
+                ['hidden' => 1, 'extendToSubpages' => 0],
+                ['extendToSubpages' => 1],
+                false,
+            ],
+        ];
+    }
+
+    /**
+     * Tests every boundary value of the three hidden/extendToSubpages
+     * conditions in isSubpageUpdateRequired() by observing whether the
+     * subpage tree lookup (getPageIdsRecursive) is triggered, without
+     * reaching into the private method via reflection.
+     */
+    #[Test]
+    #[DataProvider('subpageUpdateRequiredBoundaryProvider')]
+    public function invokeTriggersSubpageLookupOnlyAtTheDocumentedBoundaryValues(
+        array $record,
+        array $updatedFields,
+        bool $expectsSubpageLookup,
+    ): void {
+        $this->pageRepositoryMock
+            ->method('getPageRecord')
+            ->willReturnCallback(function (string $table, int $uid, string $fields = '*', bool $respectRestrictions = true) use ($record): array {
+                if ($fields === 'hidden, extendToSubpages') {
+                    return $record;
+                }
+
+                return ['hidden' => 0, 'deleted' => 0, 'no_search' => 0];
+            });
+
+        $this->recordHandlerMock
+            ->method('getRecordRootPageId')
+            ->willReturn(1);
+
+        $this->recordHandlerMock
+            ->method('createIndexerGenerator')
+            ->willReturnCallback(static function (): Generator {
+                yield from [];
+            });
+
+        if ($expectsSubpageLookup) {
+            // Returning [] short-circuits at the "if ($subPageIds !== [])"
+            // guard, so no further subpage-cascade mocks are needed here,
+            // this test only observes whether the lookup itself fires.
+            $this->pageRepositoryMock
+                ->expects(self::once())
+                ->method('getPageIdsRecursive')
+                ->willReturn([]);
+        } else {
+            $this->pageRepositoryMock
+                ->expects(self::never())
+                ->method('getPageIdsRecursive');
+        }
+
+        $event = new DataHandlerRecordUpdateEvent('pages', 42, $updatedFields);
 
         $this->createListener()($event);
     }
