@@ -287,7 +287,10 @@ class RecordHandlerTest extends TestCase
         $indexerFactoryMock
             ->method('makeInstanceByType')
             ->with('sys_file_metadata')
-            ->willReturnOnConsecutiveCalls($indexerMock1, $indexerMock2);
+            ->willReturnOnConsecutiveCalls(
+                $indexerMock1,
+                $indexerMock2,
+            );
 
         $connectionPoolMock = $this->createMock(ConnectionPool::class);
         $pageRepository     = new PageRepository($connectionPoolMock);
