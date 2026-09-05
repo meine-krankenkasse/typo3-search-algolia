@@ -376,7 +376,7 @@ class IndexQueueWorkerCommandTest extends TestCase
             ->with(
                 Constants::EXTENSION_NAME,
                 'index-queue-worker-progress',
-                self::isType('float'),
+                self::isFloat(),
             );
 
         $command = $this->createCommand();
