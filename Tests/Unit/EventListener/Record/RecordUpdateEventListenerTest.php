@@ -562,6 +562,7 @@ class RecordUpdateEventListenerTest extends TestCase
      *
      * @param array<string, int> $record
      * @param array<string, int> $updatedFields
+     * @param bool               $expectsSubpageLookup
      */
     #[Test]
     #[DataProvider('subpageUpdateRequiredBoundaryProvider')]
