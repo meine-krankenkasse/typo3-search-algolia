@@ -359,4 +359,139 @@ class RecordUpdateEventListenerTest extends TestCase
 
         $this->createListener()($event);
     }
+
+    /**
+     * Tests that the listener updates all subpages and their content
+     * elements with the correct arguments when a page's visibility change
+     * cascades down the tree, and that every configured indexing service
+     * is processed, not just the first one yielded by the generator.
+     */
+    #[Test]
+    public function invokeUpdatesSubpagesAndTheirContentElementsForAllIndexingServices(): void
+    {
+        $this->pageRepositoryMock
+            ->method('getPageRecord')
+            ->willReturnCallback(function (string $table, int $uid, string $fields = '*', bool $respectRestrictions = true): array {
+                if ($fields === 'hidden, extendToSubpages') {
+                    return ['hidden' => 0, 'extendToSubpages' => 0];
+                }
+
+                if ($uid === 100) {
+                    return ['hidden' => 0, 'deleted' => 0, 'no_search' => 0];
+                }
+
+                if ($uid === 101) {
+                    return ['hidden' => 1, 'deleted' => 0, 'no_search' => 0];
+                }
+
+                // The event record itself (uid 42)
+                return ['hidden' => 0, 'deleted' => 0, 'no_search' => 0];
+            });
+
+        $this->recordHandlerMock
+            ->method('getRecordRootPageId')
+            ->willReturn(1);
+
+        $this->pageRepositoryMock
+            ->method('getPageIdsRecursive')
+            ->willReturn([100, 101]);
+
+        $indexerMock1 = $this->createMock(IndexerInterface::class);
+        $indexerMock1
+            ->expects(self::once())
+            ->method('enqueueMultiple')
+            ->with([100, 101]);
+
+        $indexerMock2 = $this->createMock(IndexerInterface::class);
+        $indexerMock2
+            ->expects(self::once())
+            ->method('enqueueMultiple')
+            ->with([100, 101]);
+
+        $indexingServiceMock1 = $this->createMock(IndexingService::class);
+        $indexingServiceMock2 = $this->createMock(IndexingService::class);
+
+        $this->recordHandlerMock
+            ->method('createIndexerGenerator')
+            ->willReturnCallback(static function () use ($indexingServiceMock1, $indexerMock1, $indexingServiceMock2, $indexerMock2): Generator {
+                yield $indexingServiceMock1 => $indexerMock1;
+                yield $indexingServiceMock2 => $indexerMock2;
+            });
+
+        $this->recordHandlerMock
+            ->expects(self::exactly(2))
+            ->method('deleteRecords')
+            ->with(self::anything(), self::anything(), 'pages', [100, 101], false);
+
+        $processContentElementsCalls = [];
+        $this->recordHandlerMock
+            ->method('processContentElementsOfPage')
+            ->willReturnCallback(function (int $pageId, bool $removeContentElements) use (&$processContentElementsCalls): void {
+                $processContentElementsCalls[] = [$pageId, $removeContentElements];
+            });
+
+        $event = new DataHandlerRecordUpdateEvent('pages', 42, ['hidden' => 0, 'extendToSubpages' => 0]);
+
+        $this->createListener()($event);
+
+        self::assertSame(
+            [
+                [42, false],
+                [100, false],
+                [101, true],
+            ],
+            $processContentElementsCalls,
+        );
+    }
+
+    /**
+     * Tests that subpages are dequeued (deleteRecords with removeFromIndex
+     * true) but never re-enqueued when the parent page itself is disabled,
+     * proving the `if ($isRecordEnabled)` guard around enqueueMultiple()
+     * actually gates the call.
+     */
+    #[Test]
+    public function invokeDoesNotEnqueueSubpagesWhenTheParentPageIsDisabled(): void
+    {
+        $this->pageRepositoryMock
+            ->method('getPageRecord')
+            ->willReturnCallback(function (string $table, int $uid, string $fields = '*', bool $respectRestrictions = true): array {
+                if ($fields === 'hidden, extendToSubpages') {
+                    return ['hidden' => 0, 'extendToSubpages' => 0];
+                }
+
+                // The event record itself (uid 42) is disabled (hidden)
+                return ['hidden' => 1, 'deleted' => 0, 'no_search' => 0];
+            });
+
+        $this->recordHandlerMock
+            ->method('getRecordRootPageId')
+            ->willReturn(1);
+
+        $this->pageRepositoryMock
+            ->method('getPageIdsRecursive')
+            ->willReturn([100]);
+
+        $indexerMock = $this->createMock(IndexerInterface::class);
+        $indexerMock
+            ->expects(self::never())
+            ->method('enqueueMultiple');
+
+        $indexingServiceMock = $this->createMock(IndexingService::class);
+
+        $this->recordHandlerMock
+            ->method('createIndexerGenerator')
+            ->willReturnCallback(static function () use ($indexingServiceMock, $indexerMock): Generator {
+                yield $indexingServiceMock => $indexerMock;
+            });
+
+        $this->recordHandlerMock
+            ->expects(self::atLeastOnce())
+            ->method('deleteRecords')
+            ->with(self::anything(), self::anything(), 'pages', [100], true);
+
+        $event = new DataHandlerRecordUpdateEvent('pages', 42, ['hidden' => 0, 'extendToSubpages' => 0]);
+
+        $this->createListener()($event);
+    }
 }
