@@ -237,4 +237,76 @@ class RecordHandlerTest extends TestCase
 
         self::assertSame([], iterator_to_array($generator));
     }
+
+    /**
+     * Tests that createIndexerGenerator() yields an entry for every
+     * configured indexing service, not just the first one, proving the
+     * foreach loop actually iterates the full result set rather than
+     * being a no-op.
+     */
+    #[Test]
+    public function createIndexerGeneratorYieldsAnEntryForEveryConfiguredService(): void
+    {
+        $indexingServiceMock1 = $this->createMock(IndexingService::class);
+        $indexingServiceMock1->method('getType')->willReturn('sys_file_metadata');
+
+        $indexingServiceMock2 = $this->createMock(IndexingService::class);
+        $indexingServiceMock2->method('getType')->willReturn('sys_file_metadata');
+
+        $positions = [$indexingServiceMock1, $indexingServiceMock2];
+        $index     = 0;
+
+        $queryResultMock = $this->createMock(QueryResultInterface::class);
+        $queryResultMock->method('rewind')->willReturnCallback(static function () use (&$index): void {
+            $index = 0;
+        });
+        $queryResultMock->method('valid')->willReturnCallback(static function () use (&$positions, &$index): bool {
+            return isset($positions[$index]);
+        });
+        $queryResultMock->method('current')->willReturnCallback(static function () use (&$positions, &$index): IndexingService {
+            return $positions[$index];
+        });
+        $queryResultMock->method('key')->willReturnCallback(static function () use (&$index): int {
+            return $index;
+        });
+        $queryResultMock->method('next')->willReturnCallback(static function () use (&$index): void {
+            ++$index;
+        });
+
+        $this->indexingServiceRepositoryMock
+            ->method('findAllByTableName')
+            ->willReturn($queryResultMock);
+
+        $indexerMock1 = $this->createMock(IndexerInterface::class);
+        $indexerMock1->method('withIndexingService')->willReturnSelf();
+
+        $indexerMock2 = $this->createMock(IndexerInterface::class);
+        $indexerMock2->method('withIndexingService')->willReturnSelf();
+
+        $indexerFactoryMock = $this->createMock(IndexerFactory::class);
+        $indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->with('sys_file_metadata')
+            ->willReturnOnConsecutiveCalls($indexerMock1, $indexerMock2);
+
+        $connectionPoolMock = $this->createMock(ConnectionPool::class);
+        $pageRepository     = new PageRepository($connectionPoolMock);
+        $contentRepository  = new ContentRepository($connectionPoolMock);
+
+        $recordHandler = new RecordHandler(
+            $this->searchEngineFactoryMock,
+            $indexerFactoryMock,
+            $pageRepository,
+            $this->indexingServiceRepositoryMock,
+            $contentRepository,
+        );
+
+        $yieldedIndexers = [];
+
+        foreach ($recordHandler->createIndexerGenerator(1, 'sys_file_metadata') as $indexerInstance) {
+            $yieldedIndexers[] = $indexerInstance;
+        }
+
+        self::assertSame([$indexerMock1, $indexerMock2], $yieldedIndexers);
+    }
 }
