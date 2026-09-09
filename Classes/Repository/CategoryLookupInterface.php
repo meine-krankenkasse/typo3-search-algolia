@@ -25,10 +25,11 @@ interface CategoryLookupInterface
      *
      * @param string $tableName
      * @param int    $uid
+     * @param string $fieldName The sys_category_record_mm fieldname to filter by
      *
      * @return array<array-key, array<string, int|string|null>>
      */
-    public function findAssignedToRecord(string $tableName, int $uid): array;
+    public function findAssignedToRecord(string $tableName, int $uid, string $fieldName = 'categories'): array;
 
     /**
      * Returns a single system category by its UID.
@@ -45,8 +46,9 @@ interface CategoryLookupInterface
      * @param int    $uid          The UID of the record to check for category associations
      * @param string $tableName    The name of the table to which the record belongs
      * @param int[]  $categoryUids An array of category UIDs to match against
+     * @param string $fieldName    The sys_category_record_mm fieldname to filter by
      *
      * @return bool True if a category reference exists for the given criteria, false otherwise
      */
-    public function hasCategoryReference(int $uid, string $tableName, array $categoryUids): bool;
+    public function hasCategoryReference(int $uid, string $tableName, array $categoryUids, string $fieldName = 'categories'): bool;
 }

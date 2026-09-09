@@ -125,4 +125,41 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
 
         self::assertFalse($result);
     }
+
+    /**
+     * Tests that findAssignedToRecord() filters by an explicit fieldname
+     * instead of always matching the default 'categories' relation.
+     */
+    #[Test]
+    public function findAssignedToRecordFiltersByCustomFieldName(): void
+    {
+        $categories = $this->subject->findAssignedToRecord('pages', 2, 'topics');
+
+        self::assertCount(1, $categories);
+        self::assertSame('Category A', $categories[0]['title']);
+    }
+
+    /**
+     * Tests that the default fieldname argument still only returns the
+     * 'categories'-tagged relations, unaffected by other fieldnames on the
+     * same record.
+     */
+    #[Test]
+    public function findAssignedToRecordDefaultFieldNameIgnoresOtherFieldNames(): void
+    {
+        $categories = $this->subject->findAssignedToRecord('pages', 2);
+
+        self::assertCount(2, $categories);
+    }
+
+    /**
+     * Tests that hasCategoryReference() filters by an explicit fieldname
+     * instead of always matching the default 'categories' relation.
+     */
+    #[Test]
+    public function hasCategoryReferenceFiltersByCustomFieldName(): void
+    {
+        self::assertTrue($this->subject->hasCategoryReference(2, 'pages', [1], 'topics'));
+        self::assertFalse($this->subject->hasCategoryReference(2, 'pages', [2], 'topics'));
+    }
 }
