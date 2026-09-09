@@ -150,6 +150,8 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         $categories = $this->subject->findAssignedToRecord('pages', 2);
 
         self::assertCount(2, $categories);
+        self::assertSame('Category A', $categories[0]['title']);
+        self::assertSame('Category B', $categories[1]['title']);
     }
 
     /**
