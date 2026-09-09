@@ -136,6 +136,7 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         $categories = $this->subject->findAssignedToRecord('pages', 2, 'topics');
 
         self::assertCount(1, $categories);
+        self::assertSame(1, $categories[0]['uid']);
         self::assertSame('Category A', $categories[0]['title']);
     }
 
@@ -152,6 +153,18 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
         self::assertCount(2, $categories);
         self::assertSame('Category A', $categories[0]['title']);
         self::assertSame('Category B', $categories[1]['title']);
+    }
+
+    /**
+     * Tests that findAssignedToRecord() returns an empty array when
+     * a custom fieldname has no category associations.
+     */
+    #[Test]
+    public function findAssignedToRecordReturnsEmptyForCustomFieldNameWithNoMatches(): void
+    {
+        $categories = $this->subject->findAssignedToRecord('pages', 2, 'nonexistent_fieldname');
+
+        self::assertSame([], $categories);
     }
 
     /**

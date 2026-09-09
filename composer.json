@@ -74,7 +74,7 @@
             "web-dir": ".build/public"
         },
         "branch-alias": {
-            "dev-TYPO3-12": "1.3.x-dev"
+            "dev-WEB-1466": "1.3.x-dev"
         }
     },
     "autoload": {
