@@ -17,7 +17,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledPageDocumentEventListener;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\CategoryLookupInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
@@ -59,9 +58,8 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $siteFinderMock->expects(self::never())
             ->method('getSiteByPageId');
 
-        $contentRepositoryMock  = $this->createMock(ContentRepositoryInterface::class);
-        $categoryRepositoryMock = $this->createMock(CategoryLookupInterface::class);
-        $typoScriptServiceMock  = $this->createMock(TypoScriptServiceInterface::class);
+        $contentRepositoryMock = $this->createMock(ContentRepositoryInterface::class);
+        $typoScriptServiceMock = $this->createMock(TypoScriptServiceInterface::class);
 
         $indexerMock         = $this->createMock(ContentIndexer::class);
         $indexingServiceMock = $this->createMock(IndexingService::class);
@@ -78,7 +76,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $listener = new UpdateAssembledPageDocumentEventListener(
             $siteFinderMock,
             $contentRepositoryMock,
-            $categoryRepositoryMock,
             $typoScriptServiceMock,
         );
         $listener($event);
@@ -109,10 +106,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
             ->with(42)
             ->willReturn($siteMock);
 
-        $categoryRepositoryMock = $this->createMock(CategoryLookupInterface::class);
-        $categoryRepositoryMock->method('findAssignedToRecord')
-            ->willReturn([]);
-
         $contentRepositoryMock = $this->createMock(ContentRepositoryInterface::class);
         $typoScriptServiceMock = $this->createMock(TypoScriptServiceInterface::class);
 
@@ -137,7 +130,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $listener = new UpdateAssembledPageDocumentEventListener(
             $siteFinderMock,
             $contentRepositoryMock,
-            $categoryRepositoryMock,
             $typoScriptServiceMock,
         );
         $listener($event);
@@ -157,10 +149,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $siteFinderMock = $this->createMock(SiteFinder::class);
         $siteFinderMock->method('getSiteByPageId')
             ->willThrowException(new SiteNotFoundException('Not found'));
-
-        $categoryRepositoryMock = $this->createMock(CategoryLookupInterface::class);
-        $categoryRepositoryMock->method('findAssignedToRecord')
-            ->willReturn([]);
 
         $contentRepositoryMock = $this->createMock(ContentRepositoryInterface::class);
         $typoScriptServiceMock = $this->createMock(TypoScriptServiceInterface::class);
@@ -186,7 +174,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $listener = new UpdateAssembledPageDocumentEventListener(
             $siteFinderMock,
             $contentRepositoryMock,
-            $categoryRepositoryMock,
             $typoScriptServiceMock,
         );
         $listener($event);
@@ -219,10 +206,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $siteFinderMock = $this->createMock(SiteFinder::class);
         $siteFinderMock->method('getSiteByPageId')
             ->willReturn($siteMock);
-
-        $categoryRepositoryMock = $this->createMock(CategoryLookupInterface::class);
-        $categoryRepositoryMock->method('findAssignedToRecord')
-            ->willReturn([]);
 
         $contentRepositoryMock = $this->createMock(ContentRepositoryInterface::class);
         $contentRepositoryMock
@@ -262,7 +245,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $listener = new UpdateAssembledPageDocumentEventListener(
             $siteFinderMock,
             $contentRepositoryMock,
-            $categoryRepositoryMock,
             $typoScriptServiceMock,
         );
         $listener($event);
@@ -292,10 +274,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $siteFinderMock = $this->createMock(SiteFinder::class);
         $siteFinderMock->method('getSiteByPageId')
             ->willReturn($siteMock);
-
-        $categoryRepositoryMock = $this->createMock(CategoryLookupInterface::class);
-        $categoryRepositoryMock->method('findAssignedToRecord')
-            ->willReturn([]);
 
         $contentRepositoryMock = $this->createMock(ContentRepositoryInterface::class);
         $contentRepositoryMock
@@ -328,7 +306,6 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $listener = new UpdateAssembledPageDocumentEventListener(
             $siteFinderMock,
             $contentRepositoryMock,
-            $categoryRepositoryMock,
             $typoScriptServiceMock,
         );
         $listener($event);
