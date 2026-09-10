@@ -133,7 +133,11 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
     #[Test]
     public function findAssignedToRecordFiltersByCustomFieldName(): void
     {
-        $categories = $this->subject->findAssignedToRecord('pages', 2, 'topics');
+        $categories = $this->subject->findAssignedToRecord(
+            'pages',
+            2,
+            'topics'
+        );
 
         self::assertCount(1, $categories);
         self::assertSame(1, $categories[0]['uid']);
@@ -148,7 +152,10 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
     #[Test]
     public function findAssignedToRecordDefaultFieldNameIgnoresOtherFieldNames(): void
     {
-        $categories = $this->subject->findAssignedToRecord('pages', 2);
+        $categories = $this->subject->findAssignedToRecord(
+            'pages',
+            2
+        );
 
         self::assertCount(2, $categories);
         self::assertSame('Category A', $categories[0]['title']);
@@ -162,7 +169,11 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
     #[Test]
     public function findAssignedToRecordReturnsEmptyForCustomFieldNameWithNoMatches(): void
     {
-        $categories = $this->subject->findAssignedToRecord('pages', 2, 'nonexistent_fieldname');
+        $categories = $this->subject->findAssignedToRecord(
+            'pages',
+            2,
+            'nonexistent_fieldname'
+        );
 
         self::assertSame([], $categories);
     }
