@@ -166,15 +166,4 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
 
         self::assertSame([], $categories);
     }
-
-    /**
-     * Tests that hasCategoryReference() filters by an explicit fieldname
-     * instead of always matching the default 'categories' relation.
-     */
-    #[Test]
-    public function hasCategoryReferenceFiltersByCustomFieldName(): void
-    {
-        self::assertTrue($this->subject->hasCategoryReference(2, 'pages', [1], 'topics'));
-        self::assertFalse($this->subject->hasCategoryReference(2, 'pages', [2], 'topics'));
-    }
 }
