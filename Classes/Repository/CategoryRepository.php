@@ -45,13 +45,14 @@ readonly class CategoryRepository implements CategoryLookupInterface
      *
      * @param string $tableName
      * @param int    $uid
+     * @param string $fieldName The sys_category_record_mm fieldname to filter by
      *
      * @return array<array-key, array<string, int|string|null>>
      *
      * @throws Exception
      */
     #[Override]
-    public function findAssignedToRecord(string $tableName, int $uid): array
+    public function findAssignedToRecord(string $tableName, int $uid, string $fieldName = 'categories'): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($tableName);
@@ -82,7 +83,7 @@ readonly class CategoryRepository implements CategoryLookupInterface
                 ),
                 $queryBuilder->expr()->eq(
                     'mm.fieldname',
-                    $queryBuilder->quote('categories')
+                    $queryBuilder->createNamedParameter($fieldName)
                 )
             )
             ->orderBy('sc.title')
