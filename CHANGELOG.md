@@ -1,3 +1,13 @@
+# 1.4.0
+
+## FEATURE
+
+- WEB-1466: Add an optional `$fieldName` parameter to `CategoryLookupInterface::findAssignedToRecord()`, so callers can filter `sys_category_record_mm` by a fieldname other than `categories` (e.g. `topics`). Backward compatible, the existing caller keeps using the default.
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.3.4
 
 ## MISC
