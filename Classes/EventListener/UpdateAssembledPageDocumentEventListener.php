@@ -14,7 +14,6 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener;
 use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\CategoryLookupInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
@@ -79,15 +78,13 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
      * enhancing page documents with site-specific information and content,
      * making search results more useful and comprehensive.
      *
-     * @param SiteFinder                 $siteFinder         The TYPO3 site finder service
-     * @param ContentRepositoryInterface $contentRepository  The repository for accessing content elements
-     * @param CategoryLookupInterface    $categoryRepository The repository for accessing system categories
-     * @param TypoScriptServiceInterface $typoScriptService  The service for accessing TypoScript configuration
+     * @param SiteFinder                 $siteFinder        The TYPO3 site finder service
+     * @param ContentRepositoryInterface $contentRepository The repository for accessing content elements
+     * @param TypoScriptServiceInterface $typoScriptService The service for accessing TypoScript configuration
      */
     public function __construct(
         private readonly SiteFinder $siteFinder,
         private readonly ContentRepositoryInterface $contentRepository,
-        private readonly CategoryLookupInterface $categoryRepository,
         private readonly TypoScriptServiceInterface $typoScriptService,
     ) {
     }
@@ -137,27 +134,6 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
         $document->setField(
             'site',
             $this->getSiteDomain($site)
-        );
-
-        // Get all assigned categories
-        $categories = $this->categoryRepository->findAssignedToRecord(
-            $this->event->getIndexer()->getTable(),
-            $pageId
-        );
-
-        // Add categories
-        // TODO Add categories as default to each document?
-        $document->setField(
-            'categories',
-            array_unique(
-                array_values(
-                    array_column(
-                        $categories,
-                        'title',
-                        'uid'
-                    )
-                )
-            )
         );
 
         if (($record['SYS_LASTCHANGED'] ?? 0) !== 0) {

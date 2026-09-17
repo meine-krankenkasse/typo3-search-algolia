@@ -1,3 +1,44 @@
+# 1.4.0
+
+## FEATURE
+
+- WEB-1466: Add an optional `$fieldName` parameter to `CategoryLookupInterface::findAssignedToRecord()`, so callers can filter `sys_category_record_mm` by a fieldname other than `categories` (e.g. `topics`). Backward compatible, the existing caller keeps using the default.
+
+## Contributors
+
+- Rico Sonntag
+
+# 1.3.4
+
+## MISC
+
+- WEB-1469: Update author contact address to digital@meine-krankenkasse.de
+
+## Contributors
+
+- Rico Sonntag
+
+# 1.3.3
+
+## MISC
+
+- WEB-1469: Update author/company metadata to mkk – meine krankenkasse
+
+## Contributors
+
+- Rico Sonntag
+
+# 1.3.2
+
+## MISC
+
+- WEB-1469: Relicense to GPL-3.0-or-later
+- WEB-1469: Prepare and publish first release to the TYPO3 Extension Repository
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.3.1
 
 ## MISC

@@ -51,3 +51,17 @@ composer require typo3/cms-workspaces
 ```
 
 Without this extension, the search indexer will still work but won't automatically queue records when publishing from workspaces.
+
+## Releasing
+
+1. Bump the `version` in `ext_emconf.php`
+2. Add a `CHANGELOG.md` entry (`# X.Y.Z` heading)
+3. Commit and push
+4. Create and push a tag matching the version, no `v` prefix, e.g.:
+   ```bash
+   git tag -s 1.3.3 -m 1.3.3
+   git push origin 1.3.3
+   ```
+5. A GitHub Release is created automatically from the tag, which publishes the new version to [TER](https://extensions.typo3.org/extension/typo3_search_algolia)
+
+To re-publish an already-tagged version (e.g. to fix the TER upload comment), trigger the "Publish new extension version to TER" workflow manually via `workflow_dispatch` with that tag as input.

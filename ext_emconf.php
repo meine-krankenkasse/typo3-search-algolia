@@ -7,17 +7,15 @@
  * LICENSE file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 $EM_CONF['typo3_search_algolia'] = [
     'title'          => 'Meine Krankenkasse: TYPO3 Search Algolia',
     'description'    => 'A TYPO3 extension that integrates Algolia search into your website by indexing TYPO3 content for lightning-fast, relevant search results.',
     'category'       => 'module',
-    'author'         => 'Rico Sonntag',
-    'author_email'   => 'rico.sonntag@netresearch.de',
-    'author_company' => 'Netresearch DTT GmbH',
+    'author'         => 'mkk – meine krankenkasse',
+    'author_email'   => 'digital@meine-krankenkasse.de',
+    'author_company' => 'mkk – meine krankenkasse',
     'state'          => 'stable',
-    'version'        => '1.3.1',
+    'version'        => '1.4.0',
     'constraints'    => [
         'depends' => [
             'typo3' => '12.4.0-12.99.99',

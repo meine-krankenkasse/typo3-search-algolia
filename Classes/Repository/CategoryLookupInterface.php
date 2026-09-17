@@ -25,10 +25,11 @@ interface CategoryLookupInterface
      *
      * @param string $tableName
      * @param int    $uid
+     * @param string $fieldName The sys_category_record_mm fieldname to filter by
      *
      * @return array<array-key, array<string, int|string|null>>
      */
-    public function findAssignedToRecord(string $tableName, int $uid): array;
+    public function findAssignedToRecord(string $tableName, int $uid, string $fieldName = 'categories'): array;
 
     /**
      * Returns a single system category by its UID.

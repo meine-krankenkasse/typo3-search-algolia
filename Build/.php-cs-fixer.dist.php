@@ -94,5 +94,7 @@ return (new PhpCsFixer\Config())
             ->exclude('config')
             ->exclude('node_modules')
             ->exclude('var')
+            // TER cannot parse ext_emconf.php if it declares strict_types
+            ->notPath('ext_emconf.php')
             ->in(__DIR__ . '/../')
     );
