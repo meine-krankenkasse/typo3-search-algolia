@@ -213,18 +213,29 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                         $record
                     );
                 }
-
-                // Remove index item from queue
-                $this->queueItemRepository->remove($item);
-                $this->persistenceManager->persistAll();
             } catch (BadRequestException $exception) {
-                // TODO Track indexing errors and display failed records in backend
-
-                // Ignore errors of type "Record is too big"
                 if (!str_contains($exception->getMessage(), 'Record is too big')) {
                     throw $exception;
                 }
+
+                // The record still exceeds the search engine's size limit even
+                // after content truncation (e.g. because of other oversized
+                // fields). Log it, then fall through to the same removal as a
+                // successful run, instead of leaving it in place where it
+                // would fail again on every future run.
+                $this->logger?->warning(
+                    'Record exceeds search engine size limit, removed from queue without indexing',
+                    [
+                        'tableName' => $item->getTableName(),
+                        'recordUid' => $item->getRecordUid(),
+                        'exception' => $exception->getMessage(),
+                    ]
+                );
             }
+
+            // Remove index item from queue
+            $this->queueItemRepository->remove($item);
+            $this->persistenceManager->persistAll();
 
             $progressBar->advance();
 
