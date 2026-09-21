@@ -16,6 +16,12 @@ module {
                     author = author
                     keywords = keywords
                 }
+
+                # Optional. Comma-separated list of colPos values whose content elements are left out
+                # of the page's indexed content (only used if "Include content elements" is enabled
+                # in the indexing service). If not set, every colPos is indexed.
+                # Do not assign a value here, it would override a value set earlier by a site package.
+                # Example: excludeColPos = 9999
             }
 
             # \MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer::TABLE

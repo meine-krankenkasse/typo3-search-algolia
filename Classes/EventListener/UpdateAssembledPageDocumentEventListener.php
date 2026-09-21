@@ -249,7 +249,8 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
      * full-text indexing. The process involves:
      *
      * 1. Retrieving content elements from the database using the ContentRepository
-     * 2. Filtering elements based on content element types if configured in the indexing service
+     * 2. Filtering elements by content element type (indexing service) and leaving out the
+     *    colPos values excluded via TypoScript
      * 3. Extracting content from specific fields of each content element based on TypoScript configuration
      * 4. Cleaning and normalizing the content using ContentExtractor
      * 5. Combining all content into a single string with proper spacing between elements
@@ -280,11 +281,15 @@ class UpdateAssembledPageDocumentEventListener implements LoggerAwareInterface
             true
         );
 
+        $excludedColPos = $this->typoScriptService
+            ->getExcludedColPos(PageIndexer::TABLE);
+
         $rows = $this->contentRepository
             ->findAllByPid(
                 $pageId,
                 array_keys($contentElementFields),
-                $contentElementTypes
+                $contentElementTypes,
+                $excludedColPos
             );
 
         $content = '';

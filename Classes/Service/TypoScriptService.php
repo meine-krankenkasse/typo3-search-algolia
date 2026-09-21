@@ -14,6 +14,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Service;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\FileIndexer;
 use Override;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 use function is_array;
@@ -97,6 +98,48 @@ readonly class TypoScriptService implements TypoScriptServiceInterface
         }
 
         return [];
+    }
+
+    /**
+     * Returns the colPos values whose content elements are excluded from indexing.
+     *
+     * The values are read from the comma-separated TypoScript option
+     * "module.tx_typo3searchalgolia.indexer.<indexerType>.excludeColPos". Entries are
+     * accepted in plain integer notation only, everything else (letters, decimals,
+     * leading zeros, a plus sign) is ignored, so a typo can never be misread as colPos 0.
+     * An empty or missing option returns an empty array, meaning nothing is excluded.
+     *
+     * @param string $indexerType The indexer type, e.g. "pages"
+     *
+     * @return int[] The colPos values to exclude
+     */
+    #[Override]
+    public function getExcludedColPos(string $indexerType): array
+    {
+        $typoscriptConfiguration = $this->getTypoScriptConfiguration();
+
+        if (
+            !isset($typoscriptConfiguration['indexer'][$indexerType]['excludeColPos'])
+            || !is_string($typoscriptConfiguration['indexer'][$indexerType]['excludeColPos'])
+        ) {
+            return [];
+        }
+
+        $excludedColPos = [];
+
+        $entries = GeneralUtility::trimExplode(
+            ',',
+            $typoscriptConfiguration['indexer'][$indexerType]['excludeColPos'],
+            true
+        );
+
+        foreach ($entries as $entry) {
+            if (MathUtility::canBeInterpretedAsInteger($entry)) {
+                $excludedColPos[] = (int) $entry;
+            }
+        }
+
+        return $excludedColPos;
     }
 
     /**

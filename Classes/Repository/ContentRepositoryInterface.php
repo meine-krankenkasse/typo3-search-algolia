@@ -37,10 +37,16 @@ interface ContentRepositoryInterface
      * @param int      $pageId              The UID of the page containing the content elements
      * @param string[] $columns             Array of column names to retrieve from each record
      * @param string[] $contentElementTypes Optional list of content element types (CType) to filter by
+     * @param int[]    $excludeColPos       Optional list of colPos values whose content elements are left out
      *
      * @return array<int, array<string, mixed>> Array of content element records, each as an associative array
      *
      * @throws Exception If a database error occurs during the query
      */
-    public function findAllByPid(int $pageId, array $columns, array $contentElementTypes = []): array;
+    public function findAllByPid(
+        int $pageId,
+        array $columns,
+        array $contentElementTypes = [],
+        array $excludeColPos = [],
+    ): array;
 }

@@ -164,4 +164,82 @@ class TypoScriptServiceTest extends TestCase
 
         self::assertSame([], $result);
     }
+
+    /**
+     * Tests that getExcludedColPos() returns the configured colPos values as
+     * integers, tolerating whitespace around the entries and keeping the
+     * value 0 (TYPO3's default main-content colPos) and negative values.
+     */
+    #[Test]
+    public function getExcludedColPosReturnsIntegers(): void
+    {
+        $subject = $this->createSubjectWithConfig([
+            'module.' => [
+                'tx_typo3searchalgolia.' => [
+                    'indexer.' => [
+                        'pages.' => [
+                            'excludeColPos' => '0, 9999 ,101,-2',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        self::assertSame([0, 9999, 101, -2], $subject->getExcludedColPos('pages'));
+    }
+
+    /**
+     * Tests that getExcludedColPos() drops empty and non-numeric entries
+     * instead of casting them to colPos 0, so a typo such as "9999x" can
+     * never silently exclude the main-content column.
+     */
+    #[Test]
+    public function getExcludedColPosIgnoresInvalidEntries(): void
+    {
+        $subject = $this->createSubjectWithConfig([
+            'module.' => [
+                'tx_typo3searchalgolia.' => [
+                    'indexer.' => [
+                        'pages.' => [
+                            'excludeColPos' => '9999x,abc,,1.5,5',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        self::assertSame([5], $subject->getExcludedColPos('pages'));
+    }
+
+    /**
+     * Tests that getExcludedColPos() returns an empty array when the option
+     * is empty, missing or not a string, and that it reads the option of the
+     * requested indexer type only.
+     */
+    #[Test]
+    public function getExcludedColPosReturnsEmptyWhenNotConfigured(): void
+    {
+        $subject = $this->createSubjectWithConfig([
+            'module.' => [
+                'tx_typo3searchalgolia.' => [
+                    'indexer.' => [
+                        'pages.' => [
+                            'excludeColPos' => '',
+                        ],
+                        'tt_content.' => [
+                            'excludeColPos' => '9999',
+                        ],
+                        'news.' => [
+                            'excludeColPos.' => ['9999'],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        self::assertSame([], $subject->getExcludedColPos('pages'));
+        self::assertSame([9999], $subject->getExcludedColPos('tt_content'));
+        self::assertSame([], $subject->getExcludedColPos('news'));
+        self::assertSame([], $subject->getExcludedColPos('sys_file_metadata'));
+    }
 }
