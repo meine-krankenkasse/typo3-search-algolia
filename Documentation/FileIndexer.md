@@ -99,7 +99,7 @@ Files are indexed when:
 
 2. **Metadata Quality**: Ensure your files have proper metadata (title, description, etc.) as this significantly improves search quality. Well-described files are more likely to appear in relevant search results.
 
-3. **File Size Considerations**: Be mindful of very large PDF files, as content extraction can be resource-intensive. Extracted content is automatically truncated to stay within the search engine's per-record size limit, so oversized files are indexed with the beginning of their text rather than being rejected.
+3. **File Size Considerations**: Be mindful of very large PDF files, as content extraction can be resource-intensive. Extracted content is automatically truncated to stay within the search engine's per-record size limit for most files. If a record is still too large after truncation (e.g. because of other oversized fields), it is removed from the index queue without being indexed.
 
 4. **File Extensions**: Only enable content extraction for file types that contain searchable text. Adding non-text file types to the extensions list won't provide useful search content.
 
