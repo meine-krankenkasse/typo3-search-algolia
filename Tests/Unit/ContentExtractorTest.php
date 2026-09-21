@@ -15,6 +15,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 /**
  * Unit tests for ContentExtractor.
@@ -26,6 +27,19 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ContentExtractor::class)]
 class ContentExtractorTest extends TestCase
 {
+    /**
+     * Tests that the constructor is private, so ContentExtractor's static-only
+     * utility methods cannot be circumvented by instantiating the class. This
+     * only inspects the constructor's declared visibility, it never invokes it.
+     */
+    #[Test]
+    public function constructorIsPrivate(): void
+    {
+        $constructor = new ReflectionMethod(ContentExtractor::class, '__construct');
+
+        self::assertTrue($constructor->isPrivate());
+    }
+
     /**
      * Tests that sanitizeContent() strips inline <script> blocks and their content
      * from the HTML string, leaving only the surrounding text joined by a space.
