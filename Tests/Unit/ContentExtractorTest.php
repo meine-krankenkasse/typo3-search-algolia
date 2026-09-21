@@ -15,6 +15,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\ContentExtractor;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 /**
  * Unit tests for ContentExtractor.
@@ -26,6 +27,19 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ContentExtractor::class)]
 class ContentExtractorTest extends TestCase
 {
+    /**
+     * Tests that the constructor is private, so ContentExtractor's static-only
+     * utility methods cannot be circumvented by instantiating the class. This
+     * only inspects the constructor's declared visibility, it never invokes it.
+     */
+    #[Test]
+    public function constructorIsPrivate(): void
+    {
+        $constructor = new ReflectionMethod(ContentExtractor::class, '__construct');
+
+        self::assertTrue($constructor->isPrivate());
+    }
+
     /**
      * Tests that sanitizeContent() strips inline <script> blocks and their content
      * from the HTML string, leaving only the surrounding text joined by a space.
@@ -267,5 +281,374 @@ class ContentExtractorTest extends TestCase
         $validUtf8 = 'Ärzte für Überweisung — 日本語 🔍';
 
         self::assertSame($validUtf8, ContentExtractor::sanitizeContent($validUtf8));
+    }
+
+    // -----------------------------------------------------------------------
+    // truncateToByteLength()
+    // -----------------------------------------------------------------------
+
+    /**
+     * Tests that truncateToByteLength() returns the content unchanged when
+     * it is already shorter than the given byte limit.
+     */
+    #[Test]
+    public function truncateToByteLengthReturnsContentUnchangedWhenUnderLimit(): void
+    {
+        $content = 'Short content';
+
+        self::assertSame($content, ContentExtractor::truncateToByteLength($content, 1000));
+    }
+
+    /**
+     * Tests that truncateToByteLength() returns the content unchanged when
+     * its byte length exactly matches the given limit.
+     */
+    #[Test]
+    public function truncateToByteLengthReturnsContentUnchangedWhenExactlyAtLimit(): void
+    {
+        $content = str_repeat('a', 10);
+
+        self::assertSame($content, ContentExtractor::truncateToByteLength($content, 10));
+    }
+
+    /**
+     * Tests that truncateToByteLength() cuts plain ASCII content down to
+     * exactly the given number of bytes.
+     */
+    #[Test]
+    public function truncateToByteLengthCutsAsciiContentToExactByteLength(): void
+    {
+        $content = str_repeat('a', 20);
+
+        $result = ContentExtractor::truncateToByteLength($content, 10);
+
+        self::assertSame(str_repeat('a', 10), $result);
+        self::assertSame(10, strlen($result));
+    }
+
+    /**
+     * Tests that truncateToByteLength() never splits a multi-byte UTF-8
+     * character in the middle, even when the byte limit falls inside one.
+     * Splitting mid-character would produce invalid UTF-8 and break
+     * json_encode() when the document is sent to the search engine.
+     */
+    #[Test]
+    public function truncateToByteLengthDoesNotSplitMultiByteCharacter(): void
+    {
+        // Each 'ä' is 2 bytes in UTF-8, so a limit of 11 bytes falls exactly
+        // in the middle of the 6th character.
+        $content = str_repeat('ä', 10);
+
+        $result = ContentExtractor::truncateToByteLength($content, 11);
+
+        self::assertTrue(mb_check_encoding($result, 'UTF-8'), 'Result must be valid UTF-8');
+        self::assertLessThanOrEqual(11, strlen($result));
+        self::assertSame(str_repeat('ä', 5), $result);
+    }
+
+    /**
+     * Tests that truncateToByteLength() returns an empty string when given
+     * an empty string, regardless of the byte limit.
+     */
+    #[Test]
+    public function truncateToByteLengthReturnsEmptyStringForEmptyInput(): void
+    {
+        self::assertSame('', ContentExtractor::truncateToByteLength('', 100));
+    }
+
+    /**
+     * Tests that truncateToByteLength() returns an empty string when the
+     * byte limit itself is zero, the degenerate case of the limit.
+     */
+    #[Test]
+    public function truncateToByteLengthReturnsEmptyStringWhenMaxBytesIsZero(): void
+    {
+        self::assertSame('', ContentExtractor::truncateToByteLength('non-empty content', 0));
+    }
+
+    // -----------------------------------------------------------------------
+    // removeRecurringLines()
+    // -----------------------------------------------------------------------
+
+    /**
+     * Tests that removeRecurringLines() leaves the pages untouched when the
+     * number of pages is below the minimum required to reliably detect a
+     * recurring header or footer.
+     */
+    #[Test]
+    public function removeRecurringLinesKeepsAllLinesBelowMinimumPageCount(): void
+    {
+        $pages = [
+            "Recurring Header\nFirst page content.",
+            "Recurring Header\nSecond page content.",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringContainsString('Recurring Header', $result);
+        self::assertStringContainsString('First page content.', $result);
+        self::assertStringContainsString('Second page content.', $result);
+    }
+
+    /**
+     * Tests that removeRecurringLines() strips a line that appears as the
+     * first line on every page once the minimum page count is reached.
+     */
+    #[Test]
+    public function removeRecurringLinesStripsRecurringHeaderLine(): void
+    {
+        $pages = [
+            "Satzung der Krankenkasse\nContent of page one.",
+            "Satzung der Krankenkasse\nContent of page two.",
+            "Satzung der Krankenkasse\nContent of page three.",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('Satzung der Krankenkasse', $result);
+        self::assertStringContainsString('Content of page one.', $result);
+        self::assertStringContainsString('Content of page two.', $result);
+        self::assertStringContainsString('Content of page three.', $result);
+    }
+
+    /**
+     * Tests that removeRecurringLines() strips a line that appears as the
+     * last line on every page (a footer), not just header lines.
+     */
+    #[Test]
+    public function removeRecurringLinesStripsRecurringFooterLine(): void
+    {
+        $pages = [
+            "Content of page one.\nConfidential internal document",
+            "Content of page two.\nConfidential internal document",
+            "Content of page three.\nConfidential internal document",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('Confidential internal document', $result);
+        self::assertStringContainsString('Content of page one.', $result);
+    }
+
+    /**
+     * Tests that removeRecurringLines() keeps a line that only appears on a
+     * minority of pages, since it does not meet the recurrence threshold
+     * and is therefore not reliably a header or footer.
+     */
+    #[Test]
+    public function removeRecurringLinesKeepsLineBelowFrequencyThreshold(): void
+    {
+        $pages = [
+            "Occasional Note\nContent of page one.",
+            'Content of page two.',
+            'Content of page three.',
+            'Content of page four.',
+            'Content of page five.',
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringContainsString('Occasional Note', $result);
+    }
+
+    /**
+     * Tests that a line classified as recurring boilerplate (because it
+     * appears at the edge of most pages) is only removed from the pages
+     * where it actually occupies an edge position. On a page where the
+     * same exact text happens to occur in the interior instead, it is
+     * genuine body content there and must be kept, even though the
+     * removal set was built from other pages' edge occurrences.
+     */
+    #[Test]
+    public function removeRecurringLinesKeepsInteriorOccurrenceOfALineThatIsRecurringElsewhere(): void
+    {
+        $pages = [
+            "Page 1 body.\nMore body text line.\nConfidential internal use only",
+            "Page 2 body.\nMore body text line.\nConfidential internal use only",
+            "Page 3 body.\nMore body text line.\nConfidential internal use only",
+            "Page 4 body.\nMore body text line.\nConfidential internal use only",
+            "Intro line.\nAs stated above,\nConfidential internal use only\nis the classification used here.\nFinal line.",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringContainsString('is the classification used here.', $result);
+        self::assertStringContainsString('As stated above,', $result);
+        self::assertStringContainsString('Confidential internal use only', $result);
+    }
+
+    /**
+     * Tests that removeRecurringLines() only inspects the leading and
+     * trailing lines of each page for recurrence, so an identical sentence
+     * appearing in the middle of every page (not a header or footer) is
+     * preserved rather than removed as if it were boilerplate.
+     */
+    #[Test]
+    public function removeRecurringLinesKeepsIdenticalInteriorLine(): void
+    {
+        $pages = [
+            "Page 1 line 1\nPage 1 line 2\nSame middle sentence.\nPage 1 line 4\nPage 1 line 5",
+            "Page 2 line 1\nPage 2 line 2\nSame middle sentence.\nPage 2 line 4\nPage 2 line 5",
+            "Page 3 line 1\nPage 3 line 2\nSame middle sentence.\nPage 3 line 4\nPage 3 line 5",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringContainsString('Same middle sentence.', $result);
+    }
+
+    /**
+     * Tests that removeRecurringLines() strips a line that recurs on exactly
+     * the minimum frequency ratio (3 of 5 pages = 0.6), the inclusive
+     * boundary of the default threshold.
+     */
+    #[Test]
+    public function removeRecurringLinesStripsLineAtExactFrequencyThreshold(): void
+    {
+        $pages = [
+            "Shared Header\nContent of page one.",
+            "Shared Header\nContent of page two.",
+            "Shared Header\nContent of page three.",
+            'Content of page four.',
+            'Content of page five.',
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('Shared Header', $result);
+        self::assertStringContainsString('Content of page four.', $result);
+    }
+
+    /**
+     * Tests that a page short enough for its leading and trailing edge
+     * slices to overlap (e.g. a single-line page) only counts its line once
+     * towards the recurrence frequency, not once per overlapping slice.
+     * Without that de-duplication, a line below the frequency threshold
+     * could be miscounted as recurring often enough to be stripped.
+     */
+    #[Test]
+    public function removeRecurringLinesDoesNotDoubleCountLinesOnAShortOverlappingPage(): void
+    {
+        $pages = [
+            'Short Boilerplate',
+            "Short Boilerplate\nContent of page two.",
+            'Content of page three.',
+            'Content of page four.',
+            'Content of page five.',
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringContainsString('Short Boilerplate', $result);
+    }
+
+    /**
+     * Tests that a blank page mixed in among pages with a recurring header
+     * neither crashes nor prevents the header from being detected, as long
+     * as the header still meets the frequency threshold among all pages.
+     */
+    #[Test]
+    public function removeRecurringLinesTreatsBlankPageAsHavingNoEdgeLines(): void
+    {
+        $pages = [
+            "Recurring Header\nContent of page one.",
+            "Recurring Header\nContent of page two.",
+            "Recurring Header\nContent of page three.",
+            "Recurring Header\nContent of page four.",
+            "   \n\t  ",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('Recurring Header', $result);
+        self::assertStringContainsString('Content of page one.', $result);
+    }
+
+    /**
+     * Tests that a recurring line at the second line of each page (not just
+     * the very first line) is still detected, pinning the configured edge
+     * width rather than only ever exercising a width of one.
+     */
+    #[Test]
+    public function removeRecurringLinesStripsLineAtSecondLinePosition(): void
+    {
+        $pages = [
+            "Page 1 title.\nRecurring Subtitle\nBody content one.",
+            "Page 2 title.\nRecurring Subtitle\nBody content two.",
+            "Page 3 title.\nRecurring Subtitle\nBody content three.",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('Recurring Subtitle', $result);
+        self::assertStringContainsString('Page 1 title.', $result);
+        self::assertStringContainsString('Body content one.', $result);
+    }
+
+    /**
+     * Tests that removeRecurringLines() does not strip a line when called
+     * with its default $minPages, using fewer pages than that default
+     * requires, pinning the default's exact value rather than only ever
+     * exercising it via an explicitly passed, equal argument.
+     */
+    #[Test]
+    public function removeRecurringLinesKeepsAllLinesBelowDefaultMinimumPageCount(): void
+    {
+        $pages = [
+            "Recurring Header\nFirst page content.",
+            "Recurring Header\nSecond page content.",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages);
+
+        self::assertStringContainsString('Recurring Header', $result);
+    }
+
+    /**
+     * Tests that a purely numeric line (e.g. a document reference number
+     * printed as a running header) is stripped like any other recurring
+     * line. PHP coerces a numeric-string array key to int, so the line's
+     * text must survive that round trip as a string for the later strict
+     * in_array() comparison to still match it.
+     */
+    #[Test]
+    public function removeRecurringLinesStripsPurelyNumericRecurringLine(): void
+    {
+        $pages = [
+            "12345\nContent of page one.",
+            "12345\nContent of page two.",
+            "12345\nContent of page three.",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('12345', $result);
+        self::assertStringContainsString('Content of page one.', $result);
+    }
+
+    /**
+     * Tests that a recurring line exactly at the first index of the
+     * trailing edge window (index 4 of a 6-line page, with the default
+     * edge width of 2) is stripped, on a page long enough that the
+     * leading-edge condition alone does not already cover that index.
+     * Pins the trailing-edge boundary as inclusive (>=), not exclusive (>).
+     */
+    #[Test]
+    public function removeRecurringLinesStripsLineAtTrailingEdgeBoundary(): void
+    {
+        // Lines 1, 2 and 6 are unique per page so they never qualify as
+        // recurring themselves, isolating the boundary line at index 4
+        // (line 5) as the only thing this test is actually pinning.
+        $pages = [
+            "Page one start a\nPage one start b\nPage one middle\nPage one filler\nRecurring Footer\nPage one end",
+            "Page two start a\nPage two start b\nPage two middle\nPage two filler\nRecurring Footer\nPage two end",
+            "Page three start a\nPage three start b\nPage three middle\nPage three filler\nRecurring Footer\nPage three end",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('Recurring Footer', $result);
+        self::assertStringContainsString('Page one middle', $result);
+        self::assertStringContainsString('Page one end', $result);
     }
 }
