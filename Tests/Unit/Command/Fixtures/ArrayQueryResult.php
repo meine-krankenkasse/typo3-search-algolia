@@ -29,7 +29,7 @@ use function count;
  *
  * @template TValue of object
  *
- * @implements QueryResultInterface<int, TValue>
+ * @implements QueryResultInterface<TValue>
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -63,7 +63,7 @@ final readonly class ArrayQueryResult implements QueryResultInterface
      * Not implemented, this test double has no underlying query to return.
      */
     #[Override]
-    public function getQuery()
+    public function getQuery(): never
     {
         throw new RuntimeException('Not implemented in this test double', 1758444001);
     }
@@ -81,7 +81,7 @@ final readonly class ArrayQueryResult implements QueryResultInterface
      * Returns all items as a plain, re-indexed array.
      */
     #[Override]
-    public function toArray()
+    public function toArray(): array
     {
         return array_values($this->items);
     }
@@ -117,9 +117,9 @@ final readonly class ArrayQueryResult implements QueryResultInterface
      * Returns the key at the iterator's current position.
      */
     #[Override]
-    public function key(): mixed
+    public function key(): string
     {
-        return $this->iterator->key();
+        return (string) $this->iterator->key();
     }
 
     /**
@@ -162,7 +162,7 @@ final readonly class ArrayQueryResult implements QueryResultInterface
      * Not implemented, this test double is read-only.
      */
     #[Override]
-    public function offsetSet(mixed $offset, mixed $value): void
+    public function offsetSet(mixed $offset, mixed $value): never
     {
         throw new RuntimeException('This test double is read-only', 1758444002);
     }
@@ -171,7 +171,7 @@ final readonly class ArrayQueryResult implements QueryResultInterface
      * Not implemented, this test double is read-only.
      */
     #[Override]
-    public function offsetUnset(mixed $offset): void
+    public function offsetUnset(mixed $offset): never
     {
         throw new RuntimeException('This test double is read-only', 1758444003);
     }
