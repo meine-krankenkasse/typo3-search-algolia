@@ -58,6 +58,13 @@ class ContentExtractor
     private const int EDGE_LINE_COUNT = 2;
 
     /**
+     * This class only provides static methods and is never instantiated.
+     */
+    private function __construct()
+    {
+    }
+
+    /**
      * Removes all unwanted elements from the given HTML string.
      *
      * This method processes HTML content to make it suitable for search indexing by:

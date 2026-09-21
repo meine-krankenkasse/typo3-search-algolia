@@ -218,11 +218,12 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                     throw $exception;
                 }
 
-                // The record still exceeds the search engine's size limit even
-                // after content truncation (e.g. because of other oversized
-                // fields). Log it, then fall through to the same removal as a
-                // successful run, instead of leaving it in place where it
-                // would fail again on every future run.
+                // The record still exceeds the search engine's size limit
+                // (for file records, even after content truncation; other
+                // record types have no truncation step and may simply be
+                // inherently oversized). Log it, then fall through to the
+                // same removal as a successful run, instead of leaving it
+                // in place where it would fail again on every future run.
                 $this->logger?->warning(
                     'Record exceeds search engine size limit, removed from queue without indexing',
                     [

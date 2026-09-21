@@ -24,6 +24,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Command\Fixtures\ArrayQueryResult;
 use Override;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -172,7 +173,7 @@ class IndexQueueWorkerCommandTest extends TestCase
             ->with('uid', $recordUid)
             ->willReturn('uid = ' . $recordUid);
 
-        $resultMock = $this->createMock(Result::class);
+        $resultMock = self::createStub(Result::class);
         $resultMock
             ->method('fetchAssociative')
             ->willReturn($record);
@@ -257,6 +258,7 @@ class IndexQueueWorkerCommandTest extends TestCase
      * indexed successfully, which is the normal, non-error path.
      */
     #[Test]
+    #[AllowMockObjectsWithoutExpectations]
     public function indexItemsRemovesQueueItemAfterSuccessfulIndexing(): void
     {
         $indexerMock = $this->createMock(IndexerInterface::class);
@@ -283,6 +285,7 @@ class IndexQueueWorkerCommandTest extends TestCase
      * being left in the queue where it would fail again on every future run.
      */
     #[Test]
+    #[AllowMockObjectsWithoutExpectations]
     public function indexItemsRemovesAndLogsQueueItemWhenRecordExceedsSizeLimit(): void
     {
         $indexerMock = self::createStub(IndexerInterface::class);
@@ -325,6 +328,7 @@ class IndexQueueWorkerCommandTest extends TestCase
      * logger is always present.
      */
     #[Test]
+    #[AllowMockObjectsWithoutExpectations]
     public function indexItemsRemovesQueueItemWhenRecordExceedsSizeLimitWithoutLoggerSet(): void
     {
         $indexerMock = self::createStub(IndexerInterface::class);
@@ -351,6 +355,7 @@ class IndexQueueWorkerCommandTest extends TestCase
      * unexpected problem that should not be silently ignored.
      */
     #[Test]
+    #[AllowMockObjectsWithoutExpectations]
     public function indexItemsRethrowsBadRequestExceptionForOtherReasons(): void
     {
         $indexerMock = self::createStub(IndexerInterface::class);
