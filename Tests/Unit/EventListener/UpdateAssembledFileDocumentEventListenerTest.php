@@ -341,7 +341,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
 
         $content = $document->getFields()['content'];
 
-        self::assertLessThanOrEqual(50, strlen($content));
+        self::assertLessThanOrEqual(50, strlen((string) $content));
         self::assertTrue(mb_check_encoding($content, 'UTF-8'));
     }
 }
