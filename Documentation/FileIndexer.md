@@ -101,6 +101,21 @@ Files are indexed when:
 
 3. **File Size Considerations**: Be mindful of very large PDF files, as content extraction can be resource-intensive. Extracted content is automatically truncated to stay within the search engine's per-record size limit for most files. If a record is still too large after truncation (e.g. because of other oversized fields), it is removed from the index queue without being indexed.
 
+   The truncation limit defaults to a conservative 8000 bytes, safe for Algolia's free tier. If your plan allows larger records, you can raise it by overriding the `$maxContentBytes` constructor argument of `UpdateAssembledFileDocumentEventListener` in your own `Services.yaml`:
+
+   ```yaml
+   services:
+     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\UpdateAssembledFileDocumentEventListener:
+       arguments:
+         $maxContentBytes: 50000
+       tags:
+         - name: event.listener
+           identifier: 'typo3-search-algolia/update-assembled-file-document-event-listener'
+           event: MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent
+   ```
+
+   The `tags` block must be repeated exactly as shown, redeclaring a service replaces its whole definition rather than merging with it, so omitting the event listener tag silently drops the listener from the container instead of raising an error. Check your actual Algolia plan's record size limit before choosing a value, and leave headroom for the record's other fields (name, url, title, description, ...), not just the content field itself.
+
 4. **File Extensions**: Only enable content extraction for file types that contain searchable text. Adding non-text file types to the extensions list won't provide useful search content.
 
 5. **Security Awareness**: Remember that indexed file content becomes searchable. Ensure that sensitive documents are either excluded from indexing or properly access-restricted in your search implementation.
