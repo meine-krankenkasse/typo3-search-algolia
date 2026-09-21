@@ -589,4 +589,52 @@ class ContentExtractorTest extends TestCase
 
         self::assertStringContainsString('Recurring Header', $result);
     }
+
+    /**
+     * Tests that a purely numeric line (e.g. a document reference number
+     * printed as a running header) is stripped like any other recurring
+     * line. PHP coerces a numeric-string array key to int, so the line's
+     * text must survive that round trip as a string for the later strict
+     * in_array() comparison to still match it.
+     */
+    #[Test]
+    public function removeRecurringLinesStripsPurelyNumericRecurringLine(): void
+    {
+        $pages = [
+            "12345\nContent of page one.",
+            "12345\nContent of page two.",
+            "12345\nContent of page three.",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('12345', $result);
+        self::assertStringContainsString('Content of page one.', $result);
+    }
+
+    /**
+     * Tests that a recurring line exactly at the first index of the
+     * trailing edge window (index 4 of a 6-line page, with the default
+     * edge width of 2) is stripped, on a page long enough that the
+     * leading-edge condition alone does not already cover that index.
+     * Pins the trailing-edge boundary as inclusive (>=), not exclusive (>).
+     */
+    #[Test]
+    public function removeRecurringLinesStripsLineAtTrailingEdgeBoundary(): void
+    {
+        // Lines 1, 2 and 6 are unique per page so they never qualify as
+        // recurring themselves, isolating the boundary line at index 4
+        // (line 5) as the only thing this test is actually pinning.
+        $pages = [
+            "Page one start a\nPage one start b\nPage one middle\nPage one filler\nRecurring Footer\nPage one end",
+            "Page two start a\nPage two start b\nPage two middle\nPage two filler\nRecurring Footer\nPage two end",
+            "Page three start a\nPage three start b\nPage three middle\nPage three filler\nRecurring Footer\nPage three end",
+        ];
+
+        $result = ContentExtractor::removeRecurringLines($pages, 3);
+
+        self::assertStringNotContainsString('Recurring Footer', $result);
+        self::assertStringContainsString('Page one middle', $result);
+        self::assertStringContainsString('Page one end', $result);
+    }
 }

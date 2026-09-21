@@ -29,6 +29,8 @@ use function strip_tags;
 use function strlen;
 use function trim;
 
+use const ARRAY_FILTER_USE_BOTH;
+
 /**
  * Utility class for extracting and cleaning content for search indexing.
  *
@@ -255,7 +257,12 @@ class ContentExtractor
 
         foreach ($frequency as $line => $occurrences) {
             if (($occurrences / $pageCount) >= self::MIN_RECURRING_FREQUENCY_RATIO) {
-                $recurringLines[] = $line;
+                // PHP coerces a purely-numeric array key (e.g. "12345") to int,
+                // so $line must be cast back to string here. Without it, a
+                // numeric recurring line would never match the strict
+                // in_array() comparison in removeRecurringLinesFromPage(),
+                // which always compares against a string.
+                $recurringLines[] = (string) $line;
             }
         }
 

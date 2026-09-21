@@ -216,9 +216,11 @@ readonly class UpdateAssembledFileDocumentEventListener
             // page entry ("In some cases, the $page variable may be null"), so
             // getPages() is not guaranteed to only ever return Page instances.
             // Not covered by a test: the installed smalot/pdfparser version
-            // filters non-Page entries out of getPages() internally before
-            // this code ever sees them, so a null entry is not currently
-            // reproducible through a real PDF fixture.
+            // filters non-Page entries out of Pages::getPages() internally
+            // before this code ever sees them, so a null entry is not
+            // currently reproducible through a real PDF fixture. Re-check
+            // with: grep -n 'instanceof (self|Page)'
+            // vendor/smalot/pdfparser/src/Smalot/PdfParser/Pages.php
             $pageTexts = array_filter(
                 array_map(
                     static fn (?Page $page): ?string => $page?->getText(),

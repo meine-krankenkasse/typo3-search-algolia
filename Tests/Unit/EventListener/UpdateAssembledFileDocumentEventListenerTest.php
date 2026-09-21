@@ -269,6 +269,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             $fileRepositoryMock,
             self::createStub(LoggerInterface::class)
         );
+
         $listener($event);
 
         $content = $document->getFields()['content'];
@@ -301,6 +302,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             $fileRepositoryMock,
             self::createStub(LoggerInterface::class)
         );
+
         $listener($event);
 
         $content = $document->getFields()['content'];
@@ -334,6 +336,7 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             self::createStub(LoggerInterface::class),
             50
         );
+
         $listener($event);
 
         $content = $document->getFields()['content'];

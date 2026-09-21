@@ -28,6 +28,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -206,6 +207,8 @@ class IndexQueueWorkerCommandTest extends TestCase
      * @param string $tableName  The database table name of the record to index
      * @param int    $recordUid  The record UID
      * @param int    $serviceUid The indexing service UID
+     *
+     * @return QueueItem The queue item test fixture with the given table name, record UID and indexing service UID
      */
     private function createQueueItem(string $tableName, int $recordUid, int $serviceUid): QueueItem
     {
@@ -216,11 +219,16 @@ class IndexQueueWorkerCommandTest extends TestCase
     }
 
     /**
-     * Tests that a queue item is removed from the queue after it has been
-     * indexed successfully, which is the normal, non-error path.
+     * Arranges a single queue item (table sys_file_metadata, record 8754,
+     * indexing service 2) so that it is returned by findAllLimited() and
+     * indexed via the given indexer mock, the setup every indexItems() test
+     * needs before adding its own, distinct expectations.
+     *
+     * @param MockObject|Stub $indexerMock The indexer mock/stub to return for this queue item's table
+     *
+     * @return QueueItem The arranged queue item, for tests that assert on its removal
      */
-    #[Test]
-    public function indexItemsRemovesQueueItemAfterSuccessfulIndexing(): void
+    private function arrangeSingleQueueItem(MockObject|Stub $indexerMock): QueueItem
     {
         $queueItem = $this->createQueueItem('sys_file_metadata', 8754, 2);
 
@@ -236,15 +244,28 @@ class IndexQueueWorkerCommandTest extends TestCase
             ->with(2)
             ->willReturn($indexingServiceMock);
 
+        $this->indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->with('sys_file_metadata')
+            ->willReturn($indexerMock);
+
+        return $queueItem;
+    }
+
+    /**
+     * Tests that a queue item is removed from the queue after it has been
+     * indexed successfully, which is the normal, non-error path.
+     */
+    #[Test]
+    public function indexItemsRemovesQueueItemAfterSuccessfulIndexing(): void
+    {
         $indexerMock = $this->createMock(IndexerInterface::class);
         $indexerMock
             ->expects(self::once())
             ->method('indexRecord')
             ->willReturn(true);
-        $this->indexerFactoryMock
-            ->method('makeInstanceByType')
-            ->with('sys_file_metadata')
-            ->willReturn($indexerMock);
+
+        $queueItem = $this->arrangeSingleQueueItem($indexerMock);
 
         $this->queueItemRepositoryMock
             ->expects(self::once())
@@ -264,28 +285,12 @@ class IndexQueueWorkerCommandTest extends TestCase
     #[Test]
     public function indexItemsRemovesAndLogsQueueItemWhenRecordExceedsSizeLimit(): void
     {
-        $queueItem = $this->createQueueItem('sys_file_metadata', 8754, 2);
-
-        $this->mockRecordQuery('sys_file_metadata', 8754, ['uid' => 8754]);
-
-        $this->queueItemRepositoryMock
-            ->method('findAllLimited')
-            ->willReturn(new ArrayQueryResult([$queueItem]));
-
-        $indexingServiceMock = self::createStub(IndexingService::class);
-        $this->indexingServiceRepositoryMock
-            ->method('findByUid')
-            ->with(2)
-            ->willReturn($indexingServiceMock);
-
         $indexerMock = self::createStub(IndexerInterface::class);
         $indexerMock
             ->method('indexRecord')
             ->willThrowException(new BadRequestException('Record is too big.'));
-        $this->indexerFactoryMock
-            ->method('makeInstanceByType')
-            ->with('sys_file_metadata')
-            ->willReturn($indexerMock);
+
+        $queueItem = $this->arrangeSingleQueueItem($indexerMock);
 
         $this->queueItemRepositoryMock
             ->expects(self::once())
@@ -314,6 +319,33 @@ class IndexQueueWorkerCommandTest extends TestCase
     }
 
     /**
+     * Tests that a too-big-record queue item is still removed even when no
+     * logger was ever set on the command, pinning the nullsafe logger call
+     * as genuinely optional rather than an unstated assumption that a
+     * logger is always present.
+     */
+    #[Test]
+    public function indexItemsRemovesQueueItemWhenRecordExceedsSizeLimitWithoutLoggerSet(): void
+    {
+        $indexerMock = self::createStub(IndexerInterface::class);
+        $indexerMock
+            ->method('indexRecord')
+            ->willThrowException(new BadRequestException('Record is too big.'));
+
+        $queueItem = $this->arrangeSingleQueueItem($indexerMock);
+
+        $this->queueItemRepositoryMock
+            ->expects(self::once())
+            ->method('remove')
+            ->with($queueItem);
+        $this->persistenceManagerMock->expects(self::once())->method('persistAll');
+
+        // Intentionally not calling setLogger() here.
+        $commandTester = new CommandTester($this->createCommand());
+        $commandTester->execute([]);
+    }
+
+    /**
      * Tests that a BadRequestException whose message does not indicate an
      * oversized record is not swallowed, since it may signal a different,
      * unexpected problem that should not be silently ignored.
@@ -321,28 +353,12 @@ class IndexQueueWorkerCommandTest extends TestCase
     #[Test]
     public function indexItemsRethrowsBadRequestExceptionForOtherReasons(): void
     {
-        $queueItem = $this->createQueueItem('sys_file_metadata', 8754, 2);
-
-        $this->mockRecordQuery('sys_file_metadata', 8754, ['uid' => 8754]);
-
-        $this->queueItemRepositoryMock
-            ->method('findAllLimited')
-            ->willReturn(new ArrayQueryResult([$queueItem]));
-
-        $indexingServiceMock = self::createStub(IndexingService::class);
-        $this->indexingServiceRepositoryMock
-            ->method('findByUid')
-            ->with(2)
-            ->willReturn($indexingServiceMock);
-
         $indexerMock = self::createStub(IndexerInterface::class);
         $indexerMock
             ->method('indexRecord')
             ->willThrowException(new BadRequestException('Invalid API key.'));
-        $this->indexerFactoryMock
-            ->method('makeInstanceByType')
-            ->with('sys_file_metadata')
-            ->willReturn($indexerMock);
+
+        $this->arrangeSingleQueueItem($indexerMock);
 
         $this->queueItemRepositoryMock->expects(self::never())->method('remove');
 
