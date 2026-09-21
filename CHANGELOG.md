@@ -1,3 +1,17 @@
+# 1.5.0
+
+## FIX
+
+- WEB-1582: Remove queue items whose record still exceeds the search engine's size limit after content truncation, instead of leaving them stuck in the queue and retrying them forever.
+
+## FEATURE
+
+- WEB-1582: Truncate extracted file content to stay within the search engine's per-record size limit, and strip repeated page headers/footers from PDF content before indexing. The truncation limit is configurable via the `$maxContentBytes` constructor argument.
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.4.0
 
 ## FEATURE
