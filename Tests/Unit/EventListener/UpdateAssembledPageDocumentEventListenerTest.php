@@ -211,7 +211,12 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         $contentRepositoryMock
             ->expects(self::once())
             ->method('findAllByPid')
-            ->with(42, ['bodytext'], [])
+            ->with(
+                42,
+                ['bodytext'],
+                [],
+                [],
+            )
             ->willReturn([
                 ['bodytext' => 'Hello World'],
                 ['bodytext' => 'More content here'],
@@ -252,6 +257,82 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         self::assertArrayHasKey('content', $document->getFields());
         self::assertStringContainsString('Hello World', $document->getFields()['content']);
         self::assertStringContainsString('More content here', $document->getFields()['content']);
+    }
+
+    /**
+     * Tests that the listener passes the colPos values excluded via TypoScript
+     * for the page indexer on to findAllByPid(), including the value 0, which
+     * must not be dropped as if nothing had been configured.
+     */
+    #[Test]
+    public function invokeExcludesConfiguredColPos(): void
+    {
+        $routerMock = $this->createMock(RouterInterface::class);
+        $routerMock->method('generateUri')
+            ->willReturn(new Uri('https://www.example.com/page'));
+
+        $siteMock = $this->createMock(Site::class);
+        $siteMock->method('getBase')
+            ->willReturn(new Uri('https://www.example.com'));
+        $siteMock->method('getRouter')
+            ->willReturn($routerMock);
+
+        $siteFinderMock = $this->createMock(SiteFinder::class);
+        $siteFinderMock->method('getSiteByPageId')
+            ->willReturn($siteMock);
+
+        $contentRepositoryMock = $this->createMock(ContentRepositoryInterface::class);
+        $contentRepositoryMock
+            ->expects(self::once())
+            ->method('findAllByPid')
+            ->with(
+                42,
+                ['bodytext'],
+                [],
+                [0, 9999],
+            )
+            ->willReturn([
+                ['bodytext' => 'Visible content'],
+            ]);
+
+        $typoScriptServiceMock = $this->createMock(TypoScriptServiceInterface::class);
+        $typoScriptServiceMock->method('getFieldMappingByType')
+            ->with('tt_content')
+            ->willReturn(['bodytext' => 'bodytext']);
+        $typoScriptServiceMock->method('getExcludedColPos')
+            ->with('pages')
+            ->willReturn([0, 9999]);
+
+        $indexerMock = $this->createMock(PageIndexer::class);
+        $indexerMock->method('getTable')
+            ->willReturn('pages');
+
+        $indexingServiceMock = $this->createMock(IndexingService::class);
+        $indexingServiceMock->method('isIncludeContentElements')
+            ->willReturn(true);
+        $indexingServiceMock->method('getContentElementTypes')
+            ->willReturn('');
+
+        $record   = ['uid' => 42, 'pid' => 0, 'SYS_LASTCHANGED' => 0];
+        $document = new Document($indexerMock, $record);
+
+        $event = new AfterDocumentAssembledEvent(
+            $document,
+            $indexerMock,
+            $indexingServiceMock,
+            $record
+        );
+
+        $listener = new UpdateAssembledPageDocumentEventListener(
+            $siteFinderMock,
+            $contentRepositoryMock,
+            $typoScriptServiceMock,
+        );
+
+        $listener($event);
+
+        self::assertArrayHasKey('content', $document->getFields());
+        self::assertStringContainsString('Visible content', $document->getFields()['content']);
     }
 
     /**

@@ -226,10 +226,10 @@
             <trans-unit id="index_queue.table.column.id">
                 <source>ID</source>
             </trans-unit>
-            <trans-unit id="index_queue.table.column.indexingServices">
+            <trans-unit id="index_queue.table.column.indexingService">
                 <source>Indexing service</source>
             </trans-unit>
-            <trans-unit id="index_queue.indexingServicess.available">
+            <trans-unit id="index_queue.indexingServices.available">
                 <source>Services:</source>
             </trans-unit>
             <trans-unit id="index_queue.indexingServices.execute">

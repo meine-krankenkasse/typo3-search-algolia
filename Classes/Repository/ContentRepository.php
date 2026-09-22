@@ -25,6 +25,7 @@ use function is_array;
  * database. It offers specialized finder methods for:
  * - Finding all content elements on a specific page
  * - Filtering content elements by type (CType)
+ * - Excluding content elements by colPos
  *
  * The repository uses direct database queries via TYPO3's ConnectionPool for
  * optimal performance when retrieving content element data.
@@ -104,6 +105,7 @@ readonly class ContentRepository implements ContentRepositoryInterface
      * on the specified page. It allows:
      * - Selecting specific columns to retrieve (for performance optimization)
      * - Filtering by content element types (CType)
+     * - Excluding content elements by colPos
      *
      * The method is primarily used by indexers to retrieve content elements
      * that need to be indexed, or by event listeners that need to process
@@ -112,14 +114,19 @@ readonly class ContentRepository implements ContentRepositoryInterface
      * @param int      $pageId              The UID of the page containing the content elements
      * @param string[] $columns             Array of column names to retrieve from each record
      * @param string[] $contentElementTypes Optional list of content element types (CType) to filter by
+     * @param int[]    $excludeColPos       Optional list of colPos values whose content elements are left out
      *
      * @return array<int, array<string, mixed>> Array of content element records, each as an associative array
      *
      * @throws Exception If a database error occurs during the query
      */
     #[Override]
-    public function findAllByPid(int $pageId, array $columns, array $contentElementTypes = []): array
-    {
+    public function findAllByPid(
+        int $pageId,
+        array $columns,
+        array $contentElementTypes = [],
+        array $excludeColPos = [],
+    ): array {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tt_content');
 
@@ -135,6 +142,13 @@ readonly class ContentRepository implements ContentRepositoryInterface
             $constraints[] = $queryBuilder->expr()->in(
                 'CType',
                 $queryBuilder->quoteArrayBasedValueListToStringList($contentElementTypes)
+            );
+        }
+
+        if ($excludeColPos !== []) {
+            $constraints[] = $queryBuilder->expr()->notIn(
+                'colPos',
+                $queryBuilder->quoteArrayBasedValueListToIntegerList($excludeColPos)
             );
         }
 

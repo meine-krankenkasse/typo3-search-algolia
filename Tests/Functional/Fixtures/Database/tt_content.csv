@@ -1,5 +1,7 @@
-tt_content,,,,,,
-,uid,pid,header,CType,deleted,hidden
-,1,2,"Text Content","text",0,0
-,2,2,"Image Content","image",0,0
-,3,3,"Deep Content","text",0,0
+tt_content,,,,,,,
+,uid,pid,header,CType,deleted,hidden,colPos
+,1,2,"Text Content","text",0,0,1
+,2,2,"Image Content","image",0,0,1
+,3,3,"Deep Content","text",0,0,1
+,4,2,"Parked Content","text",0,0,9999
+,5,2,"Other Content","text",0,0,2

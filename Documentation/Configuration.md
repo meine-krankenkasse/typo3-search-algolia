@@ -108,6 +108,42 @@ The following additional options are available for the page indexer:
     - Select the pages you want to recursively index, including all their subpages. Indexing will only occur for pages
       whose "Include in Search" option is enabled in the page properties.
 
+##### Excluding content element columns (colPos)
+
+With "Include content elements" enabled, the page indexer adds the content of every visible content element found on a
+page to the page's `content` attribute, including content stored in columns that the site's page templates never
+render (for example a project-specific "unused elements" storage column). To leave such columns out, list their
+`colPos` values in the TypoScript option `excludeColPos`:
+
+```typoscript
+module.tx_typo3searchalgolia.indexer.pages.excludeColPos = 9999
+```
+
+The example value is site-specific. Only list columns that your page templates do not render. Column `0` is TYPO3's
+default main content column, so listing it on a site that renders it removes the main content from the index.
+
+- The value is a comma-separated list of whole numbers in plain integer notation. Whitespace around the entries is
+  ignored. Anything else (letters, decimals, leading zeros, a plus sign) is ignored as well, so a typo can never be
+  read as `colPos` 0. Because such an entry is dropped silently, check the result after changing the option.
+- Any `colPos` can be listed, including columns that are not part of a backend layout, such as the child columns of
+  container elements.
+- Only the listed columns are excluded. A column that is not listed, for example a storage column added later or the
+  child columns of a disabled container element, stays indexed.
+- If the option is not set (the default), nothing is excluded and every `colPos` is indexed as before. Do not assign an
+  empty value in your own TypoScript template, simply leave the option out.
+- The option applies to all indexing services of type "Pages" that have "Include content elements" enabled. The
+  content element indexer is not affected by it and keeps indexing all content elements regardless of `colPos`. If you
+  also run an indexing service of that type, content in the excluded columns stays searchable through it.
+- Set the option in the TypoScript of your site package, so it is versioned and identical on every environment. A value
+  entered in the "Setup" field of a TypoScript template record in the backend is stored in the database, is not
+  deployed with the code and has to be maintained on each environment separately. By default only administrators
+  can edit template records.
+- When the indexing runs on the command line (queue worker, scheduler), the TypoScript is resolved for the first site
+  root page, not for the site of the page being indexed. On a multi-site installation set the option in TypoScript
+  that applies to all sites, such as a site package that every root template includes.
+- The pages have to be indexed again after the option was changed, content that was indexed earlier stays in the
+  index until then.
+
 #### Content Element Indexer Configuration
 
 The following additional options are available for the content item indexer:
