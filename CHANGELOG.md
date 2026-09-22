@@ -1,3 +1,13 @@
+# 1.6.0
+
+## FEATURE
+
+- WEB-1583: Add a TypoScript option `module.tx_typo3searchalgolia.indexer.pages.excludeColPos` to leave content elements on specific `colPos` values out of the page indexer's content aggregation (`include_content_elements`). Without it, `findAllByPid()` indexed every visible content element found under a page's `pid` regardless of `colPos`, so content parked in an unused column (e.g. a project's "Hidden" storage column) was indexed even though it never appears on the page. The standalone content element indexer is not affected. Backward compatible, the option is not set by default and then every `colPos` is indexed as before.
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.5.0
 
 ## FIX
