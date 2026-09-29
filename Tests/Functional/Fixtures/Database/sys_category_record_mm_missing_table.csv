@@ -1,0 +1,3 @@
+sys_category_record_mm,,,,
+,uid_local,uid_foreign,tablenames,fieldname
+,7,1,tx_removed_item,categories

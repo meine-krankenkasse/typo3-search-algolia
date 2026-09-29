@@ -70,6 +70,12 @@ services:
                 identifier: 'typo3-search-algolia/record-delete-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent
 
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\CategoryChangeEventListener:
+        tags:
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/category-update-event-listener'
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent
+
     # Resource event listeners
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileAddedEventListener:
         tags:

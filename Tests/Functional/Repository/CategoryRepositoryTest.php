@@ -177,4 +177,78 @@ final class CategoryRepositoryTest extends AbstractFunctionalTestCase
 
         self::assertSame([], $categories);
     }
+
+    /**
+     * Collects the records the given categories are assigned to through any
+     * MM fieldname, grouped by table and without duplicates.
+     */
+    #[Test]
+    public function findRecordUidsByCategoriesGroupsAssignedRecordsByTable(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/sys_category_record_mm_multiple_tables.csv');
+
+        self::assertSame(
+            [
+                'pages'             => [2, 3],
+                'sys_file_metadata' => [10],
+            ],
+            $this->subject->findRecordUidsByCategories([5]),
+        );
+    }
+
+    /**
+     * The records of several categories are merged, a record assigned to more
+     * than one of them (or twice to one, e.g. as category and as topic) is
+     * listed only once.
+     */
+    #[Test]
+    public function findRecordUidsByCategoriesListsARecordOnlyOnce(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/sys_category_record_mm_multiple_tables.csv');
+
+        self::assertSame(
+            [
+                'pages'             => [2, 3, 4],
+                'sys_file_metadata' => [10],
+            ],
+            $this->subject->findRecordUidsByCategories([1, 5, 6]),
+        );
+    }
+
+    /**
+     * Categories without assigned records, or no categories at all, yield an empty result.
+     */
+    #[Test]
+    public function findRecordUidsByCategoriesReturnsEmptyForUnusedCategories(): void
+    {
+        self::assertSame([], $this->subject->findRecordUidsByCategories([99]));
+        self::assertSame([], $this->subject->findRecordUidsByCategories([]));
+    }
+
+    /**
+     * Returns the children and grandchildren of a category, but not deleted,
+     * hidden, not yet started or expired ones (nor anything below them), not the
+     * category itself and not unrelated categories.
+     */
+    #[Test]
+    public function findDescendantUidsReturnsVisibleSubcategories(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/sys_category_tree.csv');
+
+        self::assertSame([21, 22, 24], $this->subject->findDescendantUids(20));
+        self::assertSame([24], $this->subject->findDescendantUids(22));
+        self::assertSame([], $this->subject->findDescendantUids(24));
+    }
+
+    /**
+     * A cyclic parent reference does not make the lookup loop forever, and the
+     * category itself is never reported as its own descendant.
+     */
+    #[Test]
+    public function findDescendantUidsTerminatesOnACyclicTree(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/sys_category_cycle.csv');
+
+        self::assertSame([31], $this->subject->findDescendantUids(30));
+    }
 }

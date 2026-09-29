@@ -174,4 +174,115 @@ readonly class CategoryRepository implements CategoryLookupInterface
 
         return $matchingRecord !== false;
     }
+
+    /**
+     * Returns the UIDs of all records the given categories are assigned to
+     * through sys_category_record_mm, regardless of the MM fieldname, grouped
+     * by table.
+     *
+     * @param int[] $categoryUids The UIDs of the categories
+     *
+     * @return array<string, list<int>> The record UIDs, keyed by table name
+     *
+     * @throws Exception
+     */
+    public function findRecordUidsByCategories(array $categoryUids): array
+    {
+        if ($categoryUids === []) {
+            return [];
+        }
+
+        $queryBuilder = $this->connectionPool
+            ->getQueryBuilderForTable('sys_category_record_mm');
+
+        $rows = $queryBuilder
+            ->select(
+                'tablenames',
+                'uid_foreign'
+            )
+            ->from('sys_category_record_mm')
+            ->where(
+                $queryBuilder->expr()->in(
+                    'uid_local',
+                    $queryBuilder->createNamedParameter(
+                        $categoryUids,
+                        ArrayParameterType::INTEGER
+                    )
+                )
+            )
+            ->groupBy(
+                'tablenames',
+                'uid_foreign'
+            )
+            ->orderBy('tablenames')
+            ->addOrderBy('uid_foreign')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $recordUids = [];
+
+        foreach ($rows as $row) {
+            $recordUids[(string) $row['tablenames']][] = (int) $row['uid_foreign'];
+        }
+
+        return $recordUids;
+    }
+
+    /**
+     * Returns the UIDs of all subcategories of a category, on any level below
+     * it. Deleted, hidden and start/endtime-restricted categories and their
+     * subtrees are left out. This assumes documents carry a category's title
+     * path only up to its first category that is not visible, so a change
+     * above such a category cannot change them. A cyclic parent reference
+     * ends the walk instead of looping.
+     *
+     * @param int $categoryUid The UID of the category
+     *
+     * @return list<int> The subcategory UIDs, level by level
+     *
+     * @throws Exception
+     */
+    public function findDescendantUids(int $categoryUid): array
+    {
+        $visitedUids    = [$categoryUid => true];
+        $descendantUids = [];
+        $parentUids     = [$categoryUid];
+
+        while ($parentUids !== []) {
+            $queryBuilder = $this->connectionPool
+                ->getQueryBuilderForTable('sys_category');
+
+            $childUids = $queryBuilder
+                ->select('uid')
+                ->from('sys_category')
+                ->where(
+                    $queryBuilder->expr()->in(
+                        'parent',
+                        $queryBuilder->createNamedParameter(
+                            $parentUids,
+                            ArrayParameterType::INTEGER
+                        )
+                    )
+                )
+                ->orderBy('uid')
+                ->executeQuery()
+                ->fetchFirstColumn();
+
+            $parentUids = [];
+
+            foreach ($childUids as $childUid) {
+                $childUid = (int) $childUid;
+
+                if (isset($visitedUids[$childUid])) {
+                    continue;
+                }
+
+                $visitedUids[$childUid] = true;
+                $descendantUids[]       = $childUid;
+                $parentUids[]           = $childUid;
+            }
+        }
+
+        return $descendantUids;
+    }
 }
