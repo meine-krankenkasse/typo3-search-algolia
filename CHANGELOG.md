@@ -1,3 +1,17 @@
+# 1.7.0
+
+## FEATURE
+
+- WEB-1461: Requeue the records of a system category after it changes. Saving, creating or deleting a `sys_category` in the live workspace puts the records assigned to it or to one of its visible subcategories through `sys_category_record_mm` into the indexing queue again, including records whose assignment the save itself removes. Pages below a hidden subpage of a recursively selected page tree are left out, like in a full rebuild of the queue. The new `CollectCategoryRecordsEvent` lets integrators add records that reference the category in another way. See "Category changes" in `Documentation/Indexers.md`.
+
+## FIX
+
+- WEB-1461: `FileIndexer::enqueueMultiple()` ignored the given UIDs and queued every file of the indexing service's collections. It now queues only the given files that pass the same checks as `enqueueOne()`.
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.6.0
 
 ## FEATURE
