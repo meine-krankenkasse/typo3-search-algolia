@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Hook;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\CategoryRecordRequeuerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
@@ -23,6 +24,7 @@ use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
 
+use function array_keys;
 use function is_int;
 
 /**
@@ -34,9 +36,11 @@ use function is_int;
  * and the search extension's event-based architecture.
  *
  * The hook methods are called by TYPO3 at different stages of record processing:
+ * - Before field processing (to remember the records of an existing category)
  * - After database operations (for record creation and updates)
+ * - After all datamap operations (to requeue new categories and drop remembered records)
  * - Before command processing (for record deletion)
- * - After command processing (for record moves and undeletions)
+ * - After command processing (for record moves, undeletions and category deletions)
  * - During record movement (to track source and target locations)
  *
  * Each hook method dispatches specific events that are then handled by event
@@ -75,15 +79,82 @@ class DataHandlerHook
      * such as the event dispatcher and page repository. These dependencies
      * enable the service to handle events and manage page-related data effectively.
      *
-     * @param EventDispatcherInterface $eventDispatcher The event dispatcher to dispatch events to listeners
-     * @param PageRepository           $pageRepository  The repository for fetching and managing page records
+     * @param EventDispatcherInterface        $eventDispatcher        The event dispatcher to dispatch events to listeners
+     * @param PageRepository                  $pageRepository         The repository for fetching and managing page records
+     * @param CategoryRecordRequeuerInterface $categoryRecordRequeuer The requeuer handling the records of changed categories
      *
      * @return void
      */
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly PageRepository $pageRepository,
+        private readonly CategoryRecordRequeuerInterface $categoryRecordRequeuer,
     ) {
+    }
+
+    /**
+     * Hooks into DataHandler before a record's field values are processed, to
+     * remember the records assigned to an existing category before the save.
+     *
+     * DataHandler writes the category's MM assignments (e.g. its items field)
+     * before the after-database-operations hook runs, so the records whose
+     * assignment the save removes are only known here.
+     *
+     * @param array<string, int|float|string|array<array-key, mixed>|null> $incomingFieldArray The submitted field values of the record
+     * @param string                                                       $table              The table currently processing data for
+     * @param int|string                                                   $id                 The record uid, or a 'NEW...' placeholder for a new record
+     * @param DataHandler                                                  $dataHandler        The DataHandler parent object
+     *
+     * @return void
+     */
+    public function processDatamap_preProcessFieldArray(
+        array &$incomingFieldArray,
+        string $table,
+        int|string $id,
+        DataHandler $dataHandler,
+    ): void {
+        if (
+            ($table !== 'sys_category')
+            || !MathUtility::canBeInterpretedAsInteger($id)
+            || ($this->getBackendUser()->workspace !== 0)
+        ) {
+            return;
+        }
+
+        $this->categoryRecordRequeuer->rememberAssignedRecords((int) $id);
+    }
+
+    /**
+     * Hooks into DataHandler after all records of the datamap were processed,
+     * to requeue the records of newly created categories and to drop the
+     * records remembered for the saved existing categories.
+     *
+     * DataHandler writes the MM assignments of new records only after the
+     * per-record hooks ran, so the records of a new category can only be found
+     * at this point. The remembered records of a successful save were already
+     * requeued, those of a save DataHandler refused would otherwise stay behind.
+     *
+     * @param DataHandler $dataHandler The DataHandler parent object
+     *
+     * @return void
+     */
+    public function processDatamap_afterAllOperations(DataHandler $dataHandler): void
+    {
+        if ($this->getBackendUser()->workspace !== 0) {
+            return;
+        }
+
+        foreach ($dataHandler->substNEWwithIDs_table as $newId => $table) {
+            if ($table === 'sys_category') {
+                $this->categoryRecordRequeuer->requeue((int) $dataHandler->substNEWwithIDs[$newId]);
+            }
+        }
+
+        foreach (array_keys($dataHandler->datamap['sys_category'] ?? []) as $id) {
+            if (MathUtility::canBeInterpretedAsInteger($id)) {
+                $this->categoryRecordRequeuer->forgetRememberedRecords((int) $id);
+            }
+        }
     }
 
     /**
@@ -156,11 +227,11 @@ class DataHandlerHook
      * This ensures that deleted records are promptly removed from search results,
      * maintaining consistency between the TYPO3 database and the search index.
      *
-     * @param string              $command      The DataHandler command (e.g., 'delete')
-     * @param string              $table        The table currently processing data for
-     * @param int<1, max>         $recordUid    The record uid currently processing data for
-     * @param string|array<mixed> $commandValue The commands value, typically an array with more detailed command information
-     * @param DataHandler         $dataHandler  The DataHandler parent object
+     * @param string                                                           $command      The DataHandler command (e.g., 'delete')
+     * @param string                                                           $table        The table currently processing data for
+     * @param int<1, max>                                                      $recordUid    The record uid currently processing data for
+     * @param string|array<array-key, int|string|array<array-key, mixed>|null> $commandValue The commands value, typically an array with more detailed command information
+     * @param DataHandler                                                      $dataHandler  The DataHandler parent object
      */
     public function processCmdmap_preProcess(
         string $command,
@@ -182,10 +253,11 @@ class DataHandlerHook
     }
 
     /**
-     * Hooks into DataHandler after command processing to monitor record movements and undeletions.
+     * Hooks into DataHandler after command processing to monitor record movements,
+     * undeletions and category deletions.
      *
      * This method is called by TYPO3's DataHandler after a command has been executed.
-     * It handles two specific command types:
+     * It handles these command types:
      *
      * 1. Move commands:
      *    - Creates a DataHandlerRecordMoveEvent with information about the moved record
@@ -196,14 +268,17 @@ class DataHandlerHook
      *    - Creates a DataHandlerRecordUpdateEvent for the undeleted record
      *    - Dispatches the event to notify listeners that the record is available again
      *
+     * 3. Delete commands on system categories:
+     *    - Requeues the records of the category, if it really was deleted
+     *
      * This ensures that moved or undeleted records are properly handled in the search index,
      * maintaining consistency between the TYPO3 database and search results.
      *
-     * @param string              $command      The DataHandler command (e.g., 'move', 'undelete')
-     * @param string              $table        The table currently processing data for
-     * @param int<1, max>         $recordUid    The record uid currently processing data for
-     * @param string|array<mixed> $commandValue The commands value, typically an array with more detailed command information
-     * @param DataHandler         $dataHandler  The DataHandler parent object
+     * @param string                                                           $command      The DataHandler command (e.g., 'move', 'undelete')
+     * @param string                                                           $table        The table currently processing data for
+     * @param int<1, max>                                                      $recordUid    The record uid currently processing data for
+     * @param string|array<array-key, int|string|array<array-key, mixed>|null> $commandValue The commands value, typically an array with more detailed command information
+     * @param DataHandler                                                      $dataHandler  The DataHandler parent object
      */
     public function processCmdmap_postProcess(
         string $command,
@@ -241,6 +316,17 @@ class DataHandlerHook
                 ->dispatch(
                     new DataHandlerRecordUpdateEvent($table, $recordUid)
                 );
+        }
+
+        if (
+            ($command === 'delete')
+            && ($table === 'sys_category')
+            && ($this->getBackendUser()->workspace === 0)
+            && ($this->pageRepository->getPageRecord($table, $recordUid, 'uid') === [])
+        ) {
+            // Requeue only once the category is really deleted, so a refused delete requeues
+            // nothing and the queue worker cannot index the records with the category still live
+            $this->categoryRecordRequeuer->requeue($recordUid);
         }
     }
 

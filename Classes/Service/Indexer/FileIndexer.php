@@ -11,7 +11,9 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
+use Doctrine\DBAL\Exception;
 use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileCollectionRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileRepository;
@@ -21,6 +23,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\FileCollectionService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Traits\FileEligibilityTrait;
 use Override;
+use RuntimeException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
@@ -28,6 +31,9 @@ use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+use function array_keys;
+use function array_values;
 
 /**
  * Indexer for TYPO3 files and their metadata.
@@ -186,6 +192,53 @@ class FileIndexer extends AbstractIndexer
             'changed'     => (int) ($GLOBALS['TCA'][$this->getTable()]['ctrl']['tstamp'] ?? 0),
             'priority'    => $this->getPriority(),
         ];
+    }
+
+    /**
+     * Adds the given file metadata records to the indexing queue.
+     *
+     * Overrides the parent implementation, because initQueueItemRecords()
+     * collects the files of the indexing service's file collections and cannot
+     * be narrowed down to specific records. Each record runs through the same
+     * eligibility checks as enqueueOne(). A workspace version or translation
+     * of a file's metadata resolves to the file's live metadata record, so the
+     * resolved records are collected once each and their pending queue items
+     * removed before inserting them.
+     *
+     * @param int[] $recordUids The UIDs of the sys_file_metadata records to add
+     *
+     * @return int The number of records successfully added to the queue
+     *
+     * @throws RuntimeException If no indexing service is set
+     * @throws Exception        If a database error occurs
+     */
+    #[Override]
+    public function enqueueMultiple(array $recordUids): int
+    {
+        if (!($this->indexingService instanceof IndexingService)) {
+            throw new RuntimeException('Missing indexing service instance.');
+        }
+
+        $queueItemRecords = [];
+
+        foreach ($recordUids as $recordUid) {
+            $queueItemRecord = $this->initQueueItemRecord($recordUid);
+
+            if ($queueItemRecord === false) {
+                continue;
+            }
+
+            $queueItemRecords[(int) $queueItemRecord['record_uid']] = $queueItemRecord;
+        }
+
+        if ($queueItemRecords === []) {
+            return 0;
+        }
+
+        $this->dequeueMultiple(array_keys($queueItemRecords));
+
+        return $this->queueItemRepository
+            ->bulkInsert(array_values($queueItemRecords));
     }
 
     /**

@@ -1,0 +1,4 @@
+sys_category,,,,,,
+,uid,pid,title,parent,deleted,hidden
+,30,1,"Cycle A",31,0,0
+,31,1,"Cycle B",30,0,0

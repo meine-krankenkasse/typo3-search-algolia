@@ -1,0 +1,3 @@
+sys_category,,,,,,,
+,uid,pid,title,parent,deleted,hidden,sys_language_uid
+,50,1,"Category With Items",0,0,0,0
