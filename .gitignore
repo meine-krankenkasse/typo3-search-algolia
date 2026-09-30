@@ -28,3 +28,6 @@ var/
 
 # Local planning workspace (specs, plans), not part of the shipped extension
 docs/superpowers/
+
+# Documentation rendering output
+Documentation-GENERATED-temp/

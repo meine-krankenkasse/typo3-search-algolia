@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<guides xmlns="https://www.phpdoc.org/guides"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://www.phpdoc.org/guides vendor/phpdocumentor/guides-cli/resources/schema/guides.xsd"
+        links-are-relative="true"
+        default-code-language="php"
+>
+    <extension class="\T3Docs\Typo3DocsTheme\DependencyInjection\Typo3DocsThemeExtension"
+               project-home="https://extensions.typo3.org/extension/typo3_search_algolia/"
+               project-repository="https://github.com/meine-krankenkasse/typo3-search-algolia"
+               project-issues="https://github.com/meine-krankenkasse/typo3-search-algolia/issues"
+               edit-on-github="meine-krankenkasse/typo3-search-algolia"
+               edit-on-github-branch="main"
+               typo3-core-preferred="14.3"
+               interlink-shortcode="meine-krankenkasse/typo3-search-algolia"
+    />
+    <project title="TYPO3 Search Algolia"
+             version="main"
+             release="main"
+             copyright="since 2025 by mkk – meine krankenkasse"/>
+</guides>
