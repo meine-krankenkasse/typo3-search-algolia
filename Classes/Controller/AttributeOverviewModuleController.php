@@ -20,6 +20,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\TableAttributesResult;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginResolverInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\InScopeRecordUidProviderInterface;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
@@ -96,6 +97,12 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      * matches zero in-scope records.
      */
     private const string STATUS_NO_RECORD_IN_SCOPE = 'no_record_in_scope';
+
+    /**
+     * The indexer of this table does not implement
+     * InScopeRecordUidProviderInterface, so no in-scope record can be looked up.
+     */
+    private const string STATUS_SCOPE_NOT_SUPPORTED = 'scope_not_supported';
 
     /**
      * Building this table's preview document threw.
@@ -302,10 +309,15 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
             // materialize the full in-scope set, which on a large table
             // would be an unbounded, uncached DB scan on every page load of
             // this admin-only module.
-            $scopedRecordUids = $indexer
+            $scopedIndexer = $indexer
                 ->withIndexingService($indexingService)
-                ->withExcludeHiddenPages(true)
-                ->findRecordUidsInScope(self::SCOPE_RECORD_LIMIT);
+                ->withExcludeHiddenPages(true);
+
+            if (!($scopedIndexer instanceof InScopeRecordUidProviderInterface)) {
+                return $this->emptyTableAttributes(self::STATUS_SCOPE_NOT_SUPPORTED);
+            }
+
+            $scopedRecordUids = $scopedIndexer->findRecordUidsInScope(self::SCOPE_RECORD_LIMIT);
 
             foreach ($scopedRecordUids as $recordUid) {
                 // A UID can legitimately be in scope under more than one
@@ -343,7 +355,7 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
 
         // The record picked by mostRecentlyChanged() a moment ago can still
         // have vanished by the time this select runs (deleted concurrently,
-        // or a custom findRecordUidsInScope() implementation returning a
+        // or a custom InScopeRecordUidProviderInterface implementation returning a
         // stale UID). DocumentBuilder::assemble() reads $record['uid']
         // unconditionally, so passing an empty array through would surface
         // as a PHP warning instead of the same "nothing to preview" outcome
@@ -380,7 +392,8 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
      * unavailable (both map to STATUS_NO_INDEXING_SERVICE), and an indexing
      * service is configured but currently matches zero records, or the
      * one record picked from that scope no longer exists by the time it
-     * is fetched (both map to STATUS_NO_RECORD_IN_SCOPE).
+     * is fetched (both map to STATUS_NO_RECORD_IN_SCOPE), or the indexer
+     * offers no scope lookup at all (STATUS_SCOPE_NOT_SUPPORTED).
      *
      * @param string $status One of the STATUS_* constants except STATUS_OK
      *

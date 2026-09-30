@@ -171,7 +171,7 @@
                 <target>Warteschlangenstatistik</target>
             </trans-unit>
             <trans-unit id="index_queue.statistics.total">
-                <target><![CDATA[Die Warteschlange enthält derzeit <strong>%s</strong> Einträge.]]></target>
+                <target>Die Warteschlange enthält derzeit &lt;strong&gt;%s&lt;/strong&gt; Einträge.</target>
             </trans-unit>
             <trans-unit id="index_queue.statistics.last_execution.info">
                 <target>Die letzte Indizierung erfolgte am:</target>
@@ -305,6 +305,9 @@
             </trans-unit>
             <trans-unit id="attribute_overview.section.no_record_in_scope">
                 <target>Für diesen Datensatztyp liegt aktuell kein Datensatz vor.</target>
+            </trans-unit>
+            <trans-unit id="attribute_overview.section.scope_not_supported">
+                <target>Der Indexer dieses Datensatztyps unterstützt die Vorschau nicht.</target>
             </trans-unit>
             <trans-unit id="attribute_overview.table.header.attribute">
                 <target>Attribut</target>

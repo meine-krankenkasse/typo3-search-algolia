@@ -13,21 +13,22 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Control
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\InScopeRecordUidProviderInterface;
 use Override;
 
 /**
  * Test double for IndexerInterface that delegates every call to a real,
  * container-resolved indexer instance, except that findRecordUidsInScope()
  * always returns a single UID that does not exist in the table, simulating
- * a custom IndexerInterface implementation (a documented public-API
- * extension point) returning a stale or otherwise non-existent record UID.
+ * a custom InScopeRecordUidProviderInterface implementation (a documented
+ * public-API extension point) returning a stale or otherwise non-existent record UID.
  *
  * Used to prove AttributeOverviewModuleController::buildTableAttributes()
  * falls back to STATUS_NO_RECORD_IN_SCOPE, rather than passing an empty
  * record array into DocumentBuilder::assemble(), when the record picked
  * from scope cannot actually be fetched.
  */
-final readonly class PhantomRecordUidIndexer implements IndexerInterface
+final readonly class PhantomRecordUidIndexer implements IndexerInterface, InScopeRecordUidProviderInterface
 {
     public function __construct(
         private IndexerInterface $realIndexer,

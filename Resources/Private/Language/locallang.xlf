@@ -171,7 +171,7 @@
                 <source>Queue Statistic</source>
             </trans-unit>
             <trans-unit id="index_queue.statistics.total">
-                <source><![CDATA[The queue currently contains <strong>%s</strong> entries.]]></source>
+                <source>The queue currently contains &lt;strong&gt;%s&lt;/strong&gt; entries.</source>
             </trans-unit>
             <trans-unit id="index_queue.statistics.last_execution.info">
                 <source>The last indexing was on:</source>
@@ -305,6 +305,9 @@
             </trans-unit>
             <trans-unit id="attribute_overview.section.no_record_in_scope">
                 <source>No record of this type is currently in scope.</source>
+            </trans-unit>
+            <trans-unit id="attribute_overview.section.scope_not_supported">
+                <source>The indexer of this record type does not support the preview.</source>
             </trans-unit>
             <trans-unit id="attribute_overview.table.header.attribute">
                 <source>Attribute</source>

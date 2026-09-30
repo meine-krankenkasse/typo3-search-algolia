@@ -839,10 +839,10 @@ final class FileIndexerTest extends TestCase
      * every field except 'record_uid' before returning:
      *
      * 1. enqueueAll() calls initQueueItemRecords() via its real production
-     *    entry point, with no $limit argument, relying entirely on the
-     *    parameter's own default. All three eligible files must come back
-     *    uncapped, proving that default genuinely means "unbounded" and
-     *    was not accidentally capped to some other value.
+     *    entry point, with queueItemRecordLimit at its default of 0. All
+     *    three eligible files must come back uncapped, proving that default
+     *    genuinely means "unbounded" and was not accidentally capped to
+     *    some other value.
      * 2. Each queued record carries the full, correct shape
      *    (table_name/record_uid/service_uid/changed/priority), not just a
      *    record_uid, since the real indexing queue table needs all five
