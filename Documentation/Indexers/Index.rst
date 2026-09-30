@@ -57,11 +57,18 @@ is configured per table in TypoScript under
 ``<record field> = <attribute name>``. The defaults are listed on the
 page of each indexer.
 
+..  warning::
+    The console command ``mkk:queue:index:worker``, which sends the
+    records to Algolia, runs without a site context. It reads only the
+    TypoScript shipped with the extension, so changes to the mapping in
+    your site TypoScript are not applied when records are indexed. The
+    :guilabel:`Attributes` backend module shows the mapping of the site,
+    which can therefore differ from the indexed records.
+
 ..  note::
     Anyone holding the search key of your frontend can retrieve every
-    indexed attribute. Remove personal data such as ``author_email`` from
-    the mapping, or hide it with the Algolia index setting
-    ``unretrievableAttributes``.
+    indexed attribute. Hide personal data such as ``authorEmail`` with the
+    Algolia index setting ``unretrievableAttributes``.
 
 ..  _indexers-queue:
 
@@ -75,9 +82,10 @@ Records are indexed through the indexing queue:
     disabled, is removed from the queue and from the index instead.
     Deleting a record removes it from the queue and from the index. Only
     indexing services stored in the same site as the record take part,
-    see :ref:`configuration-search-engine`.
+    except for files, see :ref:`configuration-search-engine`.
 *   The :guilabel:`Queue` backend module queues all records of the
-    selected indexing services. It skips pages below a hidden page, and
-    the records on them.
+    selected indexing services. It skips hidden subpages of the pages
+    selected in :guilabel:`Pages (recursively)`, together with their
+    subpages and the records on them.
 *   The console command ``mkk:queue:index:worker``, usually run as a
     scheduler task, processes the queue and sends the records to Algolia.

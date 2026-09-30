@@ -15,8 +15,8 @@ under the extension key ``typo3_search_algolia``:
     $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_search_algolia'] = array_merge(
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_search_algolia'] ?? [],
         [
-            'appId' => getenv('ALGOLIA_APP_ID') ?: '',
-            'apiKey' => getenv('ALGOLIA_API_KEY') ?: '',
+            'appId' => getenv('ALGOLIA_APP_ID'),
+            'apiKey' => getenv('ALGOLIA_API_KEY'),
         ]
     );
 

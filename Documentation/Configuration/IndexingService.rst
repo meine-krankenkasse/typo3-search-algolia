@@ -65,8 +65,9 @@ Options by type
     :type: list
     :Types: Content elements, and Pages with content elements included
 
-    The content element types to index. Defaults to Bullet List, Header,
-    HTML, Table, Text, Text & Images and Text & Media.
+    The content element types to index. Defaults to Bullet List, Header
+    Only, Plain HTML, Regular Text Element, Table, Text & Images and
+    Text & Media.
 
 ..  confval:: Page type
     :name: indexing-service-page-type

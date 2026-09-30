@@ -10,9 +10,10 @@ First create a folder in the page tree to hold the search configuration
 records (search engines, indexing services and, if needed, file
 collections). Select this folder in the :guilabel:`Records` module.
 
-Create the folder inside the site whose records it indexes. When a record
-is saved, only indexing services stored in the same site as the record
-queue it. Records outside any site, such as a news storage folder, need
+Create the folder inside the site whose records it indexes. When a page,
+content element or news record is saved, only indexing services stored in
+the same site as the record queue it. File indexing services are the exception, they queue a saved
+file wherever they are stored. Records outside any site, such as a news storage folder, need
 their indexing service outside any site as well.
 
 Then create a new record of type :guilabel:`Search Engine`.
