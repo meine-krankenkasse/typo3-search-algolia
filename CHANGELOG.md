@@ -1,3 +1,13 @@
+# 1.7.1
+
+## MISC
+
+- WEB-1567: Replace the Markdown documentation with sources in the TYPO3 documentation format, so the manual is rendered on docs.typo3.org and linked from the TER listing. The README links the manual and lists the extension versions per TYPO3 version.
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.7.0
 
 ## FEATURE
