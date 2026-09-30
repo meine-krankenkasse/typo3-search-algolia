@@ -15,7 +15,7 @@
                interlink-shortcode="meine-krankenkasse/typo3-search-algolia"
     />
     <project title="TYPO3 Search Algolia"
-             version="1.7.0"
-             release="1.7.0"
+             version="1.x"
+             release="1.x"
              copyright="since 2025 by mkk – meine krankenkasse"/>
 </guides>
