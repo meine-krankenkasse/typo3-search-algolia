@@ -30,15 +30,8 @@ Disable it to keep a file out of the index.
 Context menu
 ============
 
-A single file can be queued directly from the context menu in the
-:guilabel:`Media` module.
-
-..  figure:: /Images/FileIndexer-002.png
-    :alt: Media module context menu with the entry to queue a file for indexing
-    :class: with-border with-shadow
-    :zoom: lightbox
-
-    Queue a single file for indexing
+A single file can be queued directly with the context menu entry
+:guilabel:`Add to the Algolia search queue` in the :guilabel:`Media` module.
 
 ..  _indexers-file-fields:
 
@@ -85,5 +78,7 @@ The mapped metadata fields and the allowed file extensions default to:
         extensions = pdf
     }
 
-Indexed file content becomes searchable. Keep sensitive documents out of
-the indexed file collections, or exclude them individually.
+Indexed file content becomes searchable. The protection of non-public
+storages is not evaluated. Their files are indexed like public ones. Keep
+sensitive documents out of the indexed file collections, or exclude them
+individually.

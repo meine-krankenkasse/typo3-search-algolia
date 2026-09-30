@@ -83,9 +83,7 @@ Options by type
     :type: list of pages
     :Types: Pages, Content elements, News
 
-    Pages whose records are indexed, without their subpages. For the
-    Pages type, pages with :guilabel:`Include in Search` disabled are not
-    queued.
+    Pages whose records are indexed, without their subpages.
 
 ..  confval:: Pages (recursively)
     :name: indexing-service-pages-recursive
@@ -93,11 +91,10 @@ Options by type
     :type: list of pages
     :Types: Pages, Content elements, News
 
-    Pages whose records are indexed, including all subpages. For the
-    Pages type, pages with :guilabel:`Include in Search` disabled are not
-    queued.
+    Pages whose records are indexed, including all subpages.
 
-If neither :guilabel:`Single pages` nor :guilabel:`Pages (recursively)` is
+For the Pages type, pages with :guilabel:`Include in Search` disabled are
+not queued, whichever of these two options selects them. If neither is
 set, the records of the selected type are not limited by page. The other
 options of the type still apply.
 

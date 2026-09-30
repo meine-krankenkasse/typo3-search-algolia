@@ -31,7 +31,7 @@ content element indexer sends:
         -   The domain of the page's site.
     *   -   ``url``
         -   The URL of the page with an anchor to the content element
-            (``#c<uid>``), if it can be built.
+            (``#c<uid>``), if the page belongs to a site.
 
 The mapped content element fields default to:
 

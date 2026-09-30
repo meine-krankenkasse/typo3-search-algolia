@@ -57,6 +57,12 @@ is configured per table in TypoScript under
 ``<record field> = <attribute name>``. The defaults are listed on the
 page of each indexer.
 
+..  note::
+    Anyone holding the search key of your frontend can retrieve every
+    indexed attribute. Remove personal data such as ``author_email`` from
+    the mapping, or hide it with the Algolia index setting
+    ``unretrievableAttributes``.
+
 ..  _indexers-queue:
 
 When records are indexed
@@ -67,8 +73,11 @@ Records are indexed through the indexing queue:
 *   Creating or updating a record in the backend queues it for
     reindexing. A hidden record, or one with :guilabel:`Include in Search`
     disabled, is removed from the queue and from the index instead.
-    Deleting a record removes it from the queue and from the index.
+    Deleting a record removes it from the queue and from the index. Only
+    indexing services stored in the same site as the record take part,
+    see :ref:`configuration-search-engine`.
 *   The :guilabel:`Queue` backend module queues all records of the
-    selected indexing services.
+    selected indexing services. It skips pages below a hidden page, and
+    the records on them.
 *   The console command ``mkk:queue:index:worker``, usually run as a
     scheduler task, processes the queue and sends the records to Algolia.

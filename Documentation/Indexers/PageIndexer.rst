@@ -17,13 +17,6 @@ Excluding a page
 Disable :guilabel:`Include in Search` in the page properties to keep a
 page out of the index. The option is on the :guilabel:`Behavior` tab.
 
-..  figure:: /Images/PageIndexer-001.png
-    :alt: Page properties, Behavior tab with the Include in Search toggle
-    :class: with-border with-shadow
-    :zoom: lightbox
-
-    Exclude a page from indexing
-
 ..  _indexers-page-fields:
 
 Fields
@@ -41,7 +34,7 @@ page indexer sends:
     *   -   ``site``
         -   The domain of the page's site.
     *   -   ``url``
-        -   The URL of the page, if it can be built.
+        -   The URL of the page, if the page belongs to a site.
     *   -   ``categories``
         -   The titles of the categories assigned to the page.
     *   -   ``content``
@@ -51,6 +44,8 @@ page indexer sends:
 For pages, ``changed`` is the page's ``SYS_LASTCHANGED`` value: the latest
 change of the page or of its content as of the last frontend rendering of
 the page.
+If the page has not been rendered yet, its own last change time
+(``tstamp``) is used.
 
 The mapped page fields default to:
 
