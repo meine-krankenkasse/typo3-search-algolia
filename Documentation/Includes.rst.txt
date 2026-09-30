@@ -1,5 +1,1 @@
 ..  This file contains global includes for all documentation files.
-
-..  |extension_key| replace:: typo3_search_algolia
-..  |extension_name| replace:: TYPO3 Search Algolia
-..  |package_name| replace:: meine-krankenkasse/typo3-search-algolia
