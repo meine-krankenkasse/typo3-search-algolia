@@ -37,7 +37,6 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  */
 #[CoversClass(PageIndexer::class)]
 #[CoversClass(AbstractIndexer::class)]
-#[UsesClass(LegacyOverridePageIndexer::class)]
 #[UsesClass(PageRepository::class)]
 final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
 {
