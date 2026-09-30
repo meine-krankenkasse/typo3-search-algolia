@@ -278,11 +278,11 @@ jobs:
                     TYPO3_API_TOKEN: ${{ secrets.TYPO3_TER_ACCESS_TOKEN }}
                 run: |
                     TAILOR="$(composer global config bin-dir --absolute)/tailor"
-                    # --manual intentionally points to GitHub, not left empty: this
-                    # extension's Documentation/ has no guides.xml/RST, so
-                    # docs.typo3.org never renders it and the auto-link would 404
-                    # (same situation as netresearch/t3x-universal-messenger's
-                    # skip-docs flag, see its issue #90).
+                    # --manual points to GitHub until docs.typo3.org serves this
+                    # extension's manual. Then switch it to
+                    # https://docs.typo3.org/p/meine-krankenkasse/typo3-search-algolia/main/en-us/,
+                    # TER keeps a stored manual URL and never replaces it with
+                    # the docs.typo3.org link on its own.
                     "${TAILOR}" ter:update \
                       --composer="meine-krankenkasse/typo3-search-algolia" \
                       --manual="https://github.com/meine-krankenkasse/typo3-search-algolia" \
