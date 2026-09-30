@@ -83,4 +83,19 @@ final class AbstractIndexerFindRecordUidsInScopeFunctionalTest extends AbstractI
 
         self::assertSame([2, 3], $recordUids);
     }
+
+    /**
+     * Proves the preview limit stays on findRecordUidsInScope()'s own clone:
+     * a later enqueueAll() on the same instance still queues every in-scope
+     * page, not only the previously previewed ones.
+     */
+    #[Test]
+    public function enqueueAllAfterALimitedScopeLookupQueuesEveryInScopePage(): void
+    {
+        $indexer = $this->pageIndexer->withIndexingService($this->indexingService);
+
+        $indexer->findRecordUidsInScope(2);
+
+        self::assertSame(3, $indexer->enqueueAll());
+    }
 }
