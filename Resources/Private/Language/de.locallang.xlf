@@ -306,6 +306,9 @@
             <trans-unit id="attribute_overview.section.no_record_in_scope">
                 <target>Für diesen Datensatztyp liegt aktuell kein Datensatz vor.</target>
             </trans-unit>
+            <trans-unit id="attribute_overview.section.scope_not_supported">
+                <target>Der Indexer dieses Datensatztyps unterstützt die Vorschau nicht.</target>
+            </trans-unit>
             <trans-unit id="attribute_overview.table.header.attribute">
                 <target>Attribut</target>
             </trans-unit>

@@ -32,6 +32,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\Ob
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\PhantomAttributeInjectingOriginResolver;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\PhantomRecordUidIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\PhantomRecordUidIndexerFactory;
+use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\ScopelessIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\ScopelessIndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\StringFieldInjectingDocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\ThrowingForTableDocumentBuilder;
 use Override;
@@ -99,6 +101,8 @@ use function substr_count;
 #[UsesClass(PhantomAttributeInjectingOriginResolver::class)]
 #[UsesClass(PhantomRecordUidIndexer::class)]
 #[UsesClass(PhantomRecordUidIndexerFactory::class)]
+#[UsesClass(ScopelessIndexer::class)]
+#[UsesClass(ScopelessIndexerFactory::class)]
 #[UsesClass(StringFieldInjectingDocumentBuilder::class)]
 #[UsesClass(ThrowingForTableDocumentBuilder::class)]
 final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTestCase
@@ -2016,9 +2020,9 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * Guards against SCOPE_RECORD_LIMIT silently getting dropped, zeroed, or
      * hardcoded to a wrong value in buildTableAttributes() - a real,
      * serious regression on a large table, since 0 means "unbounded" per
-     * IndexerInterface::findRecordUidsInScope()'s own docblock, so a broken
-     * cap would turn this admin-only diagnostic module into an uncached
-     * full-table scan on every page load.
+     * InScopeRecordUidProviderInterface::findRecordUidsInScope()'s own
+     * docblock, so a broken cap would turn this admin-only diagnostic
+     * module into an uncached full-table scan on every page load.
      *
      * Which record ultimately gets auto-picked cannot discriminate this:
      * AbstractIndexer::fetchRecords() already orders by tstamp DESC before
@@ -2033,7 +2037,8 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * Instead, LimitCapturingIndexerFactory substitutes a
      * LimitCapturingIndexer wrapping the real 'pages' indexer, which
      * records the exact $limit argument
-     * IndexerInterface::findRecordUidsInScope() was actually called with.
+     * InScopeRecordUidProviderInterface::findRecordUidsInScope() was actually
+     * called with.
      * This directly proves the constant is threaded through to the call
      * (the actual risk), reading SCOPE_RECORD_LIMIT via reflection rather
      * than hardcoding 200, mirroring the deleted test's own
@@ -2094,8 +2099,9 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * findRecordUidsInScope() + mostRecentlyChanged() can still be gone by
      * the time the subsequent "SELECT * WHERE uid = $mostRecentRecordUid"
      * runs, either a genuine delete race, or (as reproduced here) a custom
-     * IndexerInterface implementation - a documented public-API extension
-     * point - returning a stale or otherwise non-existent record UID.
+     * InScopeRecordUidProviderInterface implementation - a documented
+     * public-API extension point - returning a stale or otherwise
+     * non-existent record UID.
      *
      * PhantomRecordUidIndexerFactory substitutes a PhantomRecordUidIndexer
      * wrapping the real 'pages' indexer, whose findRecordUidsInScope()
@@ -2151,6 +2157,54 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     }
 
     /**
+     * Verifies a custom indexer implementing IndexerInterface directly with
+     * its 3.0.0 method set, without InScopeRecordUidProviderInterface, is
+     * listed as not supporting the preview instead of failing the table,
+     * and does not keep other tables from being aggregated.
+     */
+    #[Test]
+    public function attributeOverviewListsATableWhoseIndexerHasNoScopeLookupAsNotSupported(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
+
+        $scopelessIndexerFactory = new ScopelessIndexerFactory(
+            $this->get(IndexerFactory::class),
+            'pages',
+        );
+
+        $subject = $this->createDrivenSubject(
+            ['id' => 0],
+            null,
+            $scopelessIndexerFactory,
+        );
+
+        $body = $this->callIndexActionAndAssertOk($subject);
+
+        $statusLineHtml = $this->extractStatusLineHtml(
+            $body,
+            'pages',
+        );
+
+        self::assertStringContainsString(
+            'The indexer of this record type does not support the preview.',
+            $statusLineHtml,
+        );
+
+        $attributeTableHtml = $this->extractAttributeTableHtml($body);
+
+        self::assertStringNotContainsString(
+            '<code>pages</code>',
+            $attributeTableHtml,
+        );
+        self::assertStringContainsString(
+            '<code>tt_content</code>',
+            $attributeTableHtml,
+        );
+    }
+
+    /**
      * Verifies buildTableAttributes()'s scope query excludes hidden pages,
      * matching what the real indexing pipeline actually queues: the only
      * real production trigger for enqueueAll() (QueueModuleController::
@@ -2158,8 +2212,9 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * Without the same call here, this diagnostic module could report a
      * table as STATUS_OK and show an example value sourced from a record
      * that would never actually be indexed, directly undermining its
-     * stated purpose (see IndexerInterface::findRecordUidsInScope()'s own
-     * "the same set enqueueAll() would queue" docblock claim).
+     * stated purpose (see
+     * InScopeRecordUidProviderInterface::findRecordUidsInScope()'s own "the
+     * same set enqueueAll() would queue" docblock claim).
      *
      * The tt_content row itself is not hidden, only its parent page is -
      * this isolates the guard to page-tree-hidden exclusion specifically,

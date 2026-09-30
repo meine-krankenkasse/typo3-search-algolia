@@ -13,26 +13,30 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Control
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\InScopeRecordUidProviderInterface;
 use Override;
 
 /**
- * Test double for IndexerInterface that delegates every call to a real,
- * container-resolved indexer instance, except that findRecordUidsInScope()
- * always returns a single UID that does not exist in the table, simulating
- * a custom InScopeRecordUidProviderInterface implementation (a documented
- * public-API extension point) returning a stale or otherwise non-existent record UID.
+ * Test double for a custom indexer that implements IndexerInterface
+ * directly, with exactly the method set IndexerInterface had in 3.0.0, and
+ * not InScopeRecordUidProviderInterface. Every call is delegated to a real,
+ * container-resolved indexer instance.
  *
  * Used to prove AttributeOverviewModuleController::buildTableAttributes()
- * falls back to STATUS_NO_RECORD_IN_SCOPE, rather than passing an empty
- * record array into DocumentBuilder::assemble(), when the record picked
- * from scope cannot actually be fetched.
+ * reports such an indexer as STATUS_SCOPE_NOT_SUPPORTED instead of
+ * failing, so adding the scope lookup stayed a non-breaking change for
+ * existing IndexerInterface implementations.
+ *
+ * @author  Rico Sonntag <rico.sonntag@netresearch.de>
+ * @license Netresearch https://www.netresearch.de
+ * @link    https://www.netresearch.de
  */
-final readonly class PhantomRecordUidIndexer implements IndexerInterface, InScopeRecordUidProviderInterface
+final readonly class ScopelessIndexer implements IndexerInterface
 {
+    /**
+     * @param IndexerInterface $realIndexer The real indexer every call is delegated to
+     */
     public function __construct(
         private IndexerInterface $realIndexer,
-        private int $phantomRecordUid,
     ) {
     }
 
@@ -43,27 +47,15 @@ final readonly class PhantomRecordUidIndexer implements IndexerInterface, InScop
     }
 
     #[Override]
-    public function findRecordUidsInScope(int $limit = 0): array
+    public function withIndexingService(IndexingService $indexingService): ScopelessIndexer
     {
-        return [$this->phantomRecordUid];
+        return new self($this->realIndexer->withIndexingService($indexingService));
     }
 
     #[Override]
-    public function withIndexingService(IndexingService $indexingService): PhantomRecordUidIndexer
+    public function withExcludeHiddenPages(bool $excludeHiddenPages): ScopelessIndexer
     {
-        return new self(
-            $this->realIndexer->withIndexingService($indexingService),
-            $this->phantomRecordUid,
-        );
-    }
-
-    #[Override]
-    public function withExcludeHiddenPages(bool $excludeHiddenPages): PhantomRecordUidIndexer
-    {
-        return new self(
-            $this->realIndexer->withExcludeHiddenPages($excludeHiddenPages),
-            $this->phantomRecordUid,
-        );
+        return new self($this->realIndexer->withExcludeHiddenPages($excludeHiddenPages));
     }
 
     #[Override]

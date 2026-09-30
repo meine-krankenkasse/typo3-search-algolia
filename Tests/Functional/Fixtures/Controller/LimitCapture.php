@@ -22,14 +22,16 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Control
 final class LimitCapture
 {
     /**
-     * The $limit argument IndexerInterface::findRecordUidsInScope() was
-     * actually called with, or NULL if it was never called.
+     * The $limit argument
+     * InScopeRecordUidProviderInterface::findRecordUidsInScope() was actually
+     * called with, or NULL if it was never called.
      */
     public ?int $capturedLimit = null;
 
     /**
-     * The number of record UIDs IndexerInterface::findRecordUidsInScope()
-     * actually returned, or NULL if it was never called.
+     * The number of record UIDs
+     * InScopeRecordUidProviderInterface::findRecordUidsInScope() actually
+     * returned, or NULL if it was never called.
      */
     public ?int $capturedRecordUidCount = null;
 }

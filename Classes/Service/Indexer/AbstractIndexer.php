@@ -20,6 +20,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\InScopeRecordUidProviderInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use Override;
 use RuntimeException;
@@ -52,7 +53,7 @@ use function array_map;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-abstract class AbstractIndexer implements IndexerInterface
+abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProviderInterface
 {
     /**
      * The currently used indexing service instance.
@@ -153,7 +154,7 @@ abstract class AbstractIndexer implements IndexerInterface
      *
      * @param IndexingService $indexingService The indexing service configuration to use
      *
-     * @return IndexerInterface A new instance with the specified indexing service
+     * @return static A new instance with the specified indexing service
      */
     #[Override]
     public function withIndexingService(IndexingService $indexingService): IndexerInterface
@@ -173,7 +174,7 @@ abstract class AbstractIndexer implements IndexerInterface
      *
      * @param bool $excludeHiddenPages Whether to exclude hidden pages from indexing
      *
-     * @return IndexerInterface A new instance with the specified hidden pages exclusion setting
+     * @return static A new instance with the specified hidden pages exclusion setting
      */
     #[Override]
     public function withExcludeHiddenPages(bool $excludeHiddenPages): IndexerInterface

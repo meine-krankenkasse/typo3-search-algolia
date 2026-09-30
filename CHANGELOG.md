@@ -1,11 +1,8 @@
 # 3.1.0
 
-## BREAKING
-
-- WEB-1351: Add IndexerInterface::findRecordUidsInScope() as a new @api interface method - any third-party class implementing IndexerInterface directly (not extending AbstractIndexer) must add this method
-
 ## MISC
 
+- WEB-1351: Add InScopeRecordUidProviderInterface, an optional interface next to IndexerInterface for looking up the records currently in scope of an indexer. AbstractIndexer implements it, a custom indexer implementing IndexerInterface directly keeps working unchanged and is listed as "does not support the preview" in the Attribute Overview module until it implements the new interface
 - WEB-1351: Add an "Attribute Overview" backend module showing one flat table, sorted alphabetically by attribute name, of every attribute sent to Algolia, aggregated across every configured record type's automatically picked, representative record, together with each occurrence's origin, table, and TypoScript path in their own columns
 
 ## Contributors

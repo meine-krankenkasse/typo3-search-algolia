@@ -13,6 +13,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Control
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\InScopeRecordUidProviderInterface;
 use Override;
 
 use function count;
@@ -26,7 +27,7 @@ use function count;
  *
  * Used to prove AttributeOverviewModuleController::buildTableAttributes()
  * genuinely threads its own SCOPE_RECORD_LIMIT constant through to
- * IndexerInterface::findRecordUidsInScope(), as opposed to a dropped,
+ * InScopeRecordUidProviderInterface::findRecordUidsInScope(), as opposed to a dropped,
  * zeroed, or accidentally hardcoded-wrong argument - a risk the picked
  * record itself cannot discriminate, since AbstractIndexer::fetchRecords()
  * already orders by tstamp DESC before applying the SQL LIMIT, so the
@@ -41,7 +42,7 @@ use function count;
  * "$indexer->withIndexingService($indexingService)->findRecordUidsInScope(...)"
  * chain is still visible to the test.
  */
-final readonly class LimitCapturingIndexer implements IndexerInterface
+final readonly class LimitCapturingIndexer implements IndexerInterface, InScopeRecordUidProviderInterface
 {
     public function __construct(
         private IndexerInterface $realIndexer,
@@ -58,7 +59,9 @@ final readonly class LimitCapturingIndexer implements IndexerInterface
     #[Override]
     public function findRecordUidsInScope(int $limit = 0): array
     {
-        $recordUids = $this->realIndexer->findRecordUidsInScope($limit);
+        $recordUids = ($this->realIndexer instanceof InScopeRecordUidProviderInterface)
+            ? $this->realIndexer->findRecordUidsInScope($limit)
+            : [];
 
         $this->capture->capturedLimit          = $limit;
         $this->capture->capturedRecordUidCount = count($recordUids);

@@ -19,21 +19,25 @@ use Override;
  * Test double for IndexerFactory that delegates every lookup to a real,
  * container-resolved IndexerFactory instance, except that the indexer
  * resolved for exactly one configured table is wrapped in a
- * LimitCapturingIndexer, so the test can observe the $limit argument
- * AttributeOverviewModuleController::buildTableAttributes() actually passes
- * to InScopeRecordUidProviderInterface::findRecordUidsInScope() for that table.
+ * ScopelessIndexer, which does not implement
+ * InScopeRecordUidProviderInterface.
  *
- * IndexerFactory has no dedicated interface (like DocumentBuilder, see
- * ThrowingForTableDocumentBuilder), so this mirrors that same established
- * pattern: extend the concrete class and delegate to a real, wrapped
- * instance rather than reimplementing its lookup logic.
+ * Mirrors PhantomRecordUidIndexerFactory's established
+ * delegate-to-a-real-instance, override-one-table pattern.
+ *
+ * @author  Rico Sonntag <rico.sonntag@netresearch.de>
+ * @license Netresearch https://www.netresearch.de
+ * @link    https://www.netresearch.de
  */
-final class LimitCapturingIndexerFactory extends IndexerFactory
+final class ScopelessIndexerFactory extends IndexerFactory
 {
+    /**
+     * @param IndexerFactory $realIndexerFactory The real factory every lookup is delegated to
+     * @param string         $tableToWrap        The table whose indexer is wrapped in a ScopelessIndexer
+     */
     public function __construct(
         private readonly IndexerFactory $realIndexerFactory,
-        private readonly string $tableToSpyOn,
-        private readonly LimitCapture $capture,
+        private readonly string $tableToWrap,
     ) {
     }
 
@@ -42,13 +46,13 @@ final class LimitCapturingIndexerFactory extends IndexerFactory
     {
         $indexer = $this->realIndexerFactory->makeInstanceByType($type);
 
-        if (!($indexer instanceof IndexerInterface) || ($type !== $this->tableToSpyOn)) {
+        if (
+            !($indexer instanceof IndexerInterface)
+            || ($type !== $this->tableToWrap)
+        ) {
             return $indexer;
         }
 
-        return new LimitCapturingIndexer(
-            $indexer,
-            $this->capture,
-        );
+        return new ScopelessIndexer($indexer);
     }
 }
