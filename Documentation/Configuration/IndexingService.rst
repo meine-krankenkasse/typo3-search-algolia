@@ -42,10 +42,10 @@ different page trees into different indexes.
     selected in the indexing services.
 
 ..  warning::
-    Records on a hidden page are queued again when they are saved, and
-    hidden pages selected in :guilabel:`Single pages` are not filtered at
-    all. Keep pages that must stay out of the search out of the pages
-    selected in the indexing services.
+    The hidden state of a page is not applied to the records on it. Content
+    elements and news records on a hidden page are queued, and queued again
+    when they are saved. Keep pages that must stay out of the search out of
+    the pages selected in the indexing services.
 
 ..  _configuration-indexing-service-options:
 

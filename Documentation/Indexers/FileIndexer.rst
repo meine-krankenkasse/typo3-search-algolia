@@ -56,8 +56,8 @@ file indexer sends:
     *   -   ``size``
         -   The file size in bytes.
     *   -   ``url``
-        -   The public URL of the file, relative for files in a local
-            storage.
+        -   The public URL of the file, without the leading slash for
+            files in a local storage.
     *   -   ``content``
         -   The extracted text, only for PDF files.
 
