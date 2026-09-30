@@ -64,7 +64,9 @@ When records are indexed
 
 Records are indexed through the indexing queue:
 
-*   Creating or updating a record in the backend queues it automatically.
+*   Creating or updating a record in the backend queues it for
+    reindexing. A hidden record, or one with :guilabel:`Include in Search`
+    disabled, is removed from the queue and from the index instead.
     Deleting a record removes it from the queue and from the index.
 *   The :guilabel:`Queue` backend module queues all records of the
     selected indexing services.

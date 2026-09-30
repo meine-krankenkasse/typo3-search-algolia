@@ -12,10 +12,10 @@
                edit-on-github="meine-krankenkasse/typo3-search-algolia"
                edit-on-github-branch="main"
                typo3-core-preferred="14.3"
-               interlink-shortcode="typo3_search_algolia"
+               interlink-shortcode="meine-krankenkasse/typo3-search-algolia"
     />
     <project title="TYPO3 Search Algolia"
-             version="3.1"
-             release="3.1.0"
-             copyright="since 2024 by mkk - meine krankenkasse"/>
+             version="main"
+             release="main"
+             copyright="since 2025 by mkk - meine krankenkasse"/>
 </guides>

@@ -41,12 +41,14 @@ page indexer sends:
     *   -   ``site``
         -   The domain of the page's site.
     *   -   ``url``
-        -   The absolute URL of the page, if it can be built.
+        -   The URL of the page, if it can be built.
     *   -   ``categories``
         -   The titles of the categories assigned to the page.
     *   -   ``content``
         -   The text of the page's content elements, only if
             :confval:`indexing-service-include-content-elements` is set.
+
+For pages, ``changed`` is the last change of the page or of its content.
 
 The mapped page fields default to:
 

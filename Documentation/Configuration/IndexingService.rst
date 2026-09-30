@@ -33,6 +33,11 @@ The form then shows the options of the selected type.
 A record type can have several indexing services, for example to index
 different page trees into different indexes.
 
+..  warning::
+    Frontend user group access restrictions are not evaluated. Records
+    restricted to logged-in users are indexed like public records. Keep
+    such pages out of the pages selected in the indexing services.
+
 ..  _configuration-indexing-service-options:
 
 Options by type
@@ -76,8 +81,8 @@ Options by type
     :Types: Pages, Content elements, News
 
     Pages whose records are indexed, without their subpages. For the
-    Pages type, pages with :guilabel:`Include in Search` disabled are
-    skipped.
+    Pages type, pages with :guilabel:`Include in Search` disabled are not
+    queued.
 
 ..  confval:: Pages (recursively)
     :name: indexing-service-pages-recursive
@@ -86,8 +91,11 @@ Options by type
     :Types: Pages, Content elements, News
 
     Pages whose records are indexed, including all subpages. For the
-    Pages type, pages with :guilabel:`Include in Search` disabled are
-    skipped.
+    Pages type, pages with :guilabel:`Include in Search` disabled are not
+    queued.
+
+If neither :guilabel:`Single pages` nor :guilabel:`Pages (recursively)` is
+set, all records of the selected type are indexed.
 
 ..  confval:: File collections
     :name: indexing-service-file-collections

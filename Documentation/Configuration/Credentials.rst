@@ -34,3 +34,8 @@ under the extension key ``typo3_search_algolia``:
     configured indexes.
 
 Both values are shown in the Algolia dashboard.
+
+..  warning::
+    Do not use the Admin API key. Create a dedicated API key with write
+    access to the indexes of this installation, and keep it out of version
+    control, for example by reading it from an environment variable.

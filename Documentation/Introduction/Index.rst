@@ -20,7 +20,7 @@ offer fast and relevant search results. It covers:
 *   Files, including the text content of PDF files
 
 Which records are indexed is configured with records in the TYPO3
-backend: a search engine record names the Algolia index, and one or more
+backend. A search engine record names the Algolia index, and one or more
 indexing service records select the content that goes into it.
 
 ..  _introduction-features:

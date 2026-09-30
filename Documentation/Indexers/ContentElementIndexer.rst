@@ -30,8 +30,8 @@ content element indexer sends:
     *   -   ``site``
         -   The domain of the page's site.
     *   -   ``url``
-        -   The absolute URL of the content element on its page, if it can
-            be built.
+        -   The URL of the page with an anchor to the content element
+            (``#c<uid>``), if it can be built.
 
 The mapped content element fields default to:
 
