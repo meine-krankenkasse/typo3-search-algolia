@@ -33,7 +33,7 @@ use Override;
  * the interface itself. This fixture simulates exactly the third-party
  * implementation the guard's own docblock names as the reason it exists.
  *
- * Mirrors NullReturningIndexerFactory's established delegate-to-a-real-
+ * Mirrors TableOverridingIndexerFactory's established delegate-to-a-real-
  * instance, override-one-table pattern.
  */
 final readonly class PhantomAttributeInjectingOriginResolver implements AttributeOriginResolverInterface

@@ -19,6 +19,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerRegistry;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\AttributeOrigin\AttributeOriginResolverInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\NewsIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\AbstractDelegatingDocumentBuilder;
@@ -26,15 +27,12 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\Ar
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\AttributeOverviewModuleControllerTestSubject;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\LimitCapture;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\LimitCapturingIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\LimitCapturingIndexerFactory;
-use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\NullReturningIndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\ObjectFieldInjectingDocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\PhantomAttributeInjectingOriginResolver;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\PhantomRecordUidIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\PhantomRecordUidIndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\ScopelessIndexer;
-use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\ScopelessIndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\StringFieldInjectingDocumentBuilder;
+use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\TableOverridingIndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Fixtures\Controller\ThrowingForTableDocumentBuilder;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -95,15 +93,12 @@ use function substr_count;
 #[UsesClass(ArrayFieldInjectingDocumentBuilder::class)]
 #[UsesClass(LimitCapture::class)]
 #[UsesClass(LimitCapturingIndexer::class)]
-#[UsesClass(LimitCapturingIndexerFactory::class)]
-#[UsesClass(NullReturningIndexerFactory::class)]
 #[UsesClass(ObjectFieldInjectingDocumentBuilder::class)]
 #[UsesClass(PhantomAttributeInjectingOriginResolver::class)]
 #[UsesClass(PhantomRecordUidIndexer::class)]
-#[UsesClass(PhantomRecordUidIndexerFactory::class)]
 #[UsesClass(ScopelessIndexer::class)]
-#[UsesClass(ScopelessIndexerFactory::class)]
 #[UsesClass(StringFieldInjectingDocumentBuilder::class)]
+#[UsesClass(TableOverridingIndexerFactory::class)]
 #[UsesClass(ThrowingForTableDocumentBuilder::class)]
 final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTestCase
 {
@@ -1685,7 +1680,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * is always able to resolve), but it is still real defensive code
      * guarding a documented public-API ?IndexerInterface return type, not
      * dead code, so it needs a dedicated test double forcing that outcome
-     * (NullReturningIndexerFactory) rather than being left unverified.
+     * (TableOverridingIndexerFactory returning NULL) rather than being left unverified.
      *
      * Revert-confirms-red verified: temporarily removing the
      * "!($indexer instanceof IndexerInterface)" guard makes this assertion
@@ -1698,9 +1693,10 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
 
-        $nullReturningIndexerFactory = new NullReturningIndexerFactory(
+        $nullReturningIndexerFactory = new TableOverridingIndexerFactory(
             $this->get(IndexerFactory::class),
             'pages',
+            static fn (): null => null,
         );
 
         $subject = $this->createDrivenSubject(
@@ -2034,7 +2030,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * around the auto-picked record would pass identically whether the cap
      * is real or broken.
      *
-     * Instead, LimitCapturingIndexerFactory substitutes a
+     * Instead, TableOverridingIndexerFactory substitutes a
      * LimitCapturingIndexer wrapping the real 'pages' indexer, which
      * records the exact $limit argument
      * InScopeRecordUidProviderInterface::findRecordUidsInScope() was actually
@@ -2062,10 +2058,13 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_service_scope_limit.csv');
 
         $limitCapture                 = new LimitCapture();
-        $limitCapturingIndexerFactory = new LimitCapturingIndexerFactory(
+        $limitCapturingIndexerFactory = new TableOverridingIndexerFactory(
             $this->get(IndexerFactory::class),
             'pages',
-            $limitCapture,
+            static fn (IndexerInterface $indexer): LimitCapturingIndexer => new LimitCapturingIndexer(
+                $indexer,
+                $limitCapture,
+            ),
         );
 
         $subject = $this->createDrivenSubject(
@@ -2103,7 +2102,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * public-API extension point - returning a stale or otherwise
      * non-existent record UID.
      *
-     * PhantomRecordUidIndexerFactory substitutes a PhantomRecordUidIndexer
+     * TableOverridingIndexerFactory substitutes a PhantomRecordUidIndexer
      * wrapping the real 'pages' indexer, whose findRecordUidsInScope()
      * always returns a single UID (999999) that matches no imported page.
      * Without the buildTableAttributes() guard, this would pass an empty
@@ -2124,10 +2123,13 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
 
-        $phantomRecordUidIndexerFactory = new PhantomRecordUidIndexerFactory(
+        $phantomRecordUidIndexerFactory = new TableOverridingIndexerFactory(
             $this->get(IndexerFactory::class),
             'pages',
-            999999,
+            static fn (IndexerInterface $indexer): PhantomRecordUidIndexer => new PhantomRecordUidIndexer(
+                $indexer,
+                999999,
+            ),
         );
 
         $subject = $this->createDrivenSubject(
@@ -2169,9 +2171,10 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_tt_content.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
 
-        $scopelessIndexerFactory = new ScopelessIndexerFactory(
+        $scopelessIndexerFactory = new TableOverridingIndexerFactory(
             $this->get(IndexerFactory::class),
             'pages',
+            static fn (IndexerInterface $indexer): ScopelessIndexer => new ScopelessIndexer($indexer),
         );
 
         $subject = $this->createDrivenSubject(
