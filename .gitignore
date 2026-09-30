@@ -21,3 +21,6 @@ package-lock.json
 .php-cs-fixer.cache
 .phplint.cache
 .phpunit.result.cache
+
+# Documentation rendering output
+Documentation-GENERATED-temp/

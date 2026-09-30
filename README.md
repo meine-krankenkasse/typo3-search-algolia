@@ -1,6 +1,7 @@
 [![Latest version](https://img.shields.io/github/v/release/meine-krankenkasse/typo3-search-algolia?sort=semver)](https://github.com/meine-krankenkasse/typo3-search-algolia/releases/latest)
 [![License](https://img.shields.io/github/license/meine-krankenkasse/typo3-search-algolia)](https://github.com/meine-krankenkasse/typo3-search-algolia/blob/main/LICENSE)
 [![CI](https://github.com/meine-krankenkasse/typo3-search-algolia/actions/workflows/ci.yml/badge.svg)](https://github.com/meine-krankenkasse/typo3-search-algolia/actions/workflows/ci.yml)
+[![TER](https://img.shields.io/badge/TER-typo3__search__algolia-orange)](https://extensions.typo3.org/extension/typo3_search_algolia)
 
 
 # typo3-search-algolia
@@ -25,6 +26,18 @@ relevant search results.
 - PHP >=8.3 and <8.6
 - Algolia account with API credentials
 
+## Versions
+
+Each major version supports one TYPO3 major version. All of them are available in the
+[TYPO3 Extension Repository (TER)](https://extensions.typo3.org/extension/typo3_search_algolia) and on
+[Packagist](https://packagist.org/packages/meine-krankenkasse/typo3-search-algolia).
+
+| Extension version | TYPO3 version | Branch     |
+|-------------------|---------------|------------|
+| 3.x               | 14.3          | `main`     |
+| 2.x               | 13.4          | `TYPO3-13` |
+| 1.x               | 12.4          | `TYPO3-12` |
+
 ## Quick Start
 1. Install the extension via composer: `composer require meine-krankenkasse/typo3-search-algolia`
 2. Configure your Algolia API credentials in `additional.php`
@@ -32,14 +45,10 @@ relevant search results.
 4. Set up a search engine and indexing services
 5. Start indexing your content
 
-## Table of contents
-- [Requirements & Installation](Documentation/Requirements.md)
-- [Configuration](Documentation/Configuration.md)
-- [Indexers](Documentation/Indexers.md)
-  - [Page Indexer](Documentation/PageIndexer.md)
-  - [Content Element Indexer](Documentation/ContentElementIndexer.md)
-  - [News Indexer](Documentation/NewsIndexer.md)
-  - [File Indexer](Documentation/FileIndexer.md)
+## Documentation
+
+The documentation sources live in [Documentation/](Documentation/) and are rendered on
+[docs.typo3.org](https://docs.typo3.org/p/meine-krankenkasse/typo3-search-algolia/main/en-us/).
 
 ## Optional Features
 
@@ -62,6 +71,6 @@ Without this extension, the search indexer will still work but won't automatical
    git tag -s 1.3.3 -m 1.3.3
    git push origin 1.3.3
    ```
-5. A GitHub Release is created automatically from the tag, which publishes the new version to [TER](https://extensions.typo3.org/extension/typo3_search_algolia)
+5. Pushing the tag publishes the new version to [TER](https://extensions.typo3.org/extension/typo3_search_algolia) and creates the GitHub Release
 
 To re-publish an already-tagged version (e.g. to fix the TER upload comment), trigger the "Publish new extension version to TER" workflow manually via `workflow_dispatch` with that tag as input.
