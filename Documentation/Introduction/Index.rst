@@ -29,7 +29,8 @@ Features
 ========
 
 *   Configurable indexing services per record type
-*   Customizable field mapping via TypoScript
+*   Field mapping via TypoScript, see :ref:`indexers-field-mapping` for
+    its limits
 *   Backend modules to list and clear the Algolia indexes, to manage the
     indexing queue and to review the attributes sent to Algolia
 *   Context menu entry to enqueue a single file directly

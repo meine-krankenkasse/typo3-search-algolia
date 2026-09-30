@@ -12,7 +12,7 @@ collections). Select this folder in the :guilabel:`Records` module.
 
 Create the folder inside the site whose records it indexes. When a page,
 content element or news record is saved, only indexing services stored in
-the same site as the record queue it. File indexing services are the exception, they queue a saved
+the same site as the record queue it. File indexing services are the exception. They queue a saved
 file wherever they are stored. Records outside any site, such as a news storage folder, need
 their indexing service outside any site as well.
 
@@ -38,7 +38,6 @@ service to use. The extension ships the :guilabel:`Algolia Search Service`.
 
 ..  confval:: Index name
     :name: search-engine-index-name
-
     :type: string
 
     The name of the Algolia index that receives the indexed records.

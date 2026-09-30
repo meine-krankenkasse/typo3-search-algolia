@@ -21,13 +21,11 @@ under the extension key ``typo3_search_algolia``:
     );
 
 ..  confval:: appId
-
     :type: string
 
     Your Algolia application ID.
 
 ..  confval:: apiKey
-
     :type: string
 
     An Algolia API key restricted to the indexes of this installation, with

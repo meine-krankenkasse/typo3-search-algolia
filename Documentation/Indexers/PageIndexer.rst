@@ -41,11 +41,10 @@ page indexer sends:
         -   The text of the page's content elements, only if
             :confval:`indexing-service-include-content-elements` is set.
 
-For pages, ``changed`` is the page's ``SYS_LASTCHANGED`` value: the latest
-change of the page or of its content as of the last frontend rendering of
-the page.
-If the page has not been rendered yet, its own last change time
-(``tstamp``) is used.
+For pages, ``changed`` is the page's ``SYS_LASTCHANGED`` value. It holds
+the latest change of the page or of its content as of the last frontend
+rendering of the page. If the page has not been rendered yet, its own
+last change time (``tstamp``) is used.
 
 The mapped page fields default to:
 

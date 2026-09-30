@@ -58,12 +58,13 @@ is configured per table in TypoScript under
 page of each indexer.
 
 ..  warning::
-    The console command ``mkk:queue:index:worker``, which sends the
-    records to Algolia, runs without a site context. It reads only the
-    TypoScript shipped with the extension, so changes to the mapping in
-    your site TypoScript are not applied when records are indexed. The
-    :guilabel:`Attributes` backend module shows the mapping of the site,
-    which can therefore differ from the indexed records.
+    When the console command ``mkk:queue:index:worker``, which sends the
+    records to Algolia, runs on the command line (cron or the scheduler
+    command), it has no site context. It reads only the TypoScript shipped
+    with the extension, so changes to the mapping or to the allowed file
+    extensions in your site TypoScript are not applied when records are
+    indexed. The :guilabel:`Attributes` backend module shows the mapping
+    of the site, which can therefore differ from the indexed records.
 
 ..  note::
     Anyone holding the search key of your frontend can retrieve every
@@ -80,9 +81,11 @@ Records are indexed through the indexing queue:
 *   Creating or updating a record in the backend queues it for
     reindexing. A hidden record, or one with :guilabel:`Include in Search`
     disabled, is removed from the queue and from the index instead.
-    Deleting a record removes it from the queue and from the index. Only
-    indexing services stored in the same site as the record take part,
-    except for files, see :ref:`configuration-search-engine`.
+    Deleting a record removes it from the queue and from the index. The
+    saved record itself is only queued by indexing services of its own
+    site, see :ref:`configuration-search-engine`. Saving a page also
+    queues its content elements for every content element indexing
+    service that covers them, whatever site the service belongs to.
 *   The :guilabel:`Queue` backend module queues all records of the
     selected indexing services. It skips hidden subpages of the pages
     selected in :guilabel:`Pages (recursively)`, together with their

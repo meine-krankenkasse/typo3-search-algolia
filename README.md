@@ -16,7 +16,7 @@ relevant search results.
   - News articles
   - Files (including PDF content extraction)
 - Configurable indexing services
-- Customizable field mapping
+- Field mapping via TypoScript
 - Backend module for managing indexing
 - Context menu integration for direct indexing
 - Support for excluding specific content from search
@@ -71,6 +71,6 @@ Without this extension, the search indexer will still work but won't automatical
    git tag -s 1.3.3 -m 1.3.3
    git push origin 1.3.3
    ```
-5. A GitHub Release is created automatically from the tag, which publishes the new version to [TER](https://extensions.typo3.org/extension/typo3_search_algolia)
+5. Pushing the tag publishes the new version to [TER](https://extensions.typo3.org/extension/typo3_search_algolia) and creates the GitHub Release
 
 To re-publish an already-tagged version (e.g. to fix the TER upload comment), trigger the "Publish new extension version to TER" workflow manually via `workflow_dispatch` with that tag as input.

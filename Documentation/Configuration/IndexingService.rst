@@ -41,6 +41,12 @@ different page trees into different indexes.
     restricted content elements and news records, out of the pages
     selected in the indexing services.
 
+..  warning::
+    Records on a hidden page are queued again when they are saved, and
+    hidden pages selected in :guilabel:`Single pages` are not filtered at
+    all. Keep pages that must stay out of the search out of the pages
+    selected in the indexing services.
+
 ..  _configuration-indexing-service-options:
 
 Options by type
@@ -48,7 +54,6 @@ Options by type
 
 ..  confval:: Include content elements
     :name: indexing-service-include-content-elements
-
     :type: boolean
     :Types: Pages
 
@@ -61,7 +66,6 @@ Options by type
 
 ..  confval:: Content element types
     :name: indexing-service-content-element-types
-
     :type: list
     :Types: Content elements, and Pages with content elements included
 
@@ -71,7 +75,6 @@ Options by type
 
 ..  confval:: Page type
     :name: indexing-service-page-type
-
     :type: list
     :Types: Pages
 
@@ -80,7 +83,6 @@ Options by type
 
 ..  confval:: Single pages
     :name: indexing-service-single-pages
-
     :type: list of pages
     :Types: Pages, Content elements, News
 
@@ -88,7 +90,6 @@ Options by type
 
 ..  confval:: Pages (recursively)
     :name: indexing-service-pages-recursive
-
     :type: list of pages
     :Types: Pages, Content elements, News
 
@@ -101,7 +102,6 @@ options of the type still apply.
 
 ..  confval:: File collections
     :name: indexing-service-file-collections
-
     :type: list of file collections
     :Types: Files
 
