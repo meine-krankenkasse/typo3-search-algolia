@@ -26,7 +26,7 @@ use Override;
  * @license Netresearch https://www.netresearch.de
  * @link    https://www.netresearch.de
  */
-class LegacyOverridePageIndexer extends PageIndexer
+final class LegacyOverridePageIndexer extends PageIndexer
 {
     /**
      * Returns a fixed set of three queue item records, ignoring any limit.

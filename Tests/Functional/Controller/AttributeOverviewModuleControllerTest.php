@@ -2039,9 +2039,9 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * (the actual risk), reading SCOPE_RECORD_LIMIT via reflection rather
      * than hardcoding 200, mirroring the deleted test's own
      * anti-magic-number technique. The 206-in-scope-record fixture (206
-     * beyond the 200 cap) additionally lets the capture prove the database
-     * layer genuinely bounds the result to that limit, not just that the
-     * right number was passed down.
+     * beyond the 200 cap) additionally lets the capture prove the returned
+     * result is bounded to that limit, not just that the right number was
+     * passed down.
      *
      * Revert-confirms-red verified: temporarily hardcoding
      * "findRecordUidsInScope(0)" in buildTableAttributes() makes the first

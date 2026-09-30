@@ -124,7 +124,7 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
 
     /**
      * Verifies findRecordUidsInScope() throws when no indexing service is
-     * set, matching the throws contract documented on IndexerInterface and
+     * set, matching the throws contract documented on InScopeRecordUidProviderInterface and
      * the same guard every sibling method (enqueueOne(), dequeueOne(),
      * etc.) uses.
      */
