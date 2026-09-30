@@ -281,8 +281,6 @@ jobs:
                     # --manual points to GitHub until docs.typo3.org serves this
                     # extension's manual (tracked in WEB-1567). Then switch it to
                     # https://docs.typo3.org/p/meine-krankenkasse/typo3-search-algolia/main/en-us/.
-                    # TER keeps a stored manual URL and never replaces it with
-                    # the docs.typo3.org link on its own.
                     "${TAILOR}" ter:update \
                       --composer="meine-krankenkasse/typo3-search-algolia" \
                       --manual="https://github.com/meine-krankenkasse/typo3-search-algolia" \
