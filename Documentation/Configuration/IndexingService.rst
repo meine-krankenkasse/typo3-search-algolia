@@ -34,9 +34,12 @@ A record type can have several indexing services, for example to index
 different page trees into different indexes.
 
 ..  warning::
-    Frontend user group access restrictions are not evaluated. Records
-    restricted to logged-in users are indexed like public records. Keep
-    such pages out of the pages selected in the indexing services.
+    Frontend user group access restrictions are not evaluated, neither on
+    pages, nor on content elements or news records, nor when a page passes
+    its restriction on to its subpages. Such records are indexed like
+    public records. Keep restricted pages with their subpages, and
+    restricted content elements and news records, out of the pages
+    selected in the indexing services.
 
 ..  _configuration-indexing-service-options:
 
@@ -95,7 +98,8 @@ Options by type
     queued.
 
 If neither :guilabel:`Single pages` nor :guilabel:`Pages (recursively)` is
-set, all records of the selected type are indexed.
+set, the records of the selected type are not limited by page. The other
+options of the type still apply.
 
 ..  confval:: File collections
     :name: indexing-service-file-collections

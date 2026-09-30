@@ -15,10 +15,10 @@ Excluding a page
 ================
 
 Disable :guilabel:`Include in Search` in the page properties to keep a
-page out of the index. The option is on the :guilabel:`Behaviour` tab.
+page out of the index. The option is on the :guilabel:`Behavior` tab.
 
 ..  figure:: /Images/PageIndexer-001.png
-    :alt: Page properties, Behaviour tab with the Include in Search toggle
+    :alt: Page properties, Behavior tab with the Include in Search toggle
     :class: with-border with-shadow
     :zoom: lightbox
 
@@ -48,7 +48,9 @@ page indexer sends:
         -   The text of the page's content elements, only if
             :confval:`indexing-service-include-content-elements` is set.
 
-For pages, ``changed`` is the last change of the page or of its content.
+For pages, ``changed`` is the page's ``SYS_LASTCHANGED`` value: the latest
+change of the page or of its content as of the last frontend rendering of
+the page.
 
 The mapped page fields default to:
 

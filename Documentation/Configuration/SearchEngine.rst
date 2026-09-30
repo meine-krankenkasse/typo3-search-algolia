@@ -8,7 +8,7 @@ Search engine
 
 First create a folder in the page tree to hold the search configuration
 records (search engines, indexing services and, if needed, file
-collections). Select this folder in the :guilabel:`List` module.
+collections). Select this folder in the :guilabel:`Records` module.
 
 Then create a new record of type :guilabel:`Search Engine`.
 

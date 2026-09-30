@@ -31,10 +31,10 @@ Context menu
 ============
 
 A single file can be queued directly from the context menu in the
-:guilabel:`Filelist` module.
+:guilabel:`Media` module.
 
 ..  figure:: /Images/FileIndexer-002.png
-    :alt: Filelist context menu with the entry to queue a file for indexing
+    :alt: Media module context menu with the entry to queue a file for indexing
     :class: with-border with-shadow
     :zoom: lightbox
 

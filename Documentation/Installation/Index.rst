@@ -26,7 +26,7 @@ The extension is also available in the `TYPO3 Extension Repository
 Update the database structure
 =============================
 
-Open :guilabel:`Admin Tools > Maintenance` and run
+Open :guilabel:`System > Maintenance` and run
 :guilabel:`Analyze Database Structure` to create the tables and fields
 the extension adds.
 

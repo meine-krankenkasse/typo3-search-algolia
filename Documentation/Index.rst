@@ -19,7 +19,7 @@ TYPO3 Search Algolia
     en
 
 :Author:
-    mkk - meine krankenkasse
+    mkk – meine krankenkasse
 
 :License:
     This document is published under the

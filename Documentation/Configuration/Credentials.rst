@@ -15,8 +15,8 @@ under the extension key ``typo3_search_algolia``:
     $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_search_algolia'] = array_merge(
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_search_algolia'] ?? [],
         [
-            'appId' => 'YOUR-APP-ID',
-            'apiKey' => 'YOUR-API-KEY',
+            'appId' => getenv('ALGOLIA_APP_ID') ?: '',
+            'apiKey' => getenv('ALGOLIA_API_KEY') ?: '',
         ]
     );
 
@@ -30,12 +30,14 @@ under the extension key ``typo3_search_algolia``:
 
     :type: string
 
-    An Algolia API key with the permissions needed to write to the
-    configured indexes.
+    An Algolia API key restricted to the indexes of this installation, with
+    the ACLs ``addObject``, ``deleteObject``, ``deleteIndex`` and
+    ``listIndexes``. ``deleteIndex`` and ``listIndexes`` are needed for
+    clearing and listing indexes in the administration module.
 
 Both values are shown in the Algolia dashboard.
 
 ..  warning::
-    Do not use the Admin API key. Create a dedicated API key with write
-    access to the indexes of this installation, and keep it out of version
-    control, for example by reading it from an environment variable.
+    Do not use the Admin API key, and do not use this key in the frontend.
+    Keep it out of version control, for example by reading it from an
+    environment variable as shown above.
