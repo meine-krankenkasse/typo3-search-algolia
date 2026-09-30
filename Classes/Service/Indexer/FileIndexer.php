@@ -200,7 +200,7 @@ class FileIndexer extends AbstractIndexer
      * it retrieves files from file collections, filters them by extension and
      * indexability, and prepares them for indexing.
      *
-     * When a positive $limit is given, the collected candidates are ordered by
+     * When queueItemRecordLimit is positive, the collected candidates are ordered by
      * the sys_file_metadata record's own tstamp descending (record_uid
      * descending as a deterministic tie-break, matching the same tie-break
      * AbstractIndexer::fetchRecords() and
@@ -212,30 +212,29 @@ class FileIndexer extends AbstractIndexer
      * This deliberately deviates from how AbstractIndexer::fetchRecords()
      * achieves the same guarantee: that method orders and caps entirely at
      * the SQL level (ORDER BY ... LIMIT), so the database itself discards
-     * the excess rows and never materializes more than $limit results in
+     * the excess rows and never materializes more than the limit in
      * PHP. This override has no equivalent SQL-level hook to delegate to,
      * files come from FAL's FileCollection/File API (loadContents() plus
      * iteration), which exposes no ordering or capping primitive of its
      * own. Ordering therefore requires first materializing every eligible
      * candidate across all configured file collections (no more early
-     * break-2 exit once $limit > 0), then sorting that full in-memory set,
-     * then slicing to $limit. For a very large collection this is a real,
+     * break-2 exit once a limit is set), then sorting that full in-memory
+     * set, then slicing to the limit. For a very large collection this is a real,
      * accepted cost of correctness over the previous unordered early-exit
-     * behavior, only paid when $limit > 0. The unbounded case (no limit,
+     * behavior, only paid with a positive limit. The unbounded case (no limit,
      * used by enqueueAll() and enqueueMultiple() for the real indexing
      * pipeline) is unaffected, it already had to materialize every eligible
      * file regardless.
      *
      * @param int[] $recordUids Unused parameter, kept for compatibility with the parent method
-     * @param int   $limit      Maximum number of records to return, 0 for unbounded. Callers that need
-     *                          the complete eligible set (enqueueAll(), enqueueMultiple()) must keep
-     *                          passing 0, the default, so their queueing behavior is unaffected.
      *
      * @return array<array-key, array<string, int|string>> Array of prepared file records
      */
     #[Override]
-    protected function initQueueItemRecords(array $recordUids = [], int $limit = 0): array
+    protected function initQueueItemRecords(array $recordUids = []): array
     {
+        $limit = $this->queueItemRecordLimit;
+
         $collectionIds = GeneralUtility::intExplode(
             ',',
             $this->indexingService?->getFileCollections() ?? '',

@@ -11,14 +11,22 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Service\Indexer;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Builder\DocumentBuilder;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
+use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Fixtures\Service\Indexer\LegacyOverridePageIndexer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
  * Unit tests for AbstractIndexer::findRecordUidsInScope().
@@ -29,6 +37,8 @@ use RuntimeException;
  */
 #[CoversClass(PageIndexer::class)]
 #[CoversClass(AbstractIndexer::class)]
+#[UsesClass(LegacyOverridePageIndexer::class)]
+#[UsesClass(PageRepository::class)]
 final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
 {
     /**
@@ -59,13 +69,10 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
      * for real, a literal-int fixture would pass even if the cast were
      * accidentally dropped.
      *
-     * Also asserts, via a `with(...)` constraint rather than a bare
-     * `expects(self::once())`, that the $limit argument is genuinely
-     * forwarded to initQueueItemRecords() unchanged: without this
-     * constraint, a regression that silently drops the limit parameter
-     * (making the cap a no-op) would not be caught, since the mock would
-     * still match and return the same fixture regardless of what was
-     * actually passed.
+     * The limit reaches initQueueItemRecords() through the
+     * queueItemRecordLimit property, not an argument. The real indexers'
+     * limit tests (FileIndexerTest and the functional
+     * AbstractIndexerFindRecordUidsInScope tests) cover that it arrives.
      */
     #[Test]
     public function findRecordUidsInScopeReturnsOnlyTheRecordUidColumnAsIntegers(): void
@@ -75,7 +82,7 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
         $indexer
             ->expects(self::once())
             ->method('initQueueItemRecords')
-            ->with([], 0)
+            ->with([])
             ->willReturn([
                 ['record_uid' => '1', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
                 ['record_uid' => '8', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
@@ -89,30 +96,31 @@ final class AbstractIndexerFindRecordUidsInScopeTest extends TestCase
     }
 
     /**
-     * Verifies the $limit argument reaches initQueueItemRecords() as given,
-     * for a positive limit specifically (the zero/default case is already
-     * covered above), the case that actually matters for
-     * AttributeOverviewModuleController's SCOPE_RECORD_LIMIT cap.
+     * Verifies a subclass written against 3.0.0, overriding
+     * initQueueItemRecords() with the 3.0.0 signature, still loads, and that
+     * findRecordUidsInScope() caps its result to a positive limit even when
+     * that override ignores the limit and returns more records.
      */
     #[Test]
-    public function findRecordUidsInScopeForwardsAPositiveLimitToInitQueueItemRecords(): void
+    public function findRecordUidsInScopeCapsTheResultOfALegacyInitQueueItemRecordsOverride(): void
     {
-        $indexer = $this->createIndexerMock();
+        $connectionPool = self::createStub(ConnectionPool::class);
 
-        $indexer
-            ->expects(self::once())
-            ->method('initQueueItemRecords')
-            ->with([], 2)
-            ->willReturn([
-                ['record_uid' => '3', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
-                ['record_uid' => '2', 'table_name' => 'pages', 'service_uid' => 1, 'changed' => 0, 'priority' => 0],
-            ]);
+        $indexer = new LegacyOverridePageIndexer(
+            $connectionPool,
+            self::createStub(SiteFinder::class),
+            new PageRepository($connectionPool),
+            self::createStub(SearchEngineFactory::class),
+            self::createStub(QueueItemRepository::class),
+            self::createStub(DocumentBuilder::class),
+        );
 
         $indexer = $indexer->withIndexingService(
             self::createStub(IndexingService::class),
         );
 
-        self::assertSame([3, 2], $indexer->findRecordUidsInScope(2));
+        self::assertSame([5, 4], $indexer->findRecordUidsInScope(2));
+        self::assertSame([5, 4, 3], $indexer->findRecordUidsInScope());
     }
 
     /**

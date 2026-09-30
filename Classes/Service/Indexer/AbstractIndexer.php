@@ -32,6 +32,7 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function array_map;
+use function array_slice;
 
 /**
  * Abstract base class for all indexers.
@@ -73,6 +74,16 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
      * It is set via the withExcludeHiddenPages() method.
      */
     protected bool $excludeHiddenPages = false;
+
+    /**
+     * Maximum number of records initQueueItemRecords() fetches, 0 for unbounded.
+     *
+     * Only findRecordUidsInScope() sets it, on a clone of its own, so the
+     * queueing methods always work with the complete eligible set. It is a
+     * property rather than a parameter so initQueueItemRecords() keeps the
+     * signature subclasses override.
+     */
+    protected int $queueItemRecordLimit = 0;
 
     /**
      * Constructor for the abstract indexer.
@@ -375,12 +386,24 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
             throw new RuntimeException('Missing indexing service instance.');
         }
 
+        $indexer                       = clone $this;
+        $indexer->queueItemRecordLimit = $limit;
+
+        $records = $indexer->initQueueItemRecords([]);
+
+        // A subclass overriding initQueueItemRecords() may not know the
+        // limit, so cap the result here as well.
+        if ($limit > 0) {
+            $records = array_slice(
+                $records,
+                0,
+                $limit,
+            );
+        }
+
         return array_map(
             static fn (array $row): int => (int) $row['record_uid'],
-            $this->initQueueItemRecords(
-                [],
-                $limit,
-            ),
+            $records,
         );
     }
 
@@ -430,18 +453,16 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
      * If no record UIDs are provided, all eligible records (based on the
      * constraints) will be prepared for queuing.
      *
+     * At most queueItemRecordLimit records are fetched (via SQL LIMIT), 0
+     * for unbounded.
+     *
      * @param int[] $recordUids Optional array of record UIDs to prepare
-     * @param int   $limit      Maximum number of records to fetch (via SQL LIMIT),
-     *                          0 for unbounded. Callers that need the complete
-     *                          eligible set (enqueueAll(), enqueueMultiple()) must
-     *                          keep passing 0, the default, so their queueing
-     *                          behavior is unaffected by this parameter.
      *
      * @return array<array-key, array<string, int|string>> Array of prepared record data
      *
      * @throws Exception If a database error occurs
      */
-    protected function initQueueItemRecords(array $recordUids = [], int $limit = 0): array
+    protected function initQueueItemRecords(array $recordUids = []): array
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
@@ -460,7 +481,7 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
         }
 
         return $this
-            ->fetchRecords($queryBuilder, $constraints, $limit)
+            ->fetchRecords($queryBuilder, $constraints, $this->queueItemRecordLimit)
             ->fetchAllAssociative();
     }
 
