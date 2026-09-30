@@ -1,5 +1,9 @@
 # 3.1.0
 
+## FIX
+
+- WEB-1351: `FileIndexer` wrote 0 into the queue item's `changed` field. It now writes the modification time of the file metadata, so queued files are ordered by their real change time.
+
 ## MISC
 
 - WEB-1351: Add InScopeRecordUidProviderInterface, an optional interface next to IndexerInterface for looking up the records currently in scope of an indexer. AbstractIndexer implements it, a custom indexer implementing IndexerInterface directly keeps working unchanged and is listed as "does not support the preview" in the Attribute Overview module until it implements the new interface
