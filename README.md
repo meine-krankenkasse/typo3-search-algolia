@@ -47,9 +47,8 @@ Each major version supports one TYPO3 major version. All of them are available i
 
 ## Documentation
 
-The full documentation is published on
-[docs.typo3.org](https://docs.typo3.org/p/meine-krankenkasse/typo3-search-algolia/main/en-us/). Its sources live in
-[Documentation/](Documentation/).
+The documentation sources live in [Documentation/](Documentation/) and are rendered on
+[docs.typo3.org](https://docs.typo3.org/p/meine-krankenkasse/typo3-search-algolia/main/en-us/).
 
 ## Optional Features
 
