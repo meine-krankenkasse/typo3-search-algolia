@@ -1,3 +1,13 @@
+# 1.8.1
+
+## FIX
+
+- GH-38: A file that an editor uploads in the file list is queued right after the upload. The flag that keeps a file out of the search is read from the record of the file when the file object does not carry it yet.
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.8.0
 
 ## FEATURE
