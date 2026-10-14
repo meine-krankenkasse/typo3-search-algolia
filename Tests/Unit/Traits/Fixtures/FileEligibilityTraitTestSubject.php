@@ -13,6 +13,7 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Traits\Fixtures;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Traits\FileEligibilityTrait;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 
 /**
@@ -51,11 +52,11 @@ class FileEligibilityTraitTestSubject
     /**
      * Calls isIndexable().
      *
-     * @param FileInterface $file The file to check
+     * @param File $file The file to check
      *
      * @return bool
      */
-    public function callIsIndexable(FileInterface $file): bool
+    public function callIsIndexable(File $file): bool
     {
         return $this->isIndexable($file);
     }
