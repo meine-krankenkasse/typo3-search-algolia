@@ -65,6 +65,11 @@
                 "ignore": {
                     "typo3/cms-core": "TYPO3 v12 is EOL; every published 12.4.x release is flagged. Extension is pinned to v12.4 until ported to v13/v14 (WEB-1469).",
                     "typo3/cms-backend": "TYPO3 v12 is EOL; every published 12.4.x release is flagged. Extension is pinned to v12.4 until ported to v13/v14 (WEB-1469)."
+                },
+                "ignore-id": {
+                    "PKSA-cbx2-m9db-bmzd": "ELTS: enshrined/svg-sanitize - no public fix for TYPO3 12, requires ELTS license",
+                    "PKSA-6j95-1jtb-x6wc": "ELTS: enshrined/svg-sanitize - no public fix for TYPO3 12, requires ELTS license",
+                    "PKSA-8j6w-3kr7-s9xk": "ELTS: enshrined/svg-sanitize - no public fix for TYPO3 12, requires ELTS license"
                 }
             }
         }
