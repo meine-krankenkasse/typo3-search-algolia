@@ -12,7 +12,9 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Hook;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\CategoryRecordRequeuerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeletedEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteRefusedEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
@@ -20,11 +22,14 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
 
 use function array_keys;
+use function in_array;
+use function is_array;
 use function is_int;
 
 /**
@@ -39,8 +44,11 @@ use function is_int;
  * - Before field processing (to remember the records of an existing category)
  * - After database operations (for record creation and updates)
  * - After all datamap operations (to requeue new categories and drop remembered records)
- * - Before command processing (for record deletion)
- * - After command processing (for record moves, undeletions and category deletions)
+ * - Before command processing (to announce a delete command, the publish of a workspace delete or
+ *   move, and to remember what it is sent for)
+ * - After command processing (for record moves, undeletions, deletions, published workspace
+ *   deletes and moves, and category deletions)
+ * - After all commands (to forget what the commands remembered)
  * - During record movement (to track source and target locations)
  *
  * Each hook method dispatches specific events that are then handled by event
@@ -71,6 +79,65 @@ class DataHandlerHook
      * @var array<string, array<int, int>>
      */
     private array $recordMovements = [];
+
+    /**
+     * Remembers the records for which DataHandler called the move hook.
+     *
+     * DataHandler calls the post-process hook of a command also when it
+     * refused the command, but the move hook only after its permission checks.
+     * Only for a record remembered here a move event is dispatched. A move that
+     * DataHandler still declines later, for example into the subtree of the
+     * record itself, is announced as well.
+     *
+     * The array structure is:
+     * [table_name => [record_uid => true]]
+     *
+     * @var array<string, array<int, true>>
+     */
+    private array $movedRecords = [];
+
+    /**
+     * Remembers the deleted records that an undelete command was sent for.
+     *
+     * DataHandler also runs the post-process hook for an undelete command that
+     * does nothing, for example for a record that is not deleted. Only a record
+     * that was deleted before the command and is live afterwards was undeleted.
+     *
+     * The array structure is:
+     * [table_name => [record_uid => true]]
+     *
+     * @var array<string, array<int, true>>
+     */
+    private array $deletedRecordsToUndelete = [];
+
+    /**
+     * Remembers the live records that a delete command was sent for.
+     *
+     * DataHandler runs the pre-process hook of a command before it checks the
+     * permissions of the user, so a record may still be live after the command.
+     * Only a record remembered here that is deleted afterwards is announced as
+     * deleted.
+     *
+     * The array structure is:
+     * [table_name => [record_uid => true]]
+     *
+     * @var array<string, array<int, true>>
+     */
+    private array $recordsToDelete = [];
+
+    /**
+     * Remembers the parent that a live record had before a workspace move was published.
+     *
+     * Publishing a workspace move gives the live record the parent of the move pointer
+     * through a version command. DataHandler calls neither the move hook nor a move command
+     * for it, so the parent before the publish is only known here.
+     *
+     * The array structure is:
+     * [table_name => [record_uid => parent_uid_before_publish]]
+     *
+     * @var array<string, array<int, int>>
+     */
+    private array $publishedMoves = [];
 
     /**
      * Constructor for initializing the service with its dependencies.
@@ -116,8 +183,14 @@ class DataHandlerHook
         if (
             ($table !== 'sys_category')
             || !MathUtility::canBeInterpretedAsInteger($id)
-            || ($this->getBackendUser()->workspace !== 0)
+            || !$this->actsOnLiveRecords($dataHandler, $table)
         ) {
+            return;
+        }
+
+        // DataHandler checks the access to the record after this hook. A save it refuses
+        // is not worth the walk through the descendants and the assignments of the category
+        if (!$dataHandler->checkRecordUpdateAccess($table, (int) $id)) {
             return;
         }
 
@@ -132,7 +205,7 @@ class DataHandlerHook
      * DataHandler writes the MM assignments of new records only after the
      * per-record hooks ran, so the records of a new category can only be found
      * at this point. The remembered records of a successful save were already
-     * requeued, those of a save DataHandler refused would otherwise stay behind.
+     * requeued. Those of a save DataHandler refused would otherwise stay behind.
      *
      * @param DataHandler $dataHandler The DataHandler parent object
      *
@@ -140,7 +213,7 @@ class DataHandlerHook
      */
     public function processDatamap_afterAllOperations(DataHandler $dataHandler): void
     {
-        if ($this->getBackendUser()->workspace !== 0) {
+        if (!$this->actsOnLiveRecords($dataHandler, 'sys_category')) {
             return;
         }
 
@@ -177,6 +250,8 @@ class DataHandlerHook
      * @param int<1, max>|string        $recordUid   The record uid currently processing data for, [integer] or [string] (like 'NEW...')
      * @param array<string, int|string> $fields      The changed field array of a record
      * @param DataHandler               $dataHandler The DataHandler parent object
+     *
+     * @return void
      */
     public function processDatamap_afterDatabaseOperations(
         string $status,
@@ -206,7 +281,7 @@ class DataHandlerHook
 
         $this->eventDispatcher
             ->dispatch(
-                new DataHandlerRecordUpdateEvent($table, $recordUid, $fields)
+                new DataHandlerRecordUpdateEvent($table, $recordUid, $fields, isNew: $status === 'new')
             );
     }
 
@@ -221,30 +296,84 @@ class DataHandlerHook
      * The hook is called before the record is actually deleted from TYPO3, which
      * is crucial because it allows the search indexing system to:
      * - Access the complete record data that's about to be deleted
-     * - Perform any necessary database queries while the record still exists
-     * - Remove the record from the search index before it's removed from the database
+     * - Perform any necessary database queries while the record still exists,
+     *   such as the root page, the page of a content element and the content
+     *   elements of a page
      *
-     * This ensures that deleted records are promptly removed from search results,
-     * maintaining consistency between the TYPO3 database and the search index.
+     * The command may still be refused after this hook, so the record is only
+     * removed from the search index once processCmdmap_postProcess() announced
+     * that it is deleted.
+     *
+     * The version command with the action swap or publish publishes a workspace
+     * version. A delete placeholder deletes the live record and a move pointer moves
+     * it, both without a delete or move command, so the delete is collected here
+     * and the former parent of a move is remembered.
      *
      * @param string                                                           $command      The DataHandler command (e.g., 'delete')
      * @param string                                                           $table        The table currently processing data for
-     * @param int<1, max>                                                      $recordUid    The record uid currently processing data for
+     * @param int|string                                                       $recordUid    The record uid currently processing data for, a key that reads as no record is ignored
      * @param string|array<array-key, int|string|array<array-key, mixed>|null> $commandValue The commands value, typically an array with more detailed command information
      * @param DataHandler                                                      $dataHandler  The DataHandler parent object
+     *
+     * @return void
      */
     public function processCmdmap_preProcess(
         string $command,
         string $table,
-        int $recordUid,
+        int|string $recordUid,
         array|string $commandValue,
         DataHandler $dataHandler,
     ): void {
-        if ($this->getBackendUser()->workspace !== 0) {
+        $recordUid = $this->readRecordUid($command, $recordUid);
+
+        // A key that reads as no record is no command for a record
+        if ($recordUid < 1) {
+            return;
+        }
+
+        if (
+            ($command === 'undelete')
+            && !$this->pageRepository->hasPageRecord($table, $recordUid)
+            && $this->pageRepository->hasPageRecord($table, $recordUid, false)
+        ) {
+            $this->deletedRecordsToUndelete[$table][$recordUid] = true;
+        }
+
+        // Publishing a workspace delete or move changes the live record through the version
+        // command, whatever workspace the user works in
+        if (
+            ($command === 'version')
+            && $this->rememberPublishedVersion($table, $recordUid, $commandValue, $dataHandler)
+        ) {
+            $this->eventDispatcher
+                ->dispatch(
+                    new DataHandlerRecordDeleteEvent($table, $recordUid)
+                );
+
+            return;
+        }
+
+        if (!$this->actsOnLiveRecords($dataHandler, $table)) {
             return;
         }
 
         if ($command === 'delete') {
+            if ($this->pageRepository->hasPageRecord($table, $recordUid)) {
+                $this->recordsToDelete[$table][$recordUid] = true;
+            }
+
+            // DataHandler checks the permissions after this hook, so the command may still be
+            // refused. A refusal that is certain is left out of the collection, because the
+            // collection of a page tree is not cheap. A command that may still be refused is
+            // collected, and the refusal is announced in processCmdmap_postProcess(), which
+            // discards the context.
+            if (
+                ($table === 'pages')
+                && $this->isPageDeleteRefusedForSure($dataHandler, $recordUid)
+            ) {
+                return;
+            }
+
             $this->eventDispatcher
                 ->dispatch(
                     new DataHandlerRecordDeleteEvent($table, $recordUid)
@@ -260,34 +389,111 @@ class DataHandlerHook
      * It handles these command types:
      *
      * 1. Move commands:
-     *    - Creates a DataHandlerRecordMoveEvent with information about the moved record
+     *    - Only for a record for which DataHandler called the move hook, see moveRecord()
+     *    - Creates a DataHandlerRecordMoveEvent with information about the moved record,
+     *      whose target is the parent that DataHandler stored for the record
      *    - Sets the previous PID (source location) using data collected in the moveRecord() hook
      *    - Dispatches the event to notify listeners about the record movement
      *
      * 2. Undelete commands:
+     *    - Only for a record that was deleted before the command and is live afterwards
      *    - Creates a DataHandlerRecordUpdateEvent for the undeleted record
      *    - Dispatches the event to notify listeners that the record is available again
      *
-     * 3. Delete commands on system categories:
+     * 3. Delete commands:
+     *    - Only for a record that was live before the command and is deleted afterwards
+     *    - Creates a DataHandlerRecordDeletedEvent for the deleted record
+     *    - Otherwise, because the command was refused or changed nothing, creates a
+     *      DataHandlerRecordDeleteRefusedEvent so that the context that was collected
+     *      before the permission check is discarded
+     *
+     * 4. Delete commands on system categories:
      *    - Requeues the records of the category, if it really was deleted
+     *
+     * 5. Version commands that publish a workspace delete or move:
+     *    - Announce the delete like a delete command, from what the pre-process hook remembered
+     *    - Announce the move with the parent the live record had before the publish
      *
      * This ensures that moved or undeleted records are properly handled in the search index,
      * maintaining consistency between the TYPO3 database and search results.
      *
      * @param string                                                           $command      The DataHandler command (e.g., 'move', 'undelete')
      * @param string                                                           $table        The table currently processing data for
-     * @param int<1, max>                                                      $recordUid    The record uid currently processing data for
+     * @param int|string                                                       $recordUid    The record uid currently processing data for, a key that reads as no record is ignored
      * @param string|array<array-key, int|string|array<array-key, mixed>|null> $commandValue The commands value, typically an array with more detailed command information
      * @param DataHandler                                                      $dataHandler  The DataHandler parent object
+     *
+     * @return void
      */
     public function processCmdmap_postProcess(
         string $command,
         string $table,
-        int $recordUid,
+        int|string $recordUid,
         array|string $commandValue,
         DataHandler $dataHandler,
     ): void {
+        $recordUid = $this->readRecordUid($command, $recordUid);
+
+        // A key that reads as no record is no command for a record
+        if ($recordUid < 1) {
+            return;
+        }
+
+        // DataHandler moves the live record when a move command names its workspace
+        // version, and tells the move hook by the UID of the live record
+        if ($command === 'move') {
+            $recordUid = $this->resolveLiveRecordUid($table, $recordUid);
+        }
+
         // TODO Handle copying of records
+
+        // The outcome of a delete command that acts on live records is always announced, as
+        // deleted or as refused, and so is the one of a published workspace delete, so that
+        // nothing stays collected for it. A command that does not act on live records is not
+        // announced at all
+        if (
+            (
+                ($command === 'delete')
+                && $this->actsOnLiveRecords($dataHandler, $table)
+            )
+            || (
+                ($command === 'version')
+                && isset($this->recordsToDelete[$table][$recordUid])
+            )
+        ) {
+            $wasLive = isset($this->recordsToDelete[$table][$recordUid]);
+
+            unset($this->recordsToDelete[$table][$recordUid]);
+
+            if (
+                $wasLive
+                && !$this->pageRepository->hasPageRecord($table, $recordUid)
+            ) {
+                $this->eventDispatcher
+                    ->dispatch(
+                        new DataHandlerRecordDeletedEvent($table, $recordUid)
+                    );
+            } else {
+                // The command was refused or changed nothing, so the context that
+                // was collected for it is not needed any more
+                $this->eventDispatcher
+                    ->dispatch(
+                        new DataHandlerRecordDeleteRefusedEvent($table, $recordUid)
+                    );
+            }
+        }
+
+        // A published workspace move announces the parent the live record has now
+        if (
+            ($command === 'version')
+            && isset($this->publishedMoves[$table][$recordUid])
+        ) {
+            $previousPid = $this->publishedMoves[$table][$recordUid];
+
+            unset($this->publishedMoves[$table][$recordUid]);
+
+            $this->announceMove($table, $recordUid, $previousPid);
+        }
 
         // Skip draft records (workspace versions)
         if ($this->isRecordDraft($table, $recordUid)) {
@@ -296,22 +502,27 @@ class DataHandlerHook
 
         if (
             ($command === 'move')
-            && ($this->getBackendUser()->workspace === 0)
+            && $this->actsOnLiveRecords($dataHandler, $table)
+            && isset($this->movedRecords[$table][$recordUid])
         ) {
-            $event = new DataHandlerRecordMoveEvent(
+            unset($this->movedRecords[$table][$recordUid]);
+
+            // The command value can be negative, which means after the page with that
+            // UID, so the parent that DataHandler stored is the one that counts
+            $this->announceMove(
                 $table,
                 $recordUid,
-                (int) $commandValue
-            );
-
-            $event->setPreviousPid(
                 $this->recordMovements[$table][(int) $commandValue] ?? null
             );
-
-            $this->eventDispatcher->dispatch($event);
         }
 
-        if ($command === 'undelete') {
+        if (
+            ($command === 'undelete')
+            && isset($this->deletedRecordsToUndelete[$table][$recordUid])
+            && $this->pageRepository->hasPageRecord($table, $recordUid)
+        ) {
+            unset($this->deletedRecordsToUndelete[$table][$recordUid]);
+
             $this->eventDispatcher
                 ->dispatch(
                     new DataHandlerRecordUpdateEvent($table, $recordUid)
@@ -321,13 +532,40 @@ class DataHandlerHook
         if (
             ($command === 'delete')
             && ($table === 'sys_category')
-            && ($this->getBackendUser()->workspace === 0)
-            && ($this->pageRepository->getPageRecord($table, $recordUid, 'uid') === [])
+            && $this->actsOnLiveRecords($dataHandler, $table)
+            && !$this->pageRepository->hasPageRecord($table, $recordUid)
         ) {
             // Requeue only once the category is really deleted, so a refused delete requeues
             // nothing and the queue worker cannot index the records with the category still live
             $this->categoryRecordRequeuer->requeue($recordUid);
         }
+    }
+
+    /**
+     * Hooks into DataHandler after all commands were processed.
+     *
+     * DataHandler calls the move hook for the translations and inline children of a
+     * moved record as well, and those get no post-process call. The service is shared
+     * by every DataHandler of the request, so what a command left behind is forgotten
+     * once the outermost DataHandler has finished. A nested DataHandler, which a hook
+     * of another extension can start while a command of the outer one is in progress,
+     * must leave the state of that outer command alone.
+     *
+     * @param DataHandler $dataHandler The DataHandler parent object
+     *
+     * @return void
+     */
+    public function processCmdmap_afterFinish(DataHandler $dataHandler): void
+    {
+        if (!$dataHandler->isOuterMostInstance()) {
+            return;
+        }
+
+        $this->recordsToDelete          = [];
+        $this->publishedMoves           = [];
+        $this->movedRecords             = [];
+        $this->recordMovements          = [];
+        $this->deletedRecordsToUndelete = [];
     }
 
     /**
@@ -355,6 +593,8 @@ class DataHandlerHook
      * @param int          $resolvedPid    The resolved parent ID
      * @param bool         $recordWasMoved Set to TRUE if the hook already moved the record
      * @param DataHandler  $dataHandler    The DataHandler parent object
+     *
+     * @return void
      */
     public function moveRecord(
         string $table,
@@ -366,6 +606,8 @@ class DataHandlerHook
         bool &$recordWasMoved,
         DataHandler $dataHandler,
     ): void {
+        $this->movedRecords[$table][$uid] = true;
+
         if (($table === 'pages') || ($table === 'tt_content')) {
             // Track the movement of record <TARGET PID> = <SOURCE PID>
             $this->recordMovements[$table][$destPid] = (int) $moveRec['pid'];
@@ -373,17 +615,237 @@ class DataHandlerHook
     }
 
     /**
-     * Retrieves the currently authenticated backend user.
+     * Tells whether DataHandler refuses the delete of a live page for certain, because
+     * the user has no delete permission for the page itself.
      *
-     * This method provides access to the global backend user authentication object.
-     * The object contains user-specific data and permissions, enabling interaction
-     * with the current backend user session.
+     * A translation of a page is checked against its default language page by
+     * DataHandler, so it is never reported as refused here, and neither is a page
+     * that is not there.
      *
-     * @return BackendUserAuthentication The backend user authentication object representing the current user.
+     * @param DataHandler $dataHandler The DataHandler that carries out the command
+     * @param int         $pageUid     The UID of the page
+     *
+     * @return bool TRUE if DataHandler refuses the delete for sure
      */
-    private function getBackendUser(): BackendUserAuthentication
+    private function isPageDeleteRefusedForSure(
+        DataHandler $dataHandler,
+        int $pageUid,
+    ): bool {
+        $pageRecord = $this->pageRepository
+            ->getPageRecord(
+                'pages',
+                $pageUid,
+                'sys_language_uid',
+            );
+
+        if (
+            ($pageRecord === [])
+            || (((int) $pageRecord['sys_language_uid']) !== 0)
+        ) {
+            return false;
+        }
+
+        return !$dataHandler->doesRecordExist('pages', $pageUid, Permission::PAGE_DELETE);
+    }
+
+    /**
+     * Announces the move of a record with the parent that DataHandler stored for it.
+     *
+     * A record that is not there any more is not announced. A move that left the parent
+     * as it was is announced as well, and the listener of the event tells that the record
+     * did not change its place.
+     *
+     * @param string      $table       The table of the record
+     * @param int<1, max> $recordUid   The UID of the record
+     * @param int|null    $previousPid The parent before the move, NULL if it is not known
+     *
+     * @return void
+     */
+    private function announceMove(
+        string $table,
+        int $recordUid,
+        ?int $previousPid,
+    ): void {
+        $storedRecord = $this->pageRepository
+            ->getPageRecord(
+                $table,
+                $recordUid,
+                'pid',
+            );
+
+        if ($storedRecord === []) {
+            return;
+        }
+
+        $event = new DataHandlerRecordMoveEvent(
+            $table,
+            $recordUid,
+            (int) $storedRecord['pid']
+        );
+
+        $event->setPreviousPid($previousPid);
+
+        $this->eventDispatcher->dispatch($event);
+    }
+
+    /**
+     * Reads the key of a command as the UID of a record, the way DataHandler reads it.
+     *
+     * DataHandler casts the key of a delete, move or undelete command, so a key such as
+     * 3abc is a command for record 3 and the hook follows that reading, or the documents
+     * of a record that was really deleted would stay. The key of a version command has to
+     * be a number, anything else is no command that DataHandler carries out.
+     *
+     * @param string     $command The DataHandler command
+     * @param int|string $key     The key of the command, the UID of the record
+     *
+     * @return int The UID of the record, 0 for a key that reads as none
+     */
+    private function readRecordUid(
+        string $command,
+        int|string $key,
+    ): int {
+        if (
+            ($command === 'version')
+            && !MathUtility::canBeInterpretedAsInteger($key)
+        ) {
+            return 0;
+        }
+
+        return (int) $key;
+    }
+
+    /**
+     * Resolves the UID of a workspace version to the UID of its live record, like
+     * DataHandler does for the record a move command names.
+     *
+     * @param string      $table     The table of the record
+     * @param int<1, max> $recordUid The UID of the record the command names
+     *
+     * @return int<1, max> The UID of the live record, the given UID for a record that is no version
+     */
+    private function resolveLiveRecordUid(
+        string $table,
+        int $recordUid,
+    ): int {
+        if (!BackendUtility::isTableWorkspaceEnabled($table)) {
+            return $recordUid;
+        }
+
+        $record  = $this->pageRepository->getPageRecord($table, $recordUid, 't3ver_oid');
+        $liveUid = (int) ($record['t3ver_oid'] ?? 0);
+
+        return ($liveUid > 0) ? $liveUid : $recordUid;
+    }
+
+    /**
+     * Remembers what the publish of a workspace version does to the live record.
+     *
+     * A version command with the action swap or publish gives the live record the content
+     * of the workspace version. A delete placeholder deletes the live record with it, and a
+     * move pointer gives it a new parent. Both change the live record without a delete or
+     * move command, so what is needed afterwards has to be remembered before the swap.
+     *
+     * @param string                                                           $table        The table of the live record
+     * @param int                                                              $recordUid    The UID of the live record
+     * @param string|array<array-key, int|string|array<array-key, mixed>|null> $commandValue The value of the version command
+     * @param DataHandler                                                      $dataHandler  The DataHandler that runs the command
+     *
+     * @return bool TRUE if the publish deletes the live record and the user may edit it, so that the
+     *              context of the delete has to be collected
+     */
+    private function rememberPublishedVersion(
+        string $table,
+        int $recordUid,
+        array|string $commandValue,
+        DataHandler $dataHandler,
+    ): bool {
+        if (
+            !is_array($commandValue)
+            || !in_array($commandValue['action'] ?? '', ['swap', 'publish'], true)
+            || !isset($commandValue['swapWith'])
+            || !MathUtility::canBeInterpretedAsInteger($commandValue['swapWith'])
+            || !BackendUtility::isTableWorkspaceEnabled($table)
+        ) {
+            return false;
+        }
+
+        $version = $this->pageRepository
+            ->getPageRecord(
+                $table,
+                (int) $commandValue['swapWith'],
+                'pid, t3ver_oid, t3ver_state',
+            );
+
+        $live = $this->pageRepository
+            ->getPageRecord(
+                $table,
+                $recordUid,
+                'pid',
+            );
+
+        if (
+            ($version === [])
+            || ($live === [])
+            || (((int) $version['t3ver_oid']) !== $recordUid)
+        ) {
+            return false;
+        }
+
+        $state = (int) $version['t3ver_state'];
+
+        if ($state === VersionState::DELETE_PLACEHOLDER) {
+            $this->recordsToDelete[$table][$recordUid] = true;
+
+            // A publish that is refused for sure collects nothing, and is still announced as
+            // refused, because the collection of a tree is not cheap
+            return (bool) $dataHandler->checkRecordUpdateAccess($table, $recordUid);
+        }
+
+        if ($state === VersionState::MOVE_POINTER) {
+            $this->publishedMoves[$table][$recordUid] = (int) $live['pid'];
+        }
+
+        return false;
+    }
+
+    /**
+     * Tells whether a command of the DataHandler changes the live record of a table.
+     *
+     * A user of a workspace works on versions of the records of a table that is
+     * workspace-enabled, so the live record and its document stay as they are. The
+     * workspace of the user decides whether the live record of a table can be changed
+     * at all, the backend user answers that for the table. DataHandler checks the
+     * permissions as well, a command that it refuses is announced as refused.
+     *
+     * @param DataHandler $dataHandler The DataHandler that runs the command
+     * @param string      $table       The table of the record
+     *
+     * @return bool TRUE if the command acts on the live record
+     */
+    private function actsOnLiveRecords(
+        DataHandler $dataHandler,
+        string $table,
+    ): bool {
+        return $this->getBackendUser($dataHandler)->workspaceAllowsLiveEditingInTable($table);
+    }
+
+    /**
+     * Retrieves the backend user DataHandler runs its commands for.
+     *
+     * A DataHandler can be started for another user than the global one, for
+     * example by a scheduler task or a command, and judges workspace and
+     * permissions by that user.
+     *
+     * @param DataHandler $dataHandler The DataHandler that runs the command
+     *
+     * @return BackendUserAuthentication The backend user of the DataHandler, or the global one without
+     */
+    private function getBackendUser(DataHandler $dataHandler): BackendUserAuthentication
     {
-        return $GLOBALS['BE_USER'];
+        return ($dataHandler->BE_USER instanceof BackendUserAuthentication)
+            ? $dataHandler->BE_USER
+            : $GLOBALS['BE_USER'];
     }
 
     /**
@@ -409,7 +871,11 @@ class DataHandlerHook
         }
 
         $record = $this->pageRepository
-            ->getPageRecord($tableName, $recordUid, 't3ver_state, t3ver_oid');
+            ->getPageRecord(
+                $tableName,
+                $recordUid,
+                't3ver_state, t3ver_oid',
+            );
 
         if (
             isset($record['t3ver_state'])

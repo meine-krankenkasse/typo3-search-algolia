@@ -13,6 +13,8 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
@@ -26,6 +28,7 @@ use TYPO3\CMS\Extbase\Persistence\QueryInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 use TYPO3\CMS\Extbase\Persistence\Repository;
 
+use function array_chunk;
 use function count;
 
 /**
@@ -228,22 +231,24 @@ class QueueItemRepository extends Repository
      * to the database at once. It's optimized for performance when adding large
      * numbers of items by:
      * - Using direct database operations instead of Extbase's persistence layer
-     * - Chunking the records into manageable batches (1000 records per query)
+     * - Chunking the records into manageable batches
      * - Minimizing the number of database transactions
      *
      * This approach is significantly faster than adding records individually,
      * which is crucial when refreshing the queue for large content collections
      * or during initial indexing operations.
      *
-     * @param array<int, array<string, int|string>> $records array of queue item records, each containing table_name, record_uid, service_uid, etc
+     * A record that is already queued for the same table, record and indexing
+     * service is skipped instead of failing the whole operation, for example
+     * when two editors save related records at the same moment.
      *
-     * @return int The total number of records successfully added to the queue
+     * @param array<int, array<string, int|string>> $records Array of queue item records, each containing table_name, record_uid, service_uid, etc
+     *
+     * @return int The total number of records newly added to the queue
      */
     public function bulkInsert(array $records): int
     {
-        $itemCount = count($records);
-
-        if ($itemCount <= 0) {
+        if (count($records) <= 0) {
             return 0;
         }
 
@@ -251,19 +256,30 @@ class QueueItemRepository extends Repository
             ->getConnectionForTable(self::TABLE_NAME);
 
         // Avoid errors caused by too many records by dividing them into blocks.
-        $recordsChunks = array_chunk($records, 1000);
+        $recordsChunks = array_chunk($records, Constants::IN_LIST_BLOCK_SIZE);
         $columns       = array_keys(reset($records));
+        $insertedCount = 0;
 
         foreach ($recordsChunks as $recordsChunk) {
-            $connection
-                ->bulkInsert(
-                    self::TABLE_NAME,
-                    $recordsChunk,
-                    $columns
-                );
+            try {
+                $connection
+                    ->bulkInsert(
+                        self::TABLE_NAME,
+                        $recordsChunk,
+                        $columns
+                    );
+
+                $insertedCount += count($recordsChunk);
+            } catch (UniqueConstraintViolationException) {
+                // The failed statement has inserted nothing of this block, so
+                // add the records one by one and skip the already queued ones.
+                foreach ($recordsChunk as $record) {
+                    $insertedCount += $this->insert($record);
+                }
+            }
         }
 
-        return $itemCount;
+        return $insertedCount;
     }
 
     /**
@@ -278,16 +294,24 @@ class QueueItemRepository extends Repository
      * needs to be added to the queue, such as when a specific content item
      * is updated and needs to be re-indexed.
      *
-     * @param array<string, int|string> $record queue item record containing table_name, record_uid, service_uid, etc
+     * A record that is already queued for the same table, record and indexing
+     * service is left as it is, which is the case when a second save of the
+     * same record queued it between a removal and this insert.
      *
-     * @return int The number of affected rows (1 if successful, 0 if failed)
+     * @param array<string, int|string> $record Queue item record containing table_name, record_uid, service_uid, etc
+     *
+     * @return int The number of added rows (1 if the record was added, 0 if it was already queued)
      */
     public function insert(array $record): int
     {
         $connection = $this->connectionPool
             ->getConnectionForTable(self::TABLE_NAME);
 
-        return $connection->insert(self::TABLE_NAME, $record);
+        try {
+            return $connection->insert(self::TABLE_NAME, $record);
+        } catch (UniqueConstraintViolationException) {
+            return 0;
+        }
     }
 
     /**
@@ -366,49 +390,55 @@ class QueueItemRepository extends Repository
         array $recordUids = [],
         int $serviceUid = 0,
     ): void {
-        $queryBuilder = $this->connectionPool
-            ->getQueryBuilderForTable(self::TABLE_NAME);
+        // An empty list means every record of the table, a list is deleted in blocks
+        // because of the number of placeholders a statement may carry
+        $blocks = ($recordUids === []) ? [[]] : array_chunk($recordUids, Constants::IN_LIST_BLOCK_SIZE);
 
-        $queryBuilder
-            ->delete(self::TABLE_NAME)
-            ->where(
-                $queryBuilder->expr()->eq(
-                    'table_name',
-                    $queryBuilder->createNamedParameter($tableName)
-                )
-            );
+        foreach ($blocks as $block) {
+            $queryBuilder = $this->connectionPool
+                ->getQueryBuilderForTable(self::TABLE_NAME);
 
-        if ($recordUids !== []) {
-            $queryBuilder->andWhere(
-                $queryBuilder->expr()->in(
-                    'record_uid',
-                    $queryBuilder->createNamedParameter(
-                        $recordUids,
-                        ArrayParameterType::INTEGER
+            $queryBuilder
+                ->delete(self::TABLE_NAME)
+                ->where(
+                    $queryBuilder->expr()->eq(
+                        'table_name',
+                        $queryBuilder->createNamedParameter($tableName)
                     )
-                )
-            );
-        }
+                );
 
-        if ($serviceUid !== 0) {
-            $queryBuilder->andWhere(
-                $queryBuilder->expr()->eq(
-                    'service_uid',
-                    $queryBuilder->createNamedParameter(
-                        $serviceUid,
-                        Connection::PARAM_INT
+            if ($block !== []) {
+                $queryBuilder->andWhere(
+                    $queryBuilder->expr()->in(
+                        'record_uid',
+                        $queryBuilder->createNamedParameter(
+                            $block,
+                            ArrayParameterType::INTEGER
+                        )
                     )
-                )
-            );
-        }
+                );
+            }
 
-        try {
-            $queryBuilder->getConnection()->beginTransaction();
-            $queryBuilder->executeStatement();
-            $queryBuilder->getConnection()->commit();
-        } catch (Exception $e) {
-            $queryBuilder->getConnection()->rollBack();
-            throw $e;
+            if ($serviceUid !== 0) {
+                $queryBuilder->andWhere(
+                    $queryBuilder->expr()->eq(
+                        'service_uid',
+                        $queryBuilder->createNamedParameter(
+                            $serviceUid,
+                            Connection::PARAM_INT
+                        )
+                    )
+                );
+            }
+
+            try {
+                $queryBuilder->getConnection()->beginTransaction();
+                $queryBuilder->executeStatement();
+                $queryBuilder->getConnection()->commit();
+            } catch (Exception $e) {
+                $queryBuilder->getConnection()->rollBack();
+                throw $e;
+            }
         }
     }
 }

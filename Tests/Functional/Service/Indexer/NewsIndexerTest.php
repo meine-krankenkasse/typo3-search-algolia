@@ -169,21 +169,21 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
     }
 
     // -----------------------------------------------------------------------
-    // enqueueMultiple / enqueueAll
+    // enqueueEligible / enqueueAll
     // -----------------------------------------------------------------------
 
     /**
-     * Tests that enqueueMultiple() adds multiple news records to
+     * Tests that enqueueEligible() adds multiple news records to
      * the indexing queue in a single operation.
      */
     #[Test]
-    public function enqueueMultipleAddsMultipleNews(): void
+    public function enqueueEligibleAddsMultipleNews(): void
     {
         $indexer = $this->newsIndexer->withIndexingService($this->indexingService);
 
-        $result = $indexer->enqueueMultiple([1, 2]);
+        $result = $indexer->enqueueEligible([1, 2]);
 
-        self::assertSame(2, $result);
+        self::assertSame([1, 2], $result);
 
         $row1 = $this->fetchFirstRowByFieldValue(self::QUEUE_TABLE, 'record_uid', 1);
         $row2 = $this->fetchFirstRowByFieldValue(self::QUEUE_TABLE, 'record_uid', 2);
@@ -237,7 +237,7 @@ final class NewsIndexerTest extends AbstractFunctionalTestCase
     public function dequeueMultipleRemovesMultipleNews(): void
     {
         $indexer = $this->newsIndexer->withIndexingService($this->indexingService);
-        $indexer->enqueueMultiple([1, 2, 3]);
+        $indexer->enqueueEligible([1, 2, 3]);
 
         $indexer->dequeueMultiple([1, 3]);
 

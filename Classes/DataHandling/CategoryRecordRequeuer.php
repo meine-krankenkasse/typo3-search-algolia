@@ -170,7 +170,7 @@ final class CategoryRecordRequeuer implements CategoryRecordRequeuerInterface
                 $indexerInstance
                     ->withExcludeHiddenPages(true)
                     ->dequeueMultiple($rootPageRecordUids)
-                    ->enqueueMultiple($rootPageRecordUids);
+                    ->enqueueEligible($rootPageRecordUids);
             }
         }
     }

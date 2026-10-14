@@ -1,0 +1,4 @@
+be_users,,,,,,,,
+,uid,pid,username,password,admin,deleted,disable,usergroup
+,4,0,"metadata-editor","",0,0,0,"2"
+,5,0,"editor-without-table-rights","",0,0,0,"3"

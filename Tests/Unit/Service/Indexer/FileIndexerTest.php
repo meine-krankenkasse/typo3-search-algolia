@@ -39,6 +39,7 @@ use RuntimeException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\MetaDataAspect;
@@ -67,7 +68,7 @@ use function count;
 #[UsesClass(FileCollectionService::class)]
 #[CoversClass(AbstractIndexer::class)]
 #[UsesClass(TypoScriptService::class)]
-class FileIndexerTest extends TestCase
+final class FileIndexerTest extends TestCase
 {
     private FileIndexer $subject;
 
@@ -175,19 +176,6 @@ class FileIndexerTest extends TestCase
         $this->expectExceptionMessage('Missing indexing service instance.');
 
         $this->subject->dequeueAll();
-    }
-
-    /**
-     * Tests that enqueueMultiple() throws a RuntimeException when called
-     * without a configured indexing service.
-     */
-    #[Test]
-    public function enqueueMultipleThrowsExceptionWithoutIndexingService(): void
-    {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Missing indexing service instance.');
-
-        $this->subject->enqueueMultiple([1, 2]);
     }
 
     /**
@@ -374,22 +362,77 @@ class FileIndexerTest extends TestCase
     }
 
     /**
-     * Tests that enqueueMultiple() queues exactly the eligible records among
-     * the given file metadata records, each through the same checks as
-     * enqueueOne(), and returns how many were queued, instead of queueing
-     * every file of the indexing service's file collections. A workspace
-     * version or translation resolving to an already collected file is queued
-     * only once, after removing that file's pending queue item.
+     * Tests that enqueueEligible() queues only the given records that the indexer
+     * accepts and answers with them, and not with every file of the service's
+     * collections. A version that resolves to the live metadata record of an
+     * accepted file is accepted as well and queued only once, after removing the
+     * pending queue item of that file. A record without a file, outside the folder
+     * or with another extension is not accepted.
      */
     #[Test]
-    public function enqueueMultipleQueuesOnlyTheGivenEligibleRecords(): void
+    public function enqueueEligibleAnswersWithTheGivenRecordsThatAreAccepted(): void
     {
+        $lookedUpMetadataUids = [];
+        $queuedRecordUids     = [];
+        $queueCalls           = [];
+
+        $subject = $this->createSubjectWithEligibleFiles($lookedUpMetadataUids, $queuedRecordUids, $queueCalls);
+
+        self::assertSame([5, 7, 8], $subject->enqueueEligible([5, 6, 7, 8, 9, 10]));
+        self::assertSame([5, 6, 7, 8, 9, 10], $lookedUpMetadataUids);
+        self::assertSame([5, 7], $queuedRecordUids);
+        self::assertSame(['delete', 'insert'], $queueCalls);
+    }
+
+    /**
+     * Tests that a record that is given more than once is looked up and queued
+     * once, and answered once.
+     */
+    #[Test]
+    public function enqueueEligibleLooksUpARecordThatIsGivenTwiceOnce(): void
+    {
+        $lookedUpMetadataUids = [];
+        $queuedRecordUids     = [];
+        $queueCalls           = [];
+
+        $subject = $this->createSubjectWithEligibleFiles($lookedUpMetadataUids, $queuedRecordUids, $queueCalls);
+
+        self::assertSame([5, 7, 8], $subject->enqueueEligible([5, 5, 6, 7, 8, 9, 10, 10]));
+        self::assertSame([5, 6, 7, 8, 9, 10], $lookedUpMetadataUids);
+    }
+
+    /**
+     * Tests that enqueueEligible() throws a RuntimeException when called
+     * without an indexing service.
+     */
+    #[Test]
+    public function enqueueEligibleThrowsExceptionWithoutIndexingService(): void
+    {
+        $this->expectException(RuntimeException::class);
+
+        $this->subject->enqueueEligible([1, 2]);
+    }
+
+    /**
+     * Creates a FileIndexer for the file metadata records 5 to 10, each of which
+     * resolves like the comments below say, with the indexing service already set.
+     *
+     * @param list<int>    $lookedUpMetadataUids Receives the metadata UIDs that were looked up
+     * @param list<int>    $queuedRecordUids     Receives the record UIDs that were queued
+     * @param list<string> $queueCalls           Receives the order of the queue operations
+     *
+     * @return IndexerInterface The file indexer under test
+     */
+    private function createSubjectWithEligibleFiles(
+        array &$lookedUpMetadataUids,
+        array &$queuedRecordUids,
+        array &$queueCalls,
+    ): IndexerInterface {
         // Metadata 5 and 7 belong to the existing files 105 and 107, metadata 6 to no file.
         // Metadata 8 is a workspace version of metadata 5, it resolves to file 105 as well.
         // Metadata 9 belongs to file 109 outside the service's collection folder, metadata 10
         // to file 110 with an extension the indexer does not accept.
         $fileUidsByMetadataUid = [5 => 105, 7 => 107, 9 => 109, 10 => 110];
-        $lookedUpMetadataUids  = [];
 
         $metadataQueryResult = self::createStub(Result::class);
         $metadataQueryResult
@@ -439,9 +482,6 @@ class FileIndexerTest extends TestCase
                     'category'          => 0,
                 ],
             ]);
-
-        $queuedRecordUids = [];
-        $queueCalls       = [];
 
         $queueItemRepositoryMock = $this->createMock(QueueItemRepository::class);
         $queueItemRepositoryMock
@@ -504,23 +544,104 @@ class FileIndexerTest extends TestCase
             configurationManager: $configurationManager,
         );
 
-        $queuedCount = $subject
-            ->withIndexingService($indexingService)
-            ->enqueueMultiple([5, 6, 7, 8, 9, 10]);
-
-        self::assertSame(2, $queuedCount);
-        self::assertSame([5, 6, 7, 8, 9, 10], $lookedUpMetadataUids);
-        self::assertSame([5, 7], $queuedRecordUids);
-        self::assertSame(['delete', 'insert'], $queueCalls);
+        return $subject->withIndexingService($indexingService);
     }
 
     /**
-     * Tests that enqueueMultiple() leaves the queue untouched when none of the
+     * Creates a FileIndexer whose file lookup resolves the metadata record to
+     * the given file, or to no file, and whose allowed file extensions are
+     * configured as given.
+     *
+     * @param int|false $fileUid           The UID the metadata record resolves to, or FALSE for no file
+     * @param File|null $file              The file the resource factory returns, or NULL to make it throw
+     * @param string    $allowedExtensions The configured allowed file extensions
+     *
+     * @return FileIndexer The file indexer under test
+     */
+    private function createSubjectForExtensionCheck(
+        int|false $fileUid,
+        ?File $file,
+        string $allowedExtensions,
+    ): FileIndexer {
+        $metadataQueryResult = self::createStub(Result::class);
+        $metadataQueryResult
+            ->method('fetchOne')
+            ->willReturn($fileUid);
+
+        $queryBuilder = $this->createMetadataQueryBuilder($metadataQueryResult);
+        $queryBuilder
+            ->method('createNamedParameter')
+            ->willReturn(':dcValue1');
+
+        $connectionPool = self::createStub(ConnectionPool::class);
+        $connectionPool
+            ->method('getQueryBuilderForTable')
+            ->willReturn($queryBuilder);
+
+        $resourceFactory = self::createStub(ResourceFactory::class);
+
+        if ($file instanceof File) {
+            $resourceFactory
+                ->method('retrieveFileOrFolderObject')
+                ->willReturn($file);
+        } else {
+            $resourceFactory
+                ->method('retrieveFileOrFolderObject')
+                ->willThrowException(new ResourceDoesNotExistException('The file does not exist', 1));
+        }
+
+        $configurationManager = self::createStub(ConfigurationManagerInterface::class);
+        $configurationManager
+            ->method('getConfiguration')
+            ->willReturn([
+                'module.' => [
+                    'tx_typo3searchalgolia.' => [
+                        'indexer.' => [
+                            'sys_file_metadata.' => [
+                                'extensions' => $allowedExtensions,
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+
+        return $this->createConfiguredSubject(
+            connectionPool: $connectionPool,
+            resourceFactory: $resourceFactory,
+            configurationManager: $configurationManager,
+        );
+    }
+
+    /**
+     * Tests that a configured list of file extensions is reported.
+     */
+    #[Test]
+    public function hasAllowedFileExtensionsIsTrueWhenExtensionsAreConfigured(): void
+    {
+        $subject = $this->createSubjectForExtensionCheck(105, null, 'pdf');
+
+        self::assertTrue($subject->hasAllowedFileExtensions());
+    }
+
+    /**
+     * Tests that an empty list of file extensions is reported, which makes
+     * the indexer reject every file.
+     */
+    #[Test]
+    public function hasAllowedFileExtensionsIsFalseWhenNoExtensionsAreConfigured(): void
+    {
+        $subject = $this->createSubjectForExtensionCheck(105, null, '');
+
+        self::assertFalse($subject->hasAllowedFileExtensions());
+    }
+
+    /**
+     * Tests that enqueueEligible() leaves the queue untouched when none of the
      * given records is eligible, instead of removing every pending file queue
      * item of the indexing service with an empty list of record UIDs.
      */
     #[Test]
-    public function enqueueMultipleLeavesTheQueueUntouchedWithoutEligibleRecords(): void
+    public function enqueueEligibleLeavesTheQueueUntouchedWithoutEligibleRecords(): void
     {
         $metadataQueryResult = self::createStub(Result::class);
         $metadataQueryResult
@@ -546,10 +667,10 @@ class FileIndexerTest extends TestCase
         );
 
         self::assertSame(
-            0,
+            [],
             $subject
                 ->withIndexingService(self::createStub(IndexingService::class))
-                ->enqueueMultiple([6]),
+                ->enqueueEligible([6]),
         );
     }
 

@@ -33,6 +33,7 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function array_keys;
+use function array_unique;
 use function array_values;
 
 /**
@@ -142,8 +143,9 @@ class FileIndexer extends AbstractIndexer
      * This method retrieves metadata associated with the specified record UID
      * and evaluates whether the corresponding file meets the criteria to be
      * enqueued for processing. The evaluation includes checks on file indexing
-     * status, extension allowances, action permissions, metadata existence, and
-     * belonging to specific file collections.
+     * status, extension allowances, metadata existence, the no-search flag, a
+     * location outside of any recycler folder and belonging to specific file
+     * collections.
      *
      * @param int $recordUid The UID of the metadata record to initialize
      *
@@ -153,21 +155,9 @@ class FileIndexer extends AbstractIndexer
     #[Override]
     protected function initQueueItemRecord(int $recordUid): array|bool
     {
-        // Get the file UID from the metadata record
-        $fileUid = $this->fileRepository->getFileUidByMetadataUid($recordUid);
+        $file = $this->resolveFile($recordUid);
 
-        if ($fileUid === false) {
-            return false;
-        }
-
-        try {
-            $file = $this->resourceFactory
-                ->retrieveFileOrFolderObject((string) $fileUid);
-        } catch (ResourceDoesNotExistException) {
-            $file = null;
-        }
-
-        if (!($file instanceof File)) {
+        if (!$file instanceof File) {
             return false;
         }
 
@@ -195,56 +185,100 @@ class FileIndexer extends AbstractIndexer
     }
 
     /**
-     * Adds the given file metadata records to the indexing queue.
+     * Tells whether a list of allowed file extensions is configured.
      *
-     * Overrides the parent implementation, because initQueueItemRecords()
-     * collects the files of the indexing service's file collections and cannot
-     * be narrowed down to specific records. Each record runs through the same
-     * eligibility checks as enqueueOne(). A workspace version or translation
-     * of a file's metadata resolves to the file's live metadata record, so the
-     * resolved records are collected once each and their pending queue items
-     * removed before inserting them.
+     * Without that list the indexer rejects every file, which is a statement
+     * about the configuration and not about a file.
+     *
+     * @return bool TRUE if at least one file extension is allowed
+     */
+    public function hasAllowedFileExtensions(): bool
+    {
+        return $this->typoScriptService->getAllowedFileExtensions() !== [];
+    }
+
+    /**
+     * Resolves the file of a metadata record.
+     *
+     * @param int $recordUid The UID of the sys_file_metadata record
+     *
+     * @return File|null The file, or NULL if the record has no file, the file does not exist any more or the identifier does not resolve to a file
+     */
+    private function resolveFile(int $recordUid): ?File
+    {
+        $fileUid = $this->fileRepository->getFileUidByMetadataUid($recordUid);
+
+        if ($fileUid === false) {
+            return null;
+        }
+
+        try {
+            $file = $this->resourceFactory
+                ->retrieveFileOrFolderObject((string) $fileUid);
+        } catch (ResourceDoesNotExistException) {
+            return null;
+        }
+
+        return ($file instanceof File) ? $file : null;
+    }
+
+    /**
+     * Adds those of the given file metadata records that this indexer accepts to
+     * the indexing queue.
+     *
+     * Overrides the parent implementation, because initQueueItemRecords() collects the files
+     * of the file collections of the indexing service and cannot be narrowed to a list of
+     * records. Each record runs through the checks of enqueueOne().
+     * A record is accepted when it resolves to an eligible file, which includes a
+     * workspace version or translation that resolves to the live metadata record of
+     * an eligible file, so the answer holds the given UIDs and not the resolved ones.
      *
      * @param int[] $recordUids The UIDs of the sys_file_metadata records to add
      *
-     * @return int The number of records successfully added to the queue
+     * @return int[] The given UIDs that this indexer accepts and that are in the queue now
      *
      * @throws RuntimeException If no indexing service is set
      * @throws Exception        If a database error occurs
      */
     #[Override]
-    public function enqueueMultiple(array $recordUids): int
+    public function enqueueEligible(array $recordUids): array
     {
         if (!($this->indexingService instanceof IndexingService)) {
             throw new RuntimeException('Missing indexing service instance.');
         }
 
+        // Each record is resolved through the same checks as enqueueOne()
+        $acceptedUids     = [];
         $queueItemRecords = [];
 
-        foreach ($recordUids as $recordUid) {
+        foreach (array_unique($recordUids) as $recordUid) {
             $queueItemRecord = $this->initQueueItemRecord($recordUid);
 
             if ($queueItemRecord === false) {
                 continue;
             }
 
+            $acceptedUids[] = $recordUid;
+
             $queueItemRecords[(int) $queueItemRecord['record_uid']] = $queueItemRecord;
         }
 
         if ($queueItemRecords === []) {
-            return 0;
+            return [];
         }
 
         $this->dequeueMultiple(array_keys($queueItemRecords));
 
-        return $this->queueItemRepository
+        $this->queueItemRepository
             ->bulkInsert(array_values($queueItemRecords));
+
+        return $acceptedUids;
     }
 
     /**
      * Prepares file records for addition to the indexing queue.
      *
-     * This method ov*errides the parent implementation to handle the specific
+     * This method overrides the parent implementation to handle the specific
      * requirements of file indexing. Instead of querying a database table directly,
      * it retrieves files from file collections, filters them by extension and
      * indexability, and prepares them for indexing.

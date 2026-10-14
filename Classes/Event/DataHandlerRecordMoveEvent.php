@@ -14,8 +14,10 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Event;
 /**
  * This event is triggered when a record is moved to a different location in the TYPO3 system.
  *
- * The event is dispatched by the DataHandlerHook when a record is moved in the TYPO3
- * backend or through the DataHandler API. It provides information about:
+ * The event is dispatched by the DataHandlerHook when its move hook ran for a record in the
+ * TYPO3 backend or through the DataHandler API, which happens after the permission checks. A
+ * move that DataHandler still declines afterwards, for example into the subtree of the record
+ * itself, is announced as well. It provides information about:
  * - Which record was moved (table name and record UID)
  * - Where the record was moved to (target PID)
  * - Where the record was moved from (previous PID, if available)
@@ -57,10 +59,9 @@ final class DataHandlerRecordMoveEvent
      *
      * @param string      $table     The database table name of the moved record
      * @param int<1, max> $recordUid The unique identifier of the moved record
-     * @param int         $targetPid The ID of the page to which the record was moved. If the value is greater than
-     *                               or equal to 0, it refers to the page ID where the record was inserted
-     *                               (as the first element). If it is less than 0, it refers to a UID from the table
-     *                               after which it was inserted.
+     * @param int         $targetPid The ID of the page to which the record was moved, which is the
+     *                               parent that is stored for the record afterwards, also when it was
+     *                               placed after another record.
      */
     public function __construct(
         private readonly string $table,
@@ -105,9 +106,8 @@ final class DataHandlerRecordMoveEvent
      * Event listeners can use this method to retrieve the target location of the record
      * for updating search indices or related records accordingly.
      *
-     * If the value is greater than or equal to 0, it refers to the page ID where
-     * the record was inserted. If it is less than 0, it refers to a UID from the
-     * table after which the record was inserted.
+     * The value is the parent that is stored for the record after the move, also
+     * when the command placed the record after another record.
      *
      * @return int The ID of the page to which the record was moved
      */

@@ -11,12 +11,20 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Domain\Repository;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+
+use function array_diff;
+use function array_map;
+use function array_values;
+use function count;
+use function intval;
+use function range;
 
 /**
  * Functional tests for QueueItemRepository.
@@ -165,6 +173,203 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
     }
 
     /**
+     * Tests that insert() does not fail and keeps a single row when the
+     * record is already queued, for example because a second save of the
+     * same record put it into the queue between a dequeue and the insert.
+     */
+    #[Test]
+    public function insertIgnoresRecordThatIsAlreadyQueued(): void
+    {
+        $record = [
+            'table_name'  => 'pages',
+            'record_uid'  => 2,
+            'service_uid' => 1,
+            'changed'     => 1700000000,
+            'priority'    => 0,
+        ];
+
+        self::assertSame(1, $this->subject->insert($record));
+        self::assertSame(0, $this->subject->insert($record));
+
+        $queryBuilder = $this->getQueryBuilderWithoutRestrictions(self::TABLE_NAME);
+        $count        = (int) $queryBuilder
+            ->count('*')
+            ->from(self::TABLE_NAME)
+            ->executeQuery()
+            ->fetchOne();
+
+        self::assertSame(1, $count);
+    }
+
+    /**
+     * Tests that bulkInsert() queues the new records of a set and leaves
+     * the records that are already queued untouched instead of failing.
+     */
+    #[Test]
+    public function bulkInsertSkipsRecordsThatAreAlreadyQueued(): void
+    {
+        $this->subject->insert(
+            [
+                'table_name'  => 'pages',
+                'record_uid'  => 1,
+                'service_uid' => 1,
+                'changed'     => 1700000001,
+                'priority'    => 0,
+            ]
+        );
+
+        $insertedCount = $this->subject->bulkInsert(
+            [
+                [
+                    'table_name'  => 'pages',
+                    'record_uid'  => 1,
+                    'service_uid' => 1,
+                    'changed'     => 1700000009,
+                    'priority'    => 0,
+                ],
+                [
+                    'table_name'  => 'pages',
+                    'record_uid'  => 2,
+                    'service_uid' => 1,
+                    'changed'     => 1700000002,
+                    'priority'    => 0,
+                ],
+                [
+                    'table_name'  => 'pages',
+                    'record_uid'  => 3,
+                    'service_uid' => 1,
+                    'changed'     => 1700000003,
+                    'priority'    => 0,
+                ],
+                // The same record a second time inside the set
+                [
+                    'table_name'  => 'pages',
+                    'record_uid'  => 2,
+                    'service_uid' => 1,
+                    'changed'     => 1700000099,
+                    'priority'    => 0,
+                ],
+            ]
+        );
+
+        self::assertSame(2, $insertedCount);
+
+        $queryBuilder = $this->getQueryBuilderWithoutRestrictions(self::TABLE_NAME);
+        $rows         = $queryBuilder
+            ->select('record_uid', 'changed')
+            ->from(self::TABLE_NAME)
+            ->orderBy('record_uid')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        self::assertCount(3, $rows, 'Three distinct records in the queue');
+        self::assertSame(1700000001, (int) $rows[0]['changed']);
+        self::assertSame(1700000002, (int) $rows[1]['changed']);
+        self::assertSame(1700000003, (int) $rows[2]['changed']);
+    }
+
+    /**
+     * Tests that bulkInsert() keeps the records of earlier blocks and counts
+     * the new records of every block when a later block contains a record that
+     * is already queued.
+     */
+    #[Test]
+    public function bulkInsertCountsNewRecordsOfEveryBlockWhenLaterBlockHasDuplicate(): void
+    {
+        // The record is queued before, and a record of the set takes its UID below
+        $this->subject->insert(
+            [
+                'table_name'  => 'pages',
+                'record_uid'  => 1500,
+                'service_uid' => 1,
+                'changed'     => 1700000000,
+                'priority'    => 0,
+            ]
+        );
+
+        $records = [];
+        for ($i = 1; $i <= 1050; ++$i) {
+            $records[] = [
+                'table_name'  => 'pages',
+                'record_uid'  => $i,
+                'service_uid' => 1,
+                'changed'     => 1700000000 + $i,
+                'priority'    => 0,
+            ];
+        }
+
+        // Replace a record of the second block by the queued one
+        $replacedIndex = 1010;
+
+        self::assertGreaterThan(Constants::IN_LIST_BLOCK_SIZE, $replacedIndex, 'The replaced record is in the second block');
+        self::assertGreaterThan(Constants::IN_LIST_BLOCK_SIZE, count($records), 'The set is longer than one block');
+
+        $records[$replacedIndex]['record_uid'] = 1500;
+
+        $insertedCount = $this->subject->bulkInsert($records);
+
+        self::assertSame(1050 - 1, $insertedCount);
+
+        $queryBuilder = $this->getQueryBuilderWithoutRestrictions(self::TABLE_NAME);
+        $count        = (int) $queryBuilder
+            ->count('*')
+            ->from(self::TABLE_NAME)
+            ->executeQuery()
+            ->fetchOne();
+
+        // Every new record plus the record that was queued before
+        self::assertSame(1050, $count);
+    }
+
+    /**
+     * Tests that bulkInsert() still adds the records of the blocks that follow
+     * a block with an already queued record.
+     */
+    #[Test]
+    public function bulkInsertAddsFollowingBlocksWhenFirstBlockHasDuplicate(): void
+    {
+        $this->subject->insert(
+            [
+                'table_name'  => 'pages',
+                'record_uid'  => 1500,
+                'service_uid' => 1,
+                'changed'     => 1700000000,
+                'priority'    => 0,
+            ]
+        );
+
+        $records = [];
+        for ($i = 1; $i <= 1050; ++$i) {
+            $records[] = [
+                'table_name'  => 'pages',
+                'record_uid'  => $i,
+                'service_uid' => 1,
+                'changed'     => 1700000000 + $i,
+                'priority'    => 0,
+            ];
+        }
+
+        // Replace a record of the first block by the queued one
+        $records[5]['record_uid'] = 1500;
+
+        $insertedCount = $this->subject->bulkInsert($records);
+
+        self::assertSame(1049, $insertedCount);
+
+        $queryBuilder = $this->getQueryBuilderWithoutRestrictions(self::TABLE_NAME);
+        $inLastBlock  = (int) $queryBuilder
+            ->count('*')
+            ->from(self::TABLE_NAME)
+            ->where($queryBuilder->expr()->gt('record_uid', 1000))
+            ->andWhere($queryBuilder->expr()->lt('record_uid', 1051))
+            ->executeQuery()
+            ->fetchOne();
+
+        // Every record of the second block, each queued once
+        self::assertSame(50, $inLastBlock);
+    }
+
+    /**
      * Tests that deleteByTableAndRecordUIDs() removes only the specified
      * records while leaving other records in the queue untouched.
      */
@@ -188,6 +393,40 @@ final class QueueItemRepositoryTest extends AbstractFunctionalTestCase
 
         self::assertCount(1, $remaining);
         self::assertSame(2, (int) $remaining[0]['record_uid']);
+    }
+
+    /**
+     * Tests that deleteByTableAndRecordUIDs() removes the records of a list that
+     * is longer than one block, and leaves the records that are not in the list.
+     */
+    #[Test]
+    public function deleteByTableAndRecordUIDsRemovesTheRecordsOfSeveralBlocks(): void
+    {
+        $records = [];
+
+        for ($i = 1; $i <= 1050; ++$i) {
+            $records[] = ['table_name' => 'pages', 'record_uid' => $i, 'service_uid' => 1, 'changed' => 1700000000 + $i, 'priority' => 0];
+        }
+
+        self::assertGreaterThan(Constants::IN_LIST_BLOCK_SIZE, count($records), 'The set is longer than one block');
+
+        $this->subject->bulkInsert($records);
+
+        // Everything but two records that sit in different blocks
+        $this->subject->deleteByTableAndRecordUIDs(
+            'pages',
+            array_values(array_diff(range(1, 1050), [7, 1040]))
+        );
+
+        $queryBuilder = $this->getQueryBuilderWithoutRestrictions(self::TABLE_NAME);
+        $remaining    = $queryBuilder
+            ->select('record_uid')
+            ->from(self::TABLE_NAME)
+            ->orderBy('record_uid')
+            ->executeQuery()
+            ->fetchFirstColumn();
+
+        self::assertSame([7, 1040], array_map(intval(...), $remaining));
     }
 
     /**

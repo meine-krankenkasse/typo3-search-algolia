@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Traits\Fixtures;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Traits\FileEligibilityTrait;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Resource\FileInterface;
 
 /**
@@ -22,7 +23,12 @@ class FileEligibilityTraitTestSubject
     use FileEligibilityTrait;
 
     /**
-     * @param string[] $allowedFileExtensions
+     * Calls isEligible().
+     *
+     * @param FileInterface $file                  The file to check
+     * @param string[]      $allowedFileExtensions The allowed file extensions
+     *
+     * @return bool
      */
     public function callIsEligible(FileInterface $file, array $allowedFileExtensions): bool
     {
@@ -30,15 +36,42 @@ class FileEligibilityTraitTestSubject
     }
 
     /**
-     * @param string[] $fileExtensions
+     * Calls isExtensionAllowed().
+     *
+     * @param FileInterface $file           The file to check
+     * @param string[]      $fileExtensions The allowed file extensions
+     *
+     * @return bool
      */
     public function callIsExtensionAllowed(FileInterface $file, array $fileExtensions): bool
     {
         return $this->isExtensionAllowed($file, $fileExtensions);
     }
 
+    /**
+     * Calls isIndexable().
+     *
+     * @param FileInterface $file The file to check
+     *
+     * @return bool
+     */
     public function callIsIndexable(FileInterface $file): bool
     {
         return $this->isIndexable($file);
+    }
+
+    /**
+     * Calls mayEditMetadata().
+     *
+     * @param FileInterface             $file        The file to check
+     * @param BackendUserAuthentication $backendUser The backend user to check the permissions of
+     *
+     * @return bool
+     */
+    public function callMayEditMetadata(
+        FileInterface $file,
+        BackendUserAuthentication $backendUser,
+    ): bool {
+        return $this->mayEditMetadata($file, $backendUser);
     }
 }

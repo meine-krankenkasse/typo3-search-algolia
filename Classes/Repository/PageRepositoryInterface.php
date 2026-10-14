@@ -49,6 +49,23 @@ interface PageRepositoryInterface
     ): array;
 
     /**
+     * Tells whether a record of a table exists.
+     *
+     * A record that is deleted only exists when the delete clause is switched off.
+     *
+     * @param string $tableName       The name of the database table of the record
+     * @param int    $recordUid       The UID of the record
+     * @param bool   $useDeleteClause Whether a deleted record counts as not existing, defaults to true
+     *
+     * @return bool TRUE if the record exists
+     */
+    public function hasPageRecord(
+        string $tableName,
+        int $recordUid,
+        bool $useDeleteClause = true,
+    ): bool;
+
+    /**
      * Recursively fetches all pages starting from the given page IDs.
      *
      * @param int[]       $pageIds              A list of page IDs for which the subpages will be recursively determined
@@ -75,4 +92,21 @@ interface PageRepositoryInterface
      * @return int The UID of the root page, or 0 if no root page could be determined
      */
     public function getRootPageId(int $pageId): int;
+
+    /**
+     * Returns the UIDs of all pages below the given page, whatever their type.
+     *
+     * @param int  $pageId      The UID of the page whose descendants are wanted
+     * @param bool $forSiteTree Whether the walk is the one of the tree of a site, which leaves out a site
+     *                          root with its tree, the translations of pages and what lies below a hidden
+     *                          page that extends its state to its subpages
+     *
+     * @return int[] The UIDs of the descendants, without the page itself
+     *
+     * @throws Exception If a database error occurs during the query
+     */
+    public function getDescendantPageIds(
+        int $pageId,
+        bool $forSiteTree = false,
+    ): array;
 }

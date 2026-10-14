@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Workspace;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 
@@ -39,11 +40,13 @@ readonly class AfterRecordPublishedEventListener
      * Constructor method for initializing the class.
      *
      * @param EventDispatcherInterface $eventDispatcher An instance of EventDispatcherInterface for event handling
+     * @param PageRepositoryInterface  $pageRepository  The repository used to tell whether the published record still exists
      *
      * @return void
      */
     public function __construct(
         protected EventDispatcherInterface $eventDispatcher,
+        protected PageRepositoryInterface $pageRepository,
     ) {
     }
 
@@ -57,6 +60,7 @@ readonly class AfterRecordPublishedEventListener
      * This method will return early if:
      * - The workspaces extension is not loaded
      * - The event object doesn't have the expected methods
+     * - The published record does not exist any more, because the publish deleted it
      *
      * @param object $event The event instance containing information about the published record.
      *                      Expected to be TYPO3\CMS\Workspaces\Event\AfterRecordPublishedEvent when workspaces is installed.
@@ -75,6 +79,12 @@ readonly class AfterRecordPublishedEventListener
             !method_exists($event, 'getTable')
             || !method_exists($event, 'getRecordId')
         ) {
+            return;
+        }
+
+        // The publish of a workspace delete removes the live record. Its delete is announced
+        // on its own, and nothing is left to decide for the record.
+        if (!$this->pageRepository->hasPageRecord($event->getTable(), $event->getRecordId())) {
             return;
         }
 

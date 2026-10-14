@@ -412,36 +412,28 @@ class AlgoliaSearchEngine extends AbstractSearchEngine
     }
 
     /**
-     * Deletes a document from the current Algolia index.
+     * Deletes several documents from the currently open index.
      *
-     * This method removes a document with the specified ID from the currently
-     * open index. The operation is permanent and cannot be undone. The index
-     * must be opened with indexOpen() before calling this method.
+     * The client sends the object IDs in batches. The batches are not waited for.
      *
-     * @param string $documentId The unique ID of the document to delete
+     * @param string[] $documentIds The unique IDs of the documents to delete
      *
-     * @return bool True if the document was successfully deleted, false otherwise
+     * @return void
      *
      * @throws RuntimeException If no index is currently open
      */
     #[Override]
-    public function documentDelete(string $documentId): bool
+    public function documentDeleteMany(array $documentIds): void
     {
         if ($this->indexName === null) {
             throw new RuntimeException('Index name not set. Use "indexOpen" method.');
         }
 
-        $responseData = $this->client
-            ->deleteObject(
+        // The client sends the object IDs in batches and does not wait for the tasks
+        $this->client
+            ->deleteObjects(
                 $this->indexName,
-                $documentId
+                $documentIds
             );
-
-        if (is_array($responseData)) {
-            $responseData = new DeletedAtResponse($responseData);
-        }
-
-        return $responseData
-            ->valid();
     }
 }

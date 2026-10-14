@@ -1,0 +1,3 @@
+sys_filemounts,,,,,,
+,uid,pid,title,identifier,read_only,deleted
+,1,0,"Storage root","1:/",0,0

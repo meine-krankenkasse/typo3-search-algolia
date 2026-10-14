@@ -192,8 +192,11 @@ class QueueProvider extends AbstractProvider
      * - The record must be a File object (not a Folder)
      * - The file must be indexed in TYPO3's file system
      * - The file extension must be in the list of allowed extensions
-     * - The user must have permission to edit metadata
+     * - The file must not be in the fallback storage, and the user must have
+     *   permission to edit metadata
      * - The file must have metadata with a UID
+     * - The file must not be excluded from the search by its metadata
+     * - The file must not lie in a recycler folder or below one
      * - The user must have permission to modify the sys_file_metadata table
      * - The user must have access to the default language
      * - The file must be part of a file collection that is configured for indexing
@@ -210,9 +213,7 @@ class QueueProvider extends AbstractProvider
         }
 
         $canBeEnqueued = $this->isEligible($this->record, $this->typoScriptService->getAllowedFileExtensions())
-            && $this->record->checkActionPermission('editMeta')
-            && $this->backendUser->check('tables_modify', 'sys_file_metadata')
-            && $this->backendUser->checkLanguageAccess(0);
+            && $this->mayEditMetadata($this->record, $this->backendUser);
 
         if ($canBeEnqueued === false) {
             return false;

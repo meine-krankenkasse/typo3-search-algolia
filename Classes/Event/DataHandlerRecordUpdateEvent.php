@@ -45,11 +45,13 @@ final readonly class DataHandlerRecordUpdateEvent
      * @param string                    $table     The database table name of the created or updated record
      * @param int<1, max>               $recordUid The unique identifier of the created or updated record
      * @param array<string, int|string> $fields    The updated field values of the record
+     * @param bool                      $isNew     TRUE if the record was just created, FALSE otherwise
      */
     public function __construct(
         private string $table,
         private int $recordUid,
         private array $fields = [],
+        private bool $isNew = false,
     ) {
     }
 
@@ -80,6 +82,26 @@ final readonly class DataHandlerRecordUpdateEvent
     public function getRecordUid(): int
     {
         return $this->recordUid;
+    }
+
+    /**
+     * Tells whether the record was just created.
+     *
+     * A record that was just created normally has no document in a search index,
+     * so a listener does not have to look for one to remove. Besides the
+     * DataHandler, the handling of a file that was added or copied sets the
+     * flag. When a file is added under the name of an existing one with the
+     * conflict mode replace through the API, the existing metadata record and
+     * its document are kept, and the check is skipped for it as well. Every
+     * other dispatcher leaves the flag FALSE, for example the replacement of a
+     * file in the backend, which is also the upload with the conflict mode
+     * replace.
+     *
+     * @return bool TRUE if the record was just created, FALSE otherwise
+     */
+    public function isNew(): bool
+    {
+        return $this->isNew;
     }
 
     /**

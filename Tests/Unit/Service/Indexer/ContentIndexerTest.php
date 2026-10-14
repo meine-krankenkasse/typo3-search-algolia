@@ -53,7 +53,7 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 #[UsesClass(FileCollectionService::class)]
 #[CoversClass(AbstractIndexer::class)]
 #[UsesClass(TypoScriptService::class)]
-class ContentIndexerTest extends TestCase
+final class ContentIndexerTest extends TestCase
 {
     private ContentIndexer $subject;
 
@@ -150,16 +150,16 @@ class ContentIndexerTest extends TestCase
     }
 
     /**
-     * Tests that enqueueMultiple() throws a RuntimeException when called
+     * Tests that enqueueEligible() throws a RuntimeException when called
      * without a configured indexing service.
      */
     #[Test]
-    public function enqueueMultipleThrowsExceptionWithoutIndexingService(): void
+    public function enqueueEligibleThrowsExceptionWithoutIndexingService(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Missing indexing service instance.');
 
-        $this->subject->enqueueMultiple([1, 2]);
+        $this->subject->enqueueEligible([1, 2]);
     }
 
     /**

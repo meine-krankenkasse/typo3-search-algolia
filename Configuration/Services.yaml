@@ -69,6 +69,14 @@ services:
             -   name: event.listener
                 identifier: 'typo3-search-algolia/record-delete-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/record-deleted-event-listener'
+                method: onDeleted
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeletedEvent
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/record-delete-refused-event-listener'
+                method: onRefused
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteRefusedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\CategoryChangeEventListener:
         tags:
@@ -88,6 +96,11 @@ services:
             -   name: event.listener
                 identifier: 'typo3-search-algolia/resource-after-file-deleted-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileDeletedEvent
+                after: 'delete-processed-files-after-delete'
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/resource-before-file-deleted-event-listener'
+                method: onBeforeDeleted
+                event: TYPO3\CMS\Core\Resource\Event\BeforeFileDeletedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileCopiedEventListener:
         tags:

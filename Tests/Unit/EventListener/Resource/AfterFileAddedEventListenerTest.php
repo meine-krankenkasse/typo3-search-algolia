@@ -35,12 +35,13 @@ use TYPO3\CMS\Core\Resource\Folder;
 #[CoversClass(AbstractAfterFileEventListener::class)]
 #[CoversClass(AfterFileAddedEventListener::class)]
 #[UsesClass(DataHandlerRecordUpdateEvent::class)]
-class AfterFileAddedEventListenerTest extends TestCase
+final class AfterFileAddedEventListenerTest extends TestCase
 {
     /**
      * Tests that invoking the listener dispatches a DataHandlerRecordUpdateEvent when
      * the file handler returns a valid metadata UID (123). Verifies the dispatched event
-     * has the table set to "sys_file_metadata" and the record UID set to 123.
+     * has the table set to "sys_file_metadata", the record UID set to 123 and is
+     * marked as created, because a file under a new name has no document yet.
      */
     #[Test]
     public function invokeDispatchesUpdateEventWhenMetadataUidIsValid(): void
@@ -62,6 +63,7 @@ class AfterFileAddedEventListenerTest extends TestCase
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
                     && $event->getRecordUid() === 123
+                    && $event->isNew()
             ));
 
         $folderMock     = $this->createMock(Folder::class);

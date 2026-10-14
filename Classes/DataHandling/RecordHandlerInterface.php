@@ -36,17 +36,40 @@ interface RecordHandlerInterface
     public function createIndexerGenerator(int $rootPageId, string $tableName): Generator;
 
     /**
-     * Updates a record in the indexing queue by removing and re-adding it.
+     * Updates records of one table in the indexing queue in one pass, by removing and re-adding them.
      *
-     * @param int    $rootPageId The root page UID to filter indexing services by page tree
-     * @param string $tableName  The name of the database table containing the record
-     * @param int    $recordUid  The unique identifier of the record to update in the queue
+     * The indexing services are resolved once, every service accepts or rejects the records
+     * of the list with one lookup per block of records, and the documents of the records that
+     * no consulted service of a search index accepts are removed from that index in blocks.
+     *
+     * When none of the indexing services consulted for a record that write to one search index
+     * accepts it any more, its document is also removed from that index, and other indexes are
+     * decided separately. The consulted services are the ones of the site of the records and, for
+     * files, every file indexing service. The document is kept when a service that was not
+     * consulted writes to the same index. A failure while removing documents is logged when a
+     * logger is available and does not throw. A record that was just created normally has no
+     * document, so the caller passes FALSE for it and no removal is attempted. A record that
+     * moved to another site is decided over the services of both sites, so that the document
+     * is only kept when a service of one of them accepts the record or when a service of a third
+     * site writes to the same index.
+     *
+     * @param int      $rootPageId              The root page UID to filter indexing services by page tree
+     * @param string   $tableName               The name of the database table containing the records
+     * @param int[]    $recordUids              The unique identifiers of the records to update in the queue
+     * @param bool     $removeRejectedDocuments Whether to remove the documents of records that no indexer accepts
+     * @param int|null $previousRootPageId      The root page UID of the former site of moved records
      *
      * @return void
      *
      * @throws Exception If a database error occurs during the queue operations
      */
-    public function updateRecordInQueue(int $rootPageId, string $tableName, int $recordUid): void;
+    public function updateRecordsInQueue(
+        int $rootPageId,
+        string $tableName,
+        array $recordUids,
+        bool $removeRejectedDocuments = true,
+        ?int $previousRootPageId = null,
+    ): void;
 
     /**
      * Updates a page in the indexing queue when one of its content elements changes.
@@ -63,14 +86,19 @@ interface RecordHandlerInterface
     /**
      * Manages the indexing status of all content elements on a specific page.
      *
-     * @param int  $pageId                    The unique identifier of the page containing the content elements
-     * @param bool $removePageContentElements Whether to remove elements from queue and index (true) or add them to the queue (false)
+     * @param int        $pageId                    The unique identifier of the page containing the content elements
+     * @param bool       $removePageContentElements Whether to remove elements from queue and index (true) or add them to the queue (false)
+     * @param int[]|null $contentElementUids        The UIDs of the content elements, or NULL to look them up on the page
      *
      * @return void
      *
      * @throws Exception If a database error occurs during the queue or index operations
      */
-    public function processContentElementsOfPage(int $pageId, bool $removePageContentElements): void;
+    public function processContentElementsOfPage(
+        int $pageId,
+        bool $removePageContentElements,
+        ?array $contentElementUids = null,
+    ): void;
 
     /**
      * Retrieves the root page ID for a given record.
@@ -84,40 +112,50 @@ interface RecordHandlerInterface
     public function getRecordRootPageId(array $pageRecord, string $tableName, int $recordUid): int;
 
     /**
-     * Removes a single record from the indexing queue and optionally from the search index.
+     * Removes several records of one table from the indexing queue and from the
+     * search index of every indexing service of the page tree of the given root page.
      *
-     * @param IndexingService  $indexingService   The indexing service configuration to use
-     * @param IndexerInterface $indexerInstance   The indexer instance for the record's type
-     * @param string           $tableName         The database table name of the record
-     * @param int              $recordUid         The unique identifier of the record
-     * @param bool             $isRemoveFromIndex Whether to also remove the record from the search engine index
+     * The indexing services are resolved once for all records.
+     *
+     * @param int    $rootPageId The root page UID to filter indexing services by page tree
+     * @param string $tableName  The database table name of the records
+     * @param int[]  $recordUids The unique identifiers of the records
      *
      * @return void
      */
-    public function deleteRecord(
-        IndexingService $indexingService,
-        IndexerInterface $indexerInstance,
+    public function removeRecords(
+        int $rootPageId,
         string $tableName,
-        int $recordUid,
-        bool $isRemoveFromIndex,
+        array $recordUids,
     ): void;
 
     /**
-     * Removes multiple records from the indexing queue and optionally from the search index.
+     * Resolves the indexing services of the page tree of the given root page together
+     * with their indexers, as the targets of a later removal.
      *
-     * @param IndexingService  $indexingService   The indexing service configuration to use
-     * @param IndexerInterface $indexerInstance   The indexer instance for the records' type
-     * @param string           $tableName         The database table name of the records
-     * @param int[]            $recordUids        Array of unique identifiers for the records to delete
-     * @param bool             $isRemoveFromIndex Whether to also remove the records from the search engine index
+     * @param int    $rootPageId The root page UID to filter indexing services by page tree
+     * @param string $tableName  The database table name of the records
+     *
+     * @return array<int, array{IndexingService, IndexerInterface}> The indexing services with their indexers
+     */
+    public function resolveIndexerTargets(
+        int $rootPageId,
+        string $tableName,
+    ): array;
+
+    /**
+     * Removes several records of one table from the indexing queue and from the search
+     * index of the given targets.
+     *
+     * @param array<int, array{IndexingService, IndexerInterface}> $targets    The indexing services with their indexers, see resolveIndexerTargets()
+     * @param string                                               $tableName  The database table name of the records
+     * @param int[]                                                $recordUids The unique identifiers of the records
      *
      * @return void
      */
-    public function deleteRecords(
-        IndexingService $indexingService,
-        IndexerInterface $indexerInstance,
+    public function removeRecordsFromTargets(
+        array $targets,
         string $tableName,
         array $recordUids,
-        bool $isRemoveFromIndex,
     ): void;
 }

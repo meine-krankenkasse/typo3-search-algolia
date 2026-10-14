@@ -11,9 +11,12 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer;
 
+use MeineKrankenkasse\Typo3SearchAlgolia\Utility\PublicationWindow;
 use Override;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+use function sprintf;
 
 /**
  * Indexer for TYPO3 content elements (tt_content).
@@ -63,7 +66,9 @@ class ContentIndexer extends AbstractIndexer
      * This method adds filtering by content element types (CType) if specified
      * in the indexing service configuration. This allows administrators to
      * limit which types of content elements are indexed (e.g., only text elements,
-     * only certain plugins, etc.).
+     * only certain plugins, etc.). Content elements on a page that is hidden, excluded
+     * from the search or outside of its publication window are left out, because the
+     * page itself is not indexed either.
      *
      * @param QueryBuilder $queryBuilder The query builder to use for creating expressions
      *
@@ -88,6 +93,23 @@ class ContentIndexer extends AbstractIndexer
                 $queryBuilder->quoteArrayBasedValueListToStringList($contentElementTypes)
             );
         }
+
+        // A page that is hidden, excluded from the search or outside of its publication window
+        // is not indexed, so neither is its content
+        $now = PublicationWindow::now();
+
+        $constraints[] = sprintf(
+            'NOT EXISTS (SELECT 1 FROM %1$s WHERE %1$s.%2$s = %3$s.%4$s AND (%1$s.%5$s = 1 OR %1$s.%6$s = 1 OR %1$s.%7$s > %9$d OR (%1$s.%8$s > 0 AND %1$s.%8$s <= %9$d)))',
+            $queryBuilder->quoteIdentifier('pages'),
+            $queryBuilder->quoteIdentifier('uid'),
+            $queryBuilder->quoteIdentifier(self::TABLE),
+            $queryBuilder->quoteIdentifier('pid'),
+            $queryBuilder->quoteIdentifier('hidden'),
+            $queryBuilder->quoteIdentifier('no_search'),
+            $queryBuilder->quoteIdentifier('starttime'),
+            $queryBuilder->quoteIdentifier('endtime'),
+            $now,
+        );
 
         return $constraints;
     }
