@@ -1,3 +1,24 @@
+# 1.8.0
+
+## FEATURE
+
+- WEB-1587: Remove the documents and queue items of records that are deleted, hidden, moved or replaced, and only for commands that DataHandler really carried out. A deleted page takes its subpages, content elements, translations, inline children, records of other indexed tables and nested site roots along, each with the indexing services of its own site. A save and a move decide the affected subtree again with the services of the site it belongs to, and a document is removed only when no consulted service of its index accepts the record. The publish of a workspace delete or move is handled like the command itself, and a deleted file takes its document and queue entry with it. Documents are removed in blocks and the removal stops after repeated failures of the search engine. See "When records are indexed" in the manual.
+- WEB-1587: Leave the files of a recycler folder out of the index.
+
+## FIX
+
+- WEB-1587: The route that queues one file checks the same permissions as the context menu entry. It answers the same for a file that is not indexed and for one the user may not edit, and it no longer registers a file record for an unknown file.
+- WEB-1587: Leave the content of a hidden page, and of a page outside its publication window, out of the queue.
+
+## MISC
+
+- WEB-1587: Interface changes. `IndexerInterface::enqueueMultiple()` is removed, use `enqueueEligible()`, which returns the accepted UIDs. `SearchEngineInterface::documentDelete()` and `deleteFromIndex()` are removed, use `deleteManyFromIndex()`. The single record methods of `RecordHandlerInterface` are replaced by methods for several records. `DataHandlerRecordDeleteEvent` is dispatched before DataHandler checks the permissions, the documents are removed on the new `DataHandlerRecordDeletedEvent`, and `DataHandlerRecordDeleteRefusedEvent` discards what was collected.
+- WEB-1587: Keys on the parent fields of the inline relations of `tt_content` make the lookup of the inline children of a record fast. They belong to the site package of a project and are not required for correctness.
+
+## Contributors
+
+- Rico Sonntag
+
 # 1.7.1
 
 ## MISC
