@@ -17,6 +17,8 @@ use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\FolderInterface;
+use TYPO3\CMS\Core\Resource\Index\MetaDataRepository;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function in_array;
 
@@ -148,13 +150,21 @@ trait FileEligibilityTrait
     /**
      * Determines if a file should be included in the search index.
      *
-     * @param FileInterface $file The file to check
+     * @param File $file The file to check
      *
      * @return bool True if the file should be indexed, false otherwise
      */
-    protected function isIndexable(FileInterface $file): bool
+    protected function isIndexable(File $file): bool
     {
-        return $file->hasProperty('no_search')
-            && ((int) $file->getProperty('no_search') === 0);
+        if ($file->hasProperty('no_search')) {
+            return (int) $file->getProperty('no_search') === 0;
+        }
+
+        // The object has no flag, so the record in the database is read
+        $record = GeneralUtility::makeInstance(MetaDataRepository::class)
+            ->findByFileUid($file->getUid());
+
+        return isset($record['no_search'])
+            && ((int) $record['no_search'] === 0);
     }
 }

@@ -24,8 +24,10 @@ use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\Folder;
+use TYPO3\CMS\Core\Resource\Index\MetaDataRepository;
 use TYPO3\CMS\Core\Resource\MetaDataAspect;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use function array_reverse;
 
@@ -47,6 +49,17 @@ final class FileEligibilityTraitTest extends TestCase
         parent::setUp();
 
         $this->subject = new FileEligibilityTraitTestSubject();
+    }
+
+    /**
+     * Takes back the singleton instances that a test set for GeneralUtility::makeInstance().
+     */
+    #[Override]
+    protected function tearDown(): void
+    {
+        GeneralUtility::resetSingletonInstances([]);
+
+        parent::tearDown();
     }
 
     /**
@@ -392,7 +405,7 @@ final class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isIndexableReturnsTrueWhenNoSearchIsZero(): void
     {
-        $fileMock = $this->createMock(FileInterface::class);
+        $fileMock = $this->createMock(File::class);
         $fileMock
             ->method('hasProperty')
             ->with('no_search')
@@ -412,7 +425,7 @@ final class FileEligibilityTraitTest extends TestCase
     #[Test]
     public function isIndexableReturnsFalseWhenNoSearchIsOne(): void
     {
-        $fileMock = $this->createMock(FileInterface::class);
+        $fileMock = $this->createMock(File::class);
         $fileMock
             ->method('hasProperty')
             ->with('no_search')
@@ -426,20 +439,123 @@ final class FileEligibilityTraitTest extends TestCase
     }
 
     /**
-     * Tests that isIndexable() returns false when the file does not have the
-     * 'no_search' property at all, treating the absence of the property as
-     * non-indexable.
+     * Provides what the metadata record in the database holds for a file object that has no
+     * `no_search` property.
+     *
+     * The values are strings, as the database delivers them.
+     *
+     * @return array<string, array{array<string, string|null>, bool}>
+     */
+    public static function metadataRecordProvider(): array
+    {
+        return [
+            'record allows the search'  => [['no_search' => '0'], true],
+            'record excludes the file'  => [['no_search' => '1'], false],
+            'record with a null flag'   => [['no_search' => null], false],
+            'record with another value' => [['no_search' => '2'], false],
+            'record without the flag'   => [[], false],
+        ];
+    }
+
+    /**
+     * Tests that isIndexable() reads the flag from the metadata record in the database when the
+     * file object has no such property. A record that allows the search makes the file indexable,
+     * a record that excludes the file, has another value or says nothing keeps it out.
+     *
+     * @param array<string, string|null> $record   The record that the repository finds
+     * @param bool                       $expected Whether the file is indexable
      */
     #[Test]
-    public function isIndexableReturnsFalseWhenNoSearchPropertyMissing(): void
+    #[DataProvider('metadataRecordProvider')]
+    public function isIndexableReadsTheFlagFromTheMetadataRecordWhenThePropertyIsMissing(array $record, bool $expected): void
     {
-        $fileMock = $this->createMock(FileInterface::class);
+        $repositoryMock = $this->createMock(MetaDataRepository::class);
+        $repositoryMock
+            ->expects(self::once())
+            ->method('findByFileUid')
+            ->with(42)
+            ->willReturn($record);
+
+        GeneralUtility::setSingletonInstance(MetaDataRepository::class, $repositoryMock);
+
+        $fileMock = $this->createMock(File::class);
         $fileMock
             ->method('hasProperty')
             ->with('no_search')
             ->willReturn(false);
+        $fileMock
+            ->method('getUid')
+            ->willReturn(42);
 
-        self::assertFalse($this->subject->callIsIndexable($fileMock));
+        self::assertSame($expected, $this->subject->callIsIndexable($fileMock));
+    }
+
+    /**
+     * Tests that the record is not looked up when the file object carries the property, so the
+     * common case stays free of the additional record lookup.
+     */
+    #[Test]
+    public function isIndexableDoesNotLookUpTheRecordWhenThePropertyIsPresent(): void
+    {
+        $repositoryMock = $this->createMock(MetaDataRepository::class);
+        $repositoryMock
+            ->expects(self::never())
+            ->method('findByFileUid');
+
+        GeneralUtility::setSingletonInstance(MetaDataRepository::class, $repositoryMock);
+
+        $fileMock = $this->createMock(File::class);
+        $fileMock
+            ->method('hasProperty')
+            ->with('no_search')
+            ->willReturn(true);
+        $fileMock
+            ->method('getProperty')
+            ->with('no_search')
+            ->willReturn(0);
+
+        self::assertTrue($this->subject->callIsIndexable($fileMock));
+    }
+
+    /**
+     * Provides the values that the property of a file object can hold. A property read from the
+     * database is a string.
+     *
+     * @return array<string, array{string|int, bool}>
+     */
+    public static function propertyFlagProvider(): array
+    {
+        return [
+            'string zero allows the search'  => ['0', true],
+            'string one excludes the file'   => ['1', false],
+            'string two keeps the file out'  => ['2', false],
+            'integer zero allows the search' => [0, true],
+            'integer one excludes the file'  => [1, false],
+        ];
+    }
+
+    /**
+     * Tests that the flag of the property is compared as a number, so that the string that the
+     * database delivers allows the search for zero and excludes the file for one.
+     *
+     * @param string|int $value    The value of the property
+     * @param bool       $expected Whether the file is indexable
+     */
+    #[Test]
+    #[DataProvider('propertyFlagProvider')]
+    public function isIndexableComparesThePropertyFlagAsANumber(string|int $value, bool $expected): void
+    {
+        $fileMock = $this->createMock(File::class);
+        $fileMock
+            ->method('hasProperty')
+            ->with('no_search')
+            ->willReturn(true);
+        $fileMock
+            ->method('getProperty')
+            ->with('no_search')
+            ->willReturn($value);
+
+        self::assertSame($expected, $this->subject->callIsIndexable($fileMock));
     }
 
     /**
