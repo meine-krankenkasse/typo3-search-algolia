@@ -34,7 +34,7 @@ use TYPO3\CMS\Core\Resource\FileInterface;
 #[CoversClass(AbstractAfterFileEventListener::class)]
 #[CoversClass(AfterFileRenamedEventListener::class)]
 #[UsesClass(DataHandlerRecordUpdateEvent::class)]
-class AfterFileRenamedEventListenerTest extends TestCase
+final class AfterFileRenamedEventListenerTest extends TestCase
 {
     /**
      * Tests that invoking the listener dispatches a DataHandlerRecordUpdateEvent when
@@ -60,6 +60,7 @@ class AfterFileRenamedEventListenerTest extends TestCase
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
                     && $event->getRecordUid() === 789
+                    && !$event->isNew()
             ));
 
         $fileRenamedEvent = new AfterFileRenamedEvent($fileMock, 'old_name.pdf');

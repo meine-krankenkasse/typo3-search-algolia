@@ -30,8 +30,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
-use function count;
-
 /**
  * Functional tests for CategoryRecordRequeuer.
  *
@@ -200,9 +198,9 @@ final class CategoryRecordRequeuerTest extends AbstractFunctionalTestCase
             ->willReturnSelf();
         $indexerMock
             ->expects(self::once())
-            ->method('enqueueMultiple')
+            ->method('enqueueEligible')
             ->with($recordUids)
-            ->willReturn(count($recordUids));
+            ->willReturn($recordUids);
     }
 
     /**
@@ -215,7 +213,7 @@ final class CategoryRecordRequeuerTest extends AbstractFunctionalTestCase
     private function expectNoRequeue(MockObject&IndexerInterface $indexerMock): void
     {
         $indexerMock->expects(self::never())->method('dequeueMultiple');
-        $indexerMock->expects(self::never())->method('enqueueMultiple');
+        $indexerMock->expects(self::never())->method('enqueueEligible');
     }
 
     /**

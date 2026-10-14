@@ -17,6 +17,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Utility\PublicationWindow;
 
 /**
  * Event listener for handling record creation and update operations in the search indexing system.
@@ -27,11 +28,13 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
  *
  * The listener performs the following tasks:
  * - Determines the root page ID for the updated record to establish the correct indexing context
- * - Checks if the record is enabled (not hidden or deleted) to decide whether to index it
+ * - Checks if the record is enabled (not hidden, deleted, excluded from the search or outside
+ *   of its publication window) to decide whether to index it
  * - Updates the record in the indexing queue to ensure it will be re-indexed
  * - For content elements, also processes the page that contains the element
  *   to ensure that page's index entry is updated to reflect the changes to the content
- * - For pages, also processes all content elements on the page and all subpages
+ * - For pages, also processes the content elements on the page and, when the state they
+ *   inherit changed, its subpages
  *   to ensure that the entire page tree is properly indexed
  *
  * This listener is essential for maintaining the integrity of the search index
@@ -86,11 +89,13 @@ class RecordUpdateEventListener
      *
      * 1. Stores the event for later reference
      * 2. Determines the root page ID for the updated record to establish the correct indexing context
-     * 3. Checks if the record is enabled (not hidden or deleted) to decide whether to index it
+     * 3. Checks if the record is enabled (not hidden, deleted, excluded from the search or
+     *    outside of its publication window) to decide whether to index it
      * 4. Updates the record in the indexing queue to ensure it will be re-indexed with its new content
      * 5. For content elements, also processes the page that contains the element
      *    to ensure that page's index entry is updated to reflect the changes to the content
-     * 6. For pages, also processes all content elements on the page and all subpages
+     * 6. For pages, also processes the content elements on the page and, when the state
+     *    they inherit changed, its subpages
      *    to ensure that the entire page tree is properly indexed
      *
      * The method handles different types of records differently:
@@ -128,14 +133,14 @@ class RecordUpdateEventListener
         // Update record at queue and index
         $this->processRecordUpdate(
             $rootPageId,
-            $this->event->getRecordUid(),
-            $isRecordEnabled
+            [$this->event->getRecordUid()],
+            $isRecordEnabled,
+            !$this->event->isNew()
         );
 
         // Update the page if required
         if ($this->isContentElementUpdate()) {
-            // TODO Updating the page can be neglected if the changed content element is not taken
-            //      into account in the page indexing service.
+            // Only a page indexing service that includes the content elements queues the page again
             $pageId = $this->recordRepository
                 ->findPid(
                     ContentIndexer::TABLE,
@@ -158,14 +163,15 @@ class RecordUpdateEventListener
                     !$isRecordEnabled
                 );
 
-            $isSubpageRecordEnabled = $this->isSubpageUpdateRequired(
+            $subtreeEnabled = $this->decideSubtree(
                 $this->event->getTable(),
                 $this->event->getRecordUid(),
                 $this->event->getFields()
             );
 
-            if ($isSubpageRecordEnabled) {
-                // Get all subpages of the current processed page
+            if ($subtreeEnabled !== null) {
+                // A page that is hidden and extends that state hides its subpages, so the walk
+                // includes the subpages that are hidden themselves and removes everything below
                 $subPageIds = $this->pageRepository
                     ->getPageIdsRecursive(
                         [
@@ -173,180 +179,144 @@ class RecordUpdateEventListener
                         ],
                         Constants::MAX_PAGE_TREE_DEPTH,
                         false,
-                        true
+                        $subtreeEnabled
                     );
 
                 if ($subPageIds !== []) {
-                    $this->processRecordUpdates(
+                    $this->processRecordUpdate(
                         $rootPageId,
                         $subPageIds,
-                        $isRecordEnabled
+                        $subtreeEnabled,
+                        false
                     );
 
-                    foreach ($subPageIds as $subPageId) {
-                        $subpageRecord = $this->pageRepository
-                            ->getPageRecord(
-                                $this->event->getTable(),
-                                $subPageId
-                            );
-
-                        // Subpage record is only enabled if the parent page record is also enabled
-                        $isSubpageRecordEnabled = $isRecordEnabled
-                            && $this->isRecordEnabled(
-                                $subpageRecord,
-                                $this->event->getTable(),
-                            );
-
-                        $this->recordHandler
-                            ->processContentElementsOfPage(
-                                $subPageId,
-                                !$isSubpageRecordEnabled
-                            );
-                    }
+                    // The content elements of all subpages in one call. An element of a page
+                    // that is not accepted any more is left out by the indexer
+                    $this->recordHandler
+                        ->processContentElementsOfPage(
+                            $this->event->getRecordUid(),
+                            !$subtreeEnabled,
+                            $this->recordRepository->findUidsByPids('tt_content', $subPageIds)
+                        );
                 }
             }
         }
     }
 
     /**
-     * Determines whether an update is required for subpages based on changes in specific fields.
+     * Decides whether the subpages of a saved page are decided with it, and in which direction.
      *
-     * @param string                    $tableName     The name of the database table containing the record.
-     * @param int                       $recordUid     The unique identifier of the record.
-     * @param array<string, int|string> $updatedFields An associative array of fields that were updated, with their new values.
+     * The state that a page hides its subpages is the one of a page that is hidden, or not yet
+     * or no longer published, and has Extend to subpages enabled. Only such a page takes its
+     * subpages with it, and a page that is hidden or outside of its window without that leaves
+     * them alone. The subtree is decided when one of the fields hidden, starttime, endtime or
+     * extendToSubpages is part of the save, because the state changed. It is also decided for a
+     * save that names no field at all, as the publish of a workspace change does, because a
+     * page that is shown again does not say so. Such a save is decided for a page that extends
+     * its state or is hidden, so that the publish which switched the extension off on a page
+     * that stays hidden queues the subpages again.
      *
-     * @return bool True if an update for subpages is required, false otherwise.
+     * @param string                    $tableName     The name of the database table containing the record
+     * @param int                       $recordUid     The unique identifier of the record
+     * @param array<string, int|string> $updatedFields The fields that were updated, with their new values
+     *
+     * @return bool|null NULL if the subpages are not decided, TRUE if they are enabled, FALSE if the page hides them
      */
-    private function isSubpageUpdateRequired(string $tableName, int $recordUid, array $updatedFields = []): bool
-    {
+    private function decideSubtree(
+        string $tableName,
+        int $recordUid,
+        array $updatedFields = [],
+    ): ?bool {
         $record = $this->pageRepository
             ->getPageRecord(
                 $tableName,
                 $recordUid,
-                'hidden, extendToSubpages',
+                'hidden, starttime, endtime, extendToSubpages',
                 false,
             );
 
-        // Fields "hidden" changes from 1 => 0 and "extendToSubpages" from 1 => 0
-        if (
-            isset($updatedFields['hidden'], $updatedFields['extendToSubpages'])
-            && (((int) $updatedFields['hidden']) === 0)
-            && (((int) $updatedFields['extendToSubpages']) === 0)
-        ) {
-            return true;
+        if ($record === []) {
+            return null;
         }
 
-        // Page has "extendToSubpages" enabled, Field "hidden" changed: 1 => 0,
+        // A page that has not started or has ended hides its subpages like a hidden one
+        $hidden  = PublicationWindow::isHiddenOrOutside($record);
+        $extends = ((int) ($record['extendToSubpages'] ?? 0)) === 1;
+
+        $fieldsNamed = isset($updatedFields['hidden'])
+            || isset($updatedFields['starttime'])
+            || isset($updatedFields['endtime'])
+            || isset($updatedFields['extendToSubpages']);
+
+        // A save that names no field is the publish of a workspace change. It is decided for a
+        // page that hides or has hidden its subpages, which also covers the publish that
+        // switched the extension off on a page that stays hidden
         if (
-            isset($record['extendToSubpages'], $updatedFields['hidden'])
-            && ($record['extendToSubpages'] === 1)
-            && (((int) $updatedFields['hidden']) === 0)
+            !$fieldsNamed
+            && !(($updatedFields === []) && ($extends || $hidden))
         ) {
-            return true;
+            return null;
         }
 
-        // Page has "hidden" enabled, Field "extendToSubpages" changed: 1 => 0,
-        return isset($record['hidden'], $updatedFields['extendToSubpages'])
-            && ($record['hidden'] === 1)
-            && (((int) $updatedFields['extendToSubpages']) === 0);
+        // A save that leaves the extension untouched on a page that does not extend decides no subpages
+        if (
+            !$extends
+            && ($updatedFields !== [])
+            && !isset($updatedFields['extendToSubpages'])
+        ) {
+            return null;
+        }
+
+        return !($hidden && $extends);
     }
 
     /**
-     * Updates a single record in the indexing queue and search engine index.
+     * Updates records of the saved table in the indexing queue and the search engine index.
      *
-     * This method handles the core functionality of updating a record in the search system.
-     * It performs two main operations based on whether the record is enabled:
+     * 1. If the records are enabled (not hidden, deleted, excluded from the search or outside
+     *    of its publication window):
+     *    - Removes them from the indexing queue and adds them back for re-indexing with
+     *      their updated content, see RecordHandlerInterface::updateRecordsInQueue(). That
+     *      method also removes the documents from each search index in which no consulted
+     *      indexer accepts a record, unless the caller asks for no removal.
+     * 2. If the records are disabled:
+     *    - Removes them from the indexing queue and their documents from the search index.
      *
-     * 1. Always removes the record from the current search index to prevent stale data
-     * 2. If the record is enabled (not hidden or deleted):
-     *    - Adds it back to the indexing queue for re-indexing with its updated content
-     * 3. If the record is disabled:
-     *    - Leaves it out of the queue, effectively removing it from search results
+     * The indexing services that are configured for the table and the root page of the
+     * records are found by the record handler, so the records are updated in all relevant
+     * search indices, even if several indexing services are configured for the same table.
      *
-     * The method uses the createIndexerGenerator method from RecordHandler to find all
-     * indexing services that are configured for the record's table and root page.
-     * This ensures that the record is updated in all relevant search indices, even if
-     * multiple indexing services are configured for the same table.
-     *
-     * @param int  $rootPageId      The root page UID to establish the correct indexing context
-     * @param int  $recordUid       The unique identifier of the record to update
-     * @param bool $isRecordEnabled TRUE if the record is enabled and should be indexed, FALSE if it should be removed from the index
-     *
-     * @return void
-     */
-    private function processRecordUpdate(int $rootPageId, int $recordUid, bool $isRecordEnabled): void
-    {
-        $indexerInstanceGenerator = $this->recordHandler
-            ->createIndexerGenerator(
-                $rootPageId,
-                $this->event->getTable(),
-            );
-
-        foreach ($indexerInstanceGenerator as $indexingService => $indexerInstance) {
-            $this->recordHandler
-                ->deleteRecord(
-                    $indexingService,
-                    $indexerInstance,
-                    $this->event->getTable(),
-                    $recordUid,
-                    !$isRecordEnabled
-                );
-
-            // Put the record into the queue to update the index again
-            if ($isRecordEnabled) {
-                $indexerInstance
-                    ->enqueueOne($recordUid);
-            }
-        }
-    }
-
-    /**
-     * Updates multiple records in the indexing queue and search engine index.
-     *
-     * This method is the batch version of processRecordUpdate(), handling multiple records
-     * at once for better performance. It performs the same operations as processRecordUpdate()
-     * but for an array of record UIDs:
-     *
-     * 1. Always removes the records from the current search index to prevent stale data
-     * 2. If the records are enabled (not hidden or deleted):
-     *    - Adds them back to the indexing queue for re-indexing with their updated content
-     * 3. If the records are disabled:
-     *    - Leaves them out of the queue, effectively removing them from search results
-     *
-     * Processing multiple records in a single operation is more efficient than
-     * calling processRecordUpdate() repeatedly, especially for the queue operations.
-     * This is particularly useful when updating a page tree with many subpages.
-     *
-     * @param int   $rootPageId      The root page UID to establish the correct indexing context
-     * @param int[] $recordUids      Array of unique identifiers for the records to update
-     * @param bool  $isRecordEnabled TRUE if the records are enabled and should be indexed, FALSE if they should be removed from the index
+     * @param int   $rootPageId              The root page UID to establish the correct indexing context
+     * @param int[] $recordUids              The unique identifiers of the records to update
+     * @param bool  $isRecordEnabled         TRUE if the records are enabled and should be indexed, FALSE if they should be removed from the index
+     * @param bool  $removeRejectedDocuments Whether the documents of enabled records that no indexer accepts are removed, FALSE for a record that was just created and for the subpages of a saved page
      *
      * @return void
      */
-    private function processRecordUpdates(int $rootPageId, array $recordUids, bool $isRecordEnabled): void
-    {
-        $indexerInstanceGenerator = $this->recordHandler
-            ->createIndexerGenerator(
-                $rootPageId,
-                $this->event->getTable(),
-            );
-
-        foreach ($indexerInstanceGenerator as $indexingService => $indexerInstance) {
+    private function processRecordUpdate(
+        int $rootPageId,
+        array $recordUids,
+        bool $isRecordEnabled,
+        bool $removeRejectedDocuments,
+    ): void {
+        if ($isRecordEnabled) {
             $this->recordHandler
-                ->deleteRecords(
-                    $indexingService,
-                    $indexerInstance,
+                ->updateRecordsInQueue(
+                    $rootPageId,
                     $this->event->getTable(),
                     $recordUids,
-                    !$isRecordEnabled
+                    $removeRejectedDocuments
                 );
 
-            // Put the record into the queue to update the index again
-            if ($isRecordEnabled) {
-                $indexerInstance
-                    ->enqueueMultiple($recordUids);
-            }
+            return;
         }
+
+        $this->recordHandler
+            ->removeRecords(
+                $rootPageId,
+                $this->event->getTable(),
+                $recordUids
+            );
     }
 
     /**
@@ -368,6 +338,8 @@ class RecordUpdateEventListener
             // Record is excluded from the search
             || ((($tableName === 'pages') || ($tableName === 'sys_file_metadata'))
                 && ($record['no_search'] !== 0))
+            // The indexer does not accept a page outside of its publication window
+            || (($tableName === 'pages') && PublicationWindow::isOutside($record))
         );
     }
 

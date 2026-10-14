@@ -35,6 +35,9 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 
+use function implode;
+use function preg_quote;
+
 /**
  * Unit tests for AlgoliaSearchEngine.
  *
@@ -45,7 +48,7 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 #[CoversClass(AlgoliaSearchEngine::class)]
 #[CoversClass(AbstractSearchEngine::class)]
 #[UsesClass(CreateUniqueDocumentIdEvent::class)]
-class AlgoliaSearchEngineTest extends TestCase
+final class AlgoliaSearchEngineTest extends TestCase
 {
     private MockObject&EventDispatcherInterface $eventDispatcherMock;
 
@@ -443,45 +446,247 @@ class AlgoliaSearchEngineTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // documentDelete
+    // documentDeleteMany / deleteManyFromIndex
     // -----------------------------------------------------------------------
 
     /**
-     * Tests that documentDelete() throws a RuntimeException when called
+     * Tests that documentDeleteMany() throws a RuntimeException when called
      * without opening an index first.
      */
     #[Test]
-    public function documentDeleteThrowsExceptionWhenNoIndexOpen(): void
+    public function documentDeleteManyThrowsExceptionWhenNoIndexOpen(): void
     {
         $engine = $this->createEngine();
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Index name not set');
 
-        $engine->documentDelete('doc-1');
+        $engine->documentDeleteMany(['doc-1']);
     }
 
     /**
-     * Tests that documentDelete() calls deleteObject() on the client with
-     * the correct index name and document ID, returning the validation result.
+     * Tests that documentDeleteMany() sends all document IDs in one call to
+     * deleteObjects() of the client.
      */
     #[Test]
-    public function documentDeleteCallsClientAndReturnsResult(): void
+    public function documentDeleteManyCallsTheBatchDeleteOfTheClient(): void
     {
-        $responseMock = $this->createMock(DeletedAtResponse::class);
-        $responseMock
-            ->method('valid')
-            ->willReturn(true);
-
         $this->searchClientMock
             ->expects(self::once())
-            ->method('deleteObject')
-            ->with('test_index', 'doc-1')
-            ->willReturn($responseMock);
+            ->method('deleteObjects')
+            ->with('test_index', ['doc-1', 'doc-2'])
+            ->willReturn([['taskID' => 1]]);
 
         $engine = $this->createEngine();
         $engine->indexOpen('test_index');
 
-        self::assertTrue($engine->documentDelete('doc-1'));
+        $engine->documentDeleteMany(['doc-1', 'doc-2']);
+    }
+
+    /**
+     * Tests that deleteManyFromIndex() builds the document ID of every record
+     * and removes them from the index with one batch call.
+     */
+    #[Test]
+    public function deleteManyFromIndexRemovesTheDocumentsOfAllRecordsInOneCall(): void
+    {
+        $this->eventDispatcherMock
+            ->method('dispatch')
+            ->willReturnCallback(
+                static function (CreateUniqueDocumentIdEvent $event): CreateUniqueDocumentIdEvent {
+                    $event->setDocumentId('ext:' . $event->getTableName() . ':' . $event->getRecordUid());
+
+                    return $event;
+                }
+            );
+
+        $this->searchClientMock
+            ->expects(self::once())
+            ->method('deleteObjects')
+            ->with('test_index', ['ext:pages:4', 'ext:pages:7'])
+            ->willReturn([['taskID' => 1]]);
+
+        $engine = $this->createEngine()->withIndexName('test_index');
+        $engine->deleteManyFromIndex('pages', [4, 7, 4]);
+    }
+
+    /**
+     * Tests that deleteManyFromIndex() opens the index, removes the documents,
+     * commits and closes the index again, in that order, and does nothing at
+     * all for an empty list.
+     */
+    #[Test]
+    public function deleteManyFromIndexOpensRemovesCommitsAndClosesInThatOrder(): void
+    {
+        $this->eventDispatcherMock
+            ->method('dispatch')
+            ->willReturnCallback(
+                static function (CreateUniqueDocumentIdEvent $event): CreateUniqueDocumentIdEvent {
+                    $event->setDocumentId('ext:' . $event->getTableName() . ':' . $event->getRecordUid());
+
+                    return $event;
+                }
+            );
+
+        $calls = [];
+
+        $engine = $this->getMockBuilder(AlgoliaSearchEngine::class)
+            ->setConstructorArgs([
+                $this->eventDispatcherMock,
+                $this->extensionConfigMock,
+                $this->searchClientFactoryMock,
+            ])
+            ->onlyMethods(['indexOpen', 'documentDeleteMany', 'indexCommit', 'indexClose'])
+            ->getMock();
+
+        $engine
+            ->method('indexOpen')
+            ->willReturnCallback(
+                static function (string $indexName) use (&$calls): void {
+                    $calls[] = 'open ' . $indexName;
+                }
+            );
+        $engine
+            ->method('documentDeleteMany')
+            ->willReturnCallback(
+                static function (array $documentIds) use (&$calls): bool {
+                    $calls[] = 'delete ' . implode(',', $documentIds);
+
+                    return true;
+                }
+            );
+        $engine
+            ->method('indexCommit')
+            ->willReturnCallback(
+                static function () use (&$calls): bool {
+                    $calls[] = 'commit';
+
+                    return true;
+                }
+            );
+        $engine
+            ->method('indexClose')
+            ->willReturnCallback(
+                static function () use (&$calls): void {
+                    $calls[] = 'close';
+                }
+            );
+
+        $engine->withIndexName('test_index')->deleteManyFromIndex('pages', []);
+
+        self::assertSame([], $calls, 'Nothing is done for an empty list');
+
+        $engine->withIndexName('test_index')->deleteManyFromIndex('pages', [4, 7]);
+
+        self::assertSame(
+            ['open test_index', 'delete ext:pages:4,ext:pages:7', 'commit', 'close'],
+            $calls
+        );
+    }
+
+    /**
+     * Tests that deleteManyFromIndex() closes the index again when the engine
+     * fails to remove the documents, and does not commit what failed.
+     */
+    #[Test]
+    public function deleteManyFromIndexClosesTheIndexWhenTheRemovalFails(): void
+    {
+        $this->eventDispatcherMock
+            ->method('dispatch')
+            ->willReturnCallback(
+                static function (CreateUniqueDocumentIdEvent $event): CreateUniqueDocumentIdEvent {
+                    $event->setDocumentId('ext:' . $event->getRecordUid());
+
+                    return $event;
+                }
+            );
+
+        $engine = $this->getMockBuilder(AlgoliaSearchEngine::class)
+            ->setConstructorArgs([
+                $this->eventDispatcherMock,
+                $this->extensionConfigMock,
+                $this->searchClientFactoryMock,
+            ])
+            ->onlyMethods(['indexOpen', 'documentDeleteMany', 'indexCommit', 'indexClose'])
+            ->getMock();
+
+        $engine
+            ->method('documentDeleteMany')
+            ->willThrowException(new RuntimeException('Algolia is not reachable'));
+        $engine
+            ->expects(self::never())
+            ->method('indexCommit');
+        $engine
+            ->expects(self::once())
+            ->method('indexClose');
+
+        $this->expectException(RuntimeException::class);
+
+        $engine->withIndexName('test_index')->deleteManyFromIndex('pages', [4]);
+    }
+
+    /**
+     * Tests that deleteManyFromIndex() does not close an index that it could not
+     * open, so the failure of the open is the one that is seen.
+     */
+    #[Test]
+    public function deleteManyFromIndexDoesNotCloseAnIndexThatCouldNotBeOpened(): void
+    {
+        $this->eventDispatcherMock
+            ->method('dispatch')
+            ->willReturnCallback(
+                static function (CreateUniqueDocumentIdEvent $event): CreateUniqueDocumentIdEvent {
+                    $event->setDocumentId('ext:' . $event->getRecordUid());
+
+                    return $event;
+                }
+            );
+
+        $engine = $this->getMockBuilder(AlgoliaSearchEngine::class)
+            ->setConstructorArgs([
+                $this->eventDispatcherMock,
+                $this->extensionConfigMock,
+                $this->searchClientFactoryMock,
+            ])
+            ->onlyMethods(['indexOpen', 'indexClose'])
+            ->getMock();
+
+        $engine
+            ->method('indexOpen')
+            ->willThrowException(new RuntimeException('Index does not exist'));
+        $engine
+            ->expects(self::never())
+            ->method('indexClose');
+
+        $this->expectException(RuntimeException::class);
+
+        $engine->withIndexName('test_index')->deleteManyFromIndex('pages', [4]);
+    }
+
+    /**
+     * Tests that deleteManyFromIndex() makes no request for an empty list.
+     */
+    #[Test]
+    public function deleteManyFromIndexMakesNoRequestForNoRecords(): void
+    {
+        $this->searchClientMock
+            ->expects(self::never())
+            ->method('deleteObjects');
+
+        $engine = $this->createEngine()->withIndexName('test_index');
+        $engine->deleteManyFromIndex('pages', []);
+    }
+
+    /**
+     * Tests that deleteManyFromIndex() requires an index name like the
+     * deletion of a single record.
+     */
+    #[Test]
+    public function deleteManyFromIndexThrowsExceptionWithoutIndexName(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/' . preg_quote('Index name not set', '/') . '/');
+
+        $this->createEngine()->deleteManyFromIndex('pages', [4]);
     }
 }

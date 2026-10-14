@@ -64,11 +64,15 @@ class AfterFileAddedEventListener extends AbstractAfterFileEventListener
             return;
         }
 
+        // A file under a new name has no document yet, so no removal is checked.
+        // Adding a file under the name of an existing one with the conflict mode
+        // replace through the API keeps its document as well.
         $this->eventDispatcher
             ->dispatch(
                 new DataHandlerRecordUpdateEvent(
                     'sys_file_metadata',
-                    $metadataUid
+                    $metadataUid,
+                    isNew: true
                 )
             );
     }

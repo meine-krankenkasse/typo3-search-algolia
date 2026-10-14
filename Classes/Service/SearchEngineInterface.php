@@ -157,37 +157,33 @@ interface SearchEngineInterface extends SingletonInterface
     public function documentUpdate(Document $document): bool;
 
     /**
-     * Deletes a document from the current index by its unique ID.
+     * Deletes several documents from the currently open index with as few requests as the engine allows.
      *
-     * This method removes a document from the search index based on its
-     * unique identifier. If the document doesn't exist, the method may
-     * return false or true depending on the search engine implementation.
+     * A failure of the engine is an exception.
      *
-     * @param string $documentId The unique identifier of the document to delete
+     * @param string[] $documentIds The unique IDs of the documents to delete
      *
-     * @return bool True if the document was successfully deleted, false otherwise
+     * @return void
      *
      * @throws RuntimeException If no index is currently open
      */
-    public function documentDelete(string $documentId): bool;
+    public function documentDeleteMany(array $documentIds): void;
 
     /**
-     * Removes a record from the search index.
+     * Deletes the documents of several records of one table from the search index.
      *
-     * This is a high-level method that handles the complete process of removing
-     * a record from the search index:
-     * 1. Generates a unique document ID for the record
-     * 2. Opens the appropriate index
-     * 3. Deletes the document
-     * 4. Commits the changes
-     * 5. Closes the index
+     * The documents are removed with as few requests as the engine allows. An
+     * empty list makes no request.
      *
-     * @param string $tableName The database table name of the record
-     * @param int    $recordUid The unique identifier of the record
+     * @param string $tableName  The database table name of the records
+     * @param int[]  $recordUids The unique identifiers of the records
      *
      * @return void
      *
      * @throws RuntimeException If no index name is set
      */
-    public function deleteFromIndex(string $tableName, int $recordUid): void;
+    public function deleteManyFromIndex(
+        string $tableName,
+        array $recordUids,
+    ): void;
 }

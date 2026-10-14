@@ -49,7 +49,7 @@ use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 #[UsesClass(ContentRepository::class)]
 #[UsesClass(CreateUniqueDocumentIdEvent::class)]
 #[UsesClass(PageRepository::class)]
-class RecordHandlerTest extends TestCase
+final class RecordHandlerTest extends TestCase
 {
     /**
      * @var MockObject&SearchEngineFactory
@@ -87,93 +87,13 @@ class RecordHandlerTest extends TestCase
     }
 
     /**
-     * Tests that deleteRecord() both dequeues the record from the indexer and removes it
-     * from the search engine index when the removeFromIndex flag is set to true. Verifies
-     * that the search engine service is obtained from the factory and deleteFromIndex is
-     * called with the correct table name and record UID.
+     * Tests that removeRecordsFromTargets() dequeues multiple record UIDs at once from the indexer
+     * and removes them from the search engine index with one batch call. Verifies that
+     * dequeueMultiple is called with the full UID array and deleteManyFromIndex is called
+     * once with all records.
      */
     #[Test]
-    public function deleteRecordDequeuesAndRemovesFromIndex(): void
-    {
-        $indexingServiceMock = $this->createMock(IndexingService::class);
-
-        $searchEngineMock = $this->createMock(SearchEngine::class);
-        $searchEngineMock
-            ->method('getIndexName')
-            ->willReturn('test_index');
-        $searchEngineMock
-            ->method('getEngine')
-            ->willReturn('algolia');
-
-        $indexingServiceMock
-            ->method('getSearchEngine')
-            ->willReturn($searchEngineMock);
-
-        $indexerMock = $this->createMock(IndexerInterface::class);
-        $indexerMock
-            ->expects(self::once())
-            ->method('dequeueOne')
-            ->with(42);
-
-        $searchEngineServiceMock = $this->createMock(SearchEngineInterface::class);
-        $searchEngineServiceMock
-            ->method('withIndexName')
-            ->willReturn($searchEngineServiceMock);
-        $searchEngineServiceMock
-            ->expects(self::once())
-            ->method('deleteFromIndex')
-            ->with('pages', 42);
-
-        $this->searchEngineFactoryMock
-            ->method('makeInstanceBySearchEngineModel')
-            ->willReturn($searchEngineServiceMock);
-
-        $this->recordHandler->deleteRecord(
-            $indexingServiceMock,
-            $indexerMock,
-            'pages',
-            42,
-            true
-        );
-    }
-
-    /**
-     * Tests that deleteRecord() only dequeues the record from the indexer without
-     * attempting to remove it from the search engine index when the removeFromIndex
-     * flag is set to false. Verifies that the search engine factory is never called.
-     */
-    #[Test]
-    public function deleteRecordDequeuesWithoutRemovingFromIndex(): void
-    {
-        $indexingServiceMock = $this->createMock(IndexingService::class);
-
-        $indexerMock = $this->createMock(IndexerInterface::class);
-        $indexerMock
-            ->expects(self::once())
-            ->method('dequeueOne')
-            ->with(42);
-
-        $this->searchEngineFactoryMock
-            ->expects(self::never())
-            ->method('makeInstanceBySearchEngineModel');
-
-        $this->recordHandler->deleteRecord(
-            $indexingServiceMock,
-            $indexerMock,
-            'pages',
-            42,
-            false
-        );
-    }
-
-    /**
-     * Tests that deleteRecords() dequeues multiple record UIDs at once from the indexer
-     * and removes each one individually from the search engine index. Verifies that
-     * dequeueMultiple is called with the full UID array and deleteFromIndex is called
-     * once for each record.
-     */
-    #[Test]
-    public function deleteRecordsDequeuesMultipleAndRemovesFromIndex(): void
+    public function removeRecordsFromTargetsDequeuesMultipleAndRemovesFromIndex(): void
     {
         $indexingServiceMock = $this->createMock(IndexingService::class);
 
@@ -200,19 +120,18 @@ class RecordHandlerTest extends TestCase
             ->method('withIndexName')
             ->willReturn($searchEngineServiceMock);
         $searchEngineServiceMock
-            ->expects(self::exactly(3))
-            ->method('deleteFromIndex');
+            ->expects(self::once())
+            ->method('deleteManyFromIndex')
+            ->with('pages', [1, 2, 3]);
 
         $this->searchEngineFactoryMock
             ->method('makeInstanceBySearchEngineModel')
             ->willReturn($searchEngineServiceMock);
 
-        $this->recordHandler->deleteRecords(
-            $indexingServiceMock,
-            $indexerMock,
+        $this->recordHandler->removeRecordsFromTargets(
+            [[$indexingServiceMock, $indexerMock]],
             'pages',
             [1, 2, 3],
-            true
         );
     }
 

@@ -72,11 +72,14 @@ class AfterFileCopiedEventListener extends AbstractAfterFileEventListener
             return;
         }
 
+        // A file copied under a new name has no document yet. A copy that replaces a file
+        // keeps the document of the replaced one, and is not checked for removal either
         $this->eventDispatcher
             ->dispatch(
                 new DataHandlerRecordUpdateEvent(
                     'sys_file_metadata',
-                    $metadataUid
+                    $metadataUid,
+                    isNew: true
                 )
             );
     }

@@ -17,6 +17,8 @@ use Override;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
 
+use function array_values;
+
 /**
  * Abstract base class for search engine implementations.
  *
@@ -73,44 +75,55 @@ abstract class AbstractSearchEngine implements SearchEngineInterface
     }
 
     /**
-     * Deletes a record from the search index.
+     * Deletes the documents of several records from the search index.
      *
-     * This method handles the complete process of removing a record from the search index:
+     * The document ID of each record is built from the table and the record UID. The
+     * documents are removed with one call of the engine, which splits it into
+     * as few requests as it can.
      *
-     * 1. Generates a unique document ID for the record using the event dispatcher
-     * 2. Opens the index
-     * 3. Deletes the document
-     * 4. Commits the changes
-     * 5. Closes the index
-     *
-     * @param string $tableName The database table name of the record
-     * @param int    $recordUid The unique identifier of the record
+     * @param string $tableName  The database table name of the records
+     * @param int[]  $recordUids The unique identifiers of the records
      *
      * @return void
      *
      * @throws RuntimeException If no index name is set
      */
     #[Override]
-    public function deleteFromIndex(string $tableName, int $recordUid): void
-    {
+    public function deleteManyFromIndex(
+        string $tableName,
+        array $recordUids,
+    ): void {
         if ($this->indexName === null) {
             throw new RuntimeException('Index name not set. Use "indexOpen" method.');
         }
 
-        /** @var CreateUniqueDocumentIdEvent $documentIdEvent */
-        $documentIdEvent = $this->eventDispatcher
-            ->dispatch(
-                new CreateUniqueDocumentIdEvent(
-                    $this,
-                    $tableName,
-                    $recordUid
-                )
-            );
+        $documentIds = [];
 
-        // Remove record in search engine index
+        foreach ($recordUids as $recordUid) {
+            /** @var CreateUniqueDocumentIdEvent $documentIdEvent */
+            $documentIdEvent = $this->eventDispatcher
+                ->dispatch(
+                    new CreateUniqueDocumentIdEvent(
+                        $this,
+                        $tableName,
+                        $recordUid
+                    )
+                );
+
+            $documentIds[$documentIdEvent->getDocumentId()] = $documentIdEvent->getDocumentId();
+        }
+
+        if ($documentIds === []) {
+            return;
+        }
+
         $this->indexOpen($this->indexName);
-        $this->documentDelete($documentIdEvent->getDocumentId());
-        $this->indexCommit();
-        $this->indexClose();
+
+        try {
+            $this->documentDeleteMany(array_values($documentIds));
+            $this->indexCommit();
+        } finally {
+            $this->indexClose();
+        }
     }
 }

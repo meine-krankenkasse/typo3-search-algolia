@@ -38,7 +38,7 @@ use TYPO3\CMS\Core\Resource\Folder;
 #[CoversClass(AfterFileCopiedEventListener::class)]
 #[UsesClass(DataHandlerRecordDeleteEvent::class)]
 #[UsesClass(DataHandlerRecordUpdateEvent::class)]
-class AfterFileCopiedEventListenerTest extends TestCase
+final class AfterFileCopiedEventListenerTest extends TestCase
 {
     /**
      * Tests that invoking the listener dispatches a DataHandlerRecordUpdateEvent when
@@ -65,6 +65,7 @@ class AfterFileCopiedEventListenerTest extends TestCase
             ->with(self::callback(
                 static fn (DataHandlerRecordUpdateEvent $event): bool => $event->getTable() === 'sys_file_metadata'
                     && $event->getRecordUid() === 456
+                    && $event->isNew()
             ));
 
         $folderMock      = $this->createMock(Folder::class);

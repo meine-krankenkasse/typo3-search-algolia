@@ -112,22 +112,207 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
         self::assertSame(0, $result);
     }
 
+    /**
+     * Adds a content element to a page.
+     *
+     * @param int $uid The UID of the content element
+     * @param int $pid The UID of the page
+     *
+     * @return void
+     */
+    private function insertContentElement(
+        int $uid,
+        int $pid,
+    ): void {
+        $this->getConnectionPool()
+            ->getConnectionForTable('tt_content')
+            ->insert(
+                'tt_content',
+                [
+                    'uid'     => $uid,
+                    'pid'     => $pid,
+                    'header'  => 'Content ' . $uid,
+                    'CType'   => 'text',
+                    'deleted' => 0,
+                    'hidden'  => 0,
+                    'colPos'  => 0,
+                ]
+            );
+    }
+
+    /**
+     * Tests that a content element on a hidden page is not queued, because
+     * the page itself is not indexed and the content would reach the search
+     * without a page.
+     */
+    #[Test]
+    public function enqueueOneSkipsContentOnAHiddenPage(): void
+    {
+        // Page 4 is hidden
+        $this->insertContentElement(60, 4);
+
+        $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
+
+        self::assertSame(0, $indexer->enqueueOne(60));
+        self::assertSame(1, $indexer->enqueueOne(1), 'Content on a visible page is still queued');
+    }
+
+    /**
+     * Tests that the batch and the full queueing skip content on a hidden page as well.
+     */
+    #[Test]
+    public function enqueueEligibleAndEnqueueAllSkipContentOnAHiddenPage(): void
+    {
+        $this->insertContentElement(60, 4);
+
+        $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
+
+        self::assertSame([1], $indexer->enqueueEligible([1, 60]));
+
+        $indexer->enqueueAll();
+
+        self::assertFalse($this->fetchFirstRowByFieldValue(self::QUEUE_TABLE, 'record_uid', 60));
+        self::assertNotFalse(
+            $this->fetchFirstRowByFieldValue(self::QUEUE_TABLE, 'record_uid', 2),
+            'Content on a visible page is queued by enqueueAll'
+        );
+    }
+
+    /**
+     * Tests that the content elements of a list are matched against the pages of the
+     * service by the page they are stored on, and not by their own UID. The UID of an
+     * element is no page UID here, and an element on a page outside of the selected
+     * tree is left out.
+     */
+    #[Test]
+    public function enqueueEligibleMatchesTheElementsOfAListByTheirPage(): void
+    {
+        // Only page 3 and what lies below it is selected
+        $this->indexingService->setPagesRecursive('3');
+
+        $this->insertContentElement(500, 3);
+        $this->insertContentElement(501, 2);
+
+        $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
+
+        self::assertSame([500], $indexer->enqueueEligible([500, 501]));
+        self::assertNotFalse($this->fetchFirstRowByFieldValue(self::QUEUE_TABLE, 'record_uid', 500));
+        self::assertFalse($this->fetchFirstRowByFieldValue(self::QUEUE_TABLE, 'record_uid', 501));
+    }
+
+    /**
+     * Tests that a service that selects no page accepts the elements of a list, like the
+     * queue run of the whole table does.
+     */
+    #[Test]
+    public function enqueueEligibleAcceptsEveryElementForAServiceWithoutSelectedPages(): void
+    {
+        $this->indexingService->setPagesRecursive('');
+        $this->indexingService->setPagesSingle('');
+
+        $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
+
+        self::assertSame([1, 2], $indexer->enqueueEligible([1, 2]));
+    }
+
+    /**
+     * Tests that a content element on a page that is excluded from the search
+     * is not queued, like the content of a hidden page. Saving such a page
+     * removes its content elements from the queue and the index, and a later
+     * save of one of them must not bring them back.
+     */
+    #[Test]
+    public function enqueueOneSkipsContentOnAPageExcludedFromTheSearch(): void
+    {
+        // Page 6 is excluded from the search
+        $this->insertContentElement(63, 6);
+
+        $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
+
+        self::assertSame(0, $indexer->enqueueOne(63));
+        self::assertSame(1, $indexer->enqueueOne(1), 'Content on a visible page is still queued');
+    }
+
+    /**
+     * Tests that a content element on a page that is not published at the moment is
+     * not queued, because the page itself is not indexed then. A page that is published
+     * for a window that holds the present keeps its content.
+     */
+    #[Test]
+    public function enqueueOneSkipsContentOnAPageOutsideOfItsPublicationWindow(): void
+    {
+        $pages = $this->getConnectionPool()->getConnectionForTable('pages');
+
+        // A page that has ended, one that has not started and one that is published now
+        foreach ([70 => [0, 1000], 71 => [4102444800, 0], 72 => [1000, 4102444800]] as $uid => [$starttime, $endtime]) {
+            $pages->insert(
+                'pages',
+                [
+                    'uid'       => $uid,
+                    'pid'       => 1,
+                    'title'     => 'Window ' . $uid,
+                    'doktype'   => 1,
+                    'hidden'    => 0,
+                    'no_search' => 0,
+                    'starttime' => $starttime,
+                    'endtime'   => $endtime,
+                ]
+            );
+
+            $this->insertContentElement(600 + $uid, $uid);
+        }
+
+        $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
+
+        self::assertSame(0, $indexer->enqueueOne(670), 'The page has ended');
+        self::assertSame(0, $indexer->enqueueOne(671), 'The page has not started');
+        self::assertSame(1, $indexer->enqueueOne(672), 'The page is published now');
+    }
+
+    /**
+     * Tests that content on a visible page below a hidden page is still queued,
+     * because only the hidden page itself is left out.
+     */
+    #[Test]
+    public function enqueueOneKeepsContentOnAVisiblePageBelowAHiddenPage(): void
+    {
+        $this->getConnectionPool()
+            ->getConnectionForTable('pages')
+            ->insert(
+                'pages',
+                [
+                    'uid'       => 61,
+                    'pid'       => 4,
+                    'title'     => 'Visible Below Hidden',
+                    'doktype'   => 1,
+                    'deleted'   => 0,
+                    'hidden'    => 0,
+                    'no_search' => 0,
+                ]
+            );
+        $this->insertContentElement(62, 61);
+
+        $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
+
+        self::assertSame(1, $indexer->enqueueOne(62));
+    }
+
     // -----------------------------------------------------------------------
-    // enqueueMultiple / enqueueAll
+    // enqueueEligible / enqueueAll
     // -----------------------------------------------------------------------
 
     /**
-     * Tests that enqueueMultiple() adds multiple content elements to
+     * Tests that enqueueEligible() adds multiple content elements to
      * the indexing queue in a single operation.
      */
     #[Test]
-    public function enqueueMultipleAddsMultipleContentElements(): void
+    public function enqueueEligibleAddsMultipleContentElements(): void
     {
         $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
 
-        $result = $indexer->enqueueMultiple([1, 2]);
+        $result = $indexer->enqueueEligible([1, 2]);
 
-        self::assertSame(2, $result);
+        self::assertSame([1, 2], $result);
 
         $row1 = $this->fetchFirstRowByFieldValue(self::QUEUE_TABLE, 'record_uid', 1);
         $row2 = $this->fetchFirstRowByFieldValue(self::QUEUE_TABLE, 'record_uid', 2);
@@ -181,7 +366,7 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
     public function dequeueMultipleRemovesMultipleContentElements(): void
     {
         $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
-        $indexer->enqueueMultiple([1, 2, 3]);
+        $indexer->enqueueEligible([1, 2, 3]);
 
         $indexer->dequeueMultiple([1, 3]);
 
