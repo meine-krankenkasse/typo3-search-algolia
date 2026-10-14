@@ -44,4 +44,12 @@ class Constants
      * @var int
      */
     public const int MAX_PAGE_TREE_DEPTH = 99;
+
+    /**
+     * The number of values that one database query holds in a list of UIDs.
+     *
+     * A list that is longer is asked for in blocks, because the list of a single
+     * statement is limited by the database.
+     */
+    public const int IN_LIST_BLOCK_SIZE = 1000;
 }

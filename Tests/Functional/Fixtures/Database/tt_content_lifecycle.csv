@@ -1,0 +1,7 @@
+tt_content,,,,,,,,,
+,uid,pid,header,CType,deleted,hidden,starttime,endtime,colPos
+,10,2,"Hidden Content","text",0,1,0,0,1
+,11,2,"Deleted Content","text",1,0,0,0,1
+,12,3,"Future Content","text",0,0,4102444800,0,1
+,13,3,"Expired Content","text",0,0,0,1000,1
+,14,4,"Other Page Content","text",0,0,0,0,1

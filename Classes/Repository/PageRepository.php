@@ -11,16 +11,25 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Repository;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception;
+use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
+use MeineKrankenkasse\Typo3SearchAlgolia\Utility\PublicationWindow;
 use Override;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\EndTimeRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\StartTimeRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
+use TYPO3\CMS\Core\Domain\Repository\PageRepository as CorePageRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\RootlineUtility;
+
+use function array_chunk;
+use function array_values;
 
 /**
  * Repository for accessing and navigating TYPO3 page structures.
@@ -121,6 +130,26 @@ readonly class PageRepository implements PageRepositoryInterface
     }
 
     /**
+     * Tells whether a record of a table exists.
+     *
+     * A record that is deleted only exists when the delete clause is switched off.
+     *
+     * @param string $tableName       The name of the database table of the record
+     * @param int    $recordUid       The UID of the record
+     * @param bool   $useDeleteClause Whether a deleted record counts as not existing, defaults to true
+     *
+     * @return bool TRUE if the record exists
+     */
+    #[Override]
+    public function hasPageRecord(
+        string $tableName,
+        int $recordUid,
+        bool $useDeleteClause = true,
+    ): bool {
+        return $this->getPageRecord($tableName, $recordUid, 'uid', $useDeleteClause) !== [];
+    }
+
+    /**
      * Recursively fetches all pages starting from the given page IDs.
      *
      * This method retrieves a complete list of page IDs by starting with the
@@ -209,58 +238,76 @@ readonly class PageRepository implements PageRepositoryInterface
             $id = abs($id);
         }
 
-        $pageIds = [[]];
-
-        if (($id > 0) && ($depth > 0)) {
-            $queryBuilder = $this->connectionPool
-                ->getQueryBuilderForTable('pages');
-
-            $queryBuilder->getRestrictions()
-                ->removeAll()
-                ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
-
-            if ($excludeHiddenPages) {
-                $queryBuilder->getRestrictions()
-                    ->add(GeneralUtility::makeInstance(HiddenRestriction::class));
-            }
-
-            $queryBuilder
-                ->select('uid')
-                ->from('pages')
-                ->where(
-                    $queryBuilder->expr()->eq(
-                        'pid',
-                        $queryBuilder->createNamedParameter(
-                            $id,
-                            Connection::PARAM_INT
-                        )
-                    ),
-                    $queryBuilder->expr()->eq(
-                        'sys_language_uid',
-                        0
-                    ),
-                    // Exclude some page types, see \TYPO3\CMS\Core\Domain\Repository\PageRepository::getSubpagesRecursive
-                    $queryBuilder->expr()->notIn(
-                        'doktype',
-                        [
-                            \TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_RECYCLER,
-                            \TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_BE_USER_SECTION,
-                        ]
-                    )
-                )
-                ->orderBy('uid');
-
-            $statement = $queryBuilder
-                ->executeQuery();
-
-            while ($subPageRow = $statement->fetchAssociative()) {
-                $pageIds[] = [$subPageRow['uid']];
-                $pageIds[] = $this->getSubPageIdsRecursive($subPageRow['uid'], $depth - 1, $excludeHiddenPages);
-            }
+        if (
+            ($id <= 0)
+            || ($depth < 0)
+        ) {
+            return [];
         }
 
-        return array_merge(...$pageIds);
+        // The pages are read level by level, with one query per level and block of
+        // parents and not one per page
+        $pageIds = [];
+        $level   = [$id];
+
+        for ($currentDepth = 0; ($currentDepth < $depth) && ($level !== []); ++$currentDepth) {
+            $nextLevel = [];
+
+            foreach (array_chunk($level, Constants::IN_LIST_BLOCK_SIZE) as $chunk) {
+                $queryBuilder = $this->connectionPool
+                    ->getQueryBuilderForTable('pages');
+
+                $queryBuilder->getRestrictions()
+                    ->removeAll()
+                    ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
+                    ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
+
+                if ($excludeHiddenPages) {
+                    $queryBuilder->getRestrictions()
+                        ->add(GeneralUtility::makeInstance(HiddenRestriction::class));
+                }
+
+                $rows = $queryBuilder
+                    ->select('uid', 'pid')
+                    ->from('pages')
+                    ->where(
+                        $queryBuilder->expr()->in(
+                            'pid',
+                            $queryBuilder->createNamedParameter($chunk, ArrayParameterType::INTEGER)
+                        ),
+                        $queryBuilder->expr()->eq(
+                            'sys_language_uid',
+                            0
+                        ),
+                        // Exclude some page types, see \TYPO3\CMS\Core\Domain\Repository\PageRepository::getSubpagesRecursive
+                        $queryBuilder->expr()->notIn(
+                            'doktype',
+                            [
+                                CorePageRepository::DOKTYPE_RECYCLER,
+                                CorePageRepository::DOKTYPE_BE_USER_SECTION,
+                            ]
+                        )
+                    )
+                    ->orderBy('uid')
+                    ->executeQuery()
+                    ->fetchAllAssociative();
+
+                foreach ($rows as $row) {
+                    // A page has one parent, so a ring can only lead back to the page the
+                    // walk started from, and that page is not part of the answer
+                    if (((int) $row['uid']) === $id) {
+                        continue;
+                    }
+
+                    $pageIds[]   = (int) $row['uid'];
+                    $nextLevel[] = (int) $row['uid'];
+                }
+            }
+
+            $level = $nextLevel;
+        }
+
+        return $pageIds;
     }
 
     /**
@@ -297,5 +344,143 @@ readonly class PageRepository implements PageRepositoryInterface
         }
 
         return 0;
+    }
+
+    /**
+     * Returns the UIDs of all pages below the given page, whatever their type.
+     *
+     * Unlike getPageIdsRecursive() this walk is not the one of an indexer. It
+     * follows every page type and has no depth limit, because it has to find
+     * what DataHandler deletes together with a page: hidden pages, recycler and
+     * backend user section pages and everything below them.
+     *
+     * For the tree of a site, $forSiteTree leaves out what an indexer of that site cannot
+     * reach, or what a move does not decide:
+     *
+     * - A site root below the page together with everything below it, which is the part
+     *   of the tree that belongs to its own site. This is decided from the pages themselves
+     *   and not from their rootlines, which can still be cached for a tree that was just moved.
+     * - The translations of pages, which carry the parent of the page they translate. The page
+     *   walk of a service with a page selection covers the default language only, and a move does
+     *   not decide the translations of a page.
+     * - What lies below a page that is hidden, or not yet or no longer published, and extends
+     *   that state to its subpages, because it cannot be reached in the frontend. Such a page
+     *   itself is part of the answer.
+     *
+     * @param int  $pageId      The UID of the page whose descendants are wanted
+     * @param bool $forSiteTree Whether the walk is the one of the tree of a site
+     *
+     * @return int[] The UIDs of the descendants, without the page itself
+     *
+     * @throws Exception If a database error occurs during the query
+     */
+    #[Override]
+    public function getDescendantPageIds(
+        int $pageId,
+        bool $forSiteTree = false,
+    ): array {
+        $descendants = [];
+        $level       = [$pageId];
+        $now         = PublicationWindow::now();
+
+        // The page itself can hide everything below it
+        if (
+            $forSiteTree
+            && $this->hidesItsSubpages($this->getPageRecord('pages', $pageId), $now)
+        ) {
+            return [];
+        }
+
+        while ($level !== []) {
+            $nextLevel = [];
+
+            // A wide level is asked for in blocks, a single IN list is limited by the database
+            foreach (array_chunk($level, Constants::IN_LIST_BLOCK_SIZE) as $chunk) {
+                $queryBuilder = $this->connectionPool
+                    ->getQueryBuilderForTable('pages');
+
+                $queryBuilder
+                    ->getRestrictions()
+                    ->removeByType(HiddenRestriction::class)
+                    ->removeByType(StartTimeRestriction::class)
+                    ->removeByType(EndTimeRestriction::class)
+                    ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, 0));
+
+                $queryBuilder
+                    ->select('uid', 'is_siteroot', 'hidden', 'starttime', 'endtime', 'extendToSubpages')
+                    ->from('pages')
+                    ->where(
+                        $queryBuilder->expr()->in(
+                            'pid',
+                            $queryBuilder->createNamedParameter($chunk, ArrayParameterType::INTEGER)
+                        )
+                    );
+
+                if ($forSiteTree) {
+                    $queryBuilder->andWhere(
+                        $queryBuilder->expr()->eq('sys_language_uid', 0)
+                    );
+                }
+
+                $rows = $queryBuilder
+                    ->executeQuery()
+                    ->fetchAllAssociative();
+
+                foreach ($rows as $row) {
+                    $uid = (int) $row['uid'];
+
+                    // A site root keeps its own site, so it and its tree are not part of this one
+                    if (
+                        $forSiteTree
+                        && ((int) $row['is_siteroot'] === 1)
+                    ) {
+                        continue;
+                    }
+
+                    // A page has one parent, so a ring can only lead back to the page the walk
+                    // started from, and that page is not part of the answer
+                    if ($uid === $pageId) {
+                        continue;
+                    }
+
+                    $descendants[$uid] = $uid;
+
+                    // A page that extends its state hides its subpages with it
+                    if (
+                        $forSiteTree
+                        && $this->hidesItsSubpages($row, $now)
+                    ) {
+                        continue;
+                    }
+
+                    $nextLevel[] = $uid;
+                }
+            }
+
+            $level = $nextLevel;
+        }
+
+        return array_values($descendants);
+    }
+
+    /**
+     * Tells whether a page is hidden, or not yet or no longer published, and extends that state
+     * to its subpages, so that nothing below it can be reached in the frontend.
+     *
+     * @param array<string, int|string|null> $page The page record, with the fields hidden, starttime,
+     *                                             endtime and extendToSubpages
+     * @param int                            $now  The current time
+     *
+     * @return bool TRUE if the page is hidden or outside of its publication window and extends that state
+     */
+    private function hidesItsSubpages(
+        array $page,
+        int $now,
+    ): bool {
+        if (((int) ($page['extendToSubpages'] ?? 0)) !== 1) {
+            return false;
+        }
+
+        return PublicationWindow::isHiddenOrOutside($page, $now);
     }
 }
