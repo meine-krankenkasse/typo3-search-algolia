@@ -1,0 +1,4 @@
+be_groups,,,,,,
+,uid,pid,title,tables_modify,tables_select,file_mountpoints
+,2,0,"Metadata editors","sys_file_metadata","sys_file_metadata","1"
+,3,0,"Editors without table rights","","","1"
