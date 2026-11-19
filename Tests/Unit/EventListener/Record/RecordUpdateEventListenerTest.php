@@ -203,6 +203,46 @@ class RecordUpdateEventListenerTest extends TestCase
     }
 
     /**
+     * Tests that the listener leaves the page update out when the page of
+     * the updated content element cannot be determined.
+     */
+    #[Test]
+    public function invokeSkipsPageUpdateWhenContentElementHasNoPage(): void
+    {
+        $this->pageRepositoryMock
+            ->method('getPageRecord')
+            ->willReturn(['hidden' => 0, 'deleted' => 0]);
+
+        $this->recordHandlerMock
+            ->method('getRecordRootPageId')
+            ->willReturn(1);
+
+        $indexerMock         = $this->createMock(IndexerInterface::class);
+        $indexingServiceMock = $this->createMock(IndexingService::class);
+
+        $generator = (static function () use ($indexingServiceMock, $indexerMock): Generator {
+            yield $indexingServiceMock => $indexerMock;
+        })();
+
+        $this->recordHandlerMock
+            ->method('createIndexerGenerator')
+            ->willReturn($generator);
+
+        $this->recordRepositoryMock
+            ->method('findPid')
+            ->with('tt_content', 99)
+            ->willReturn(false);
+
+        $this->recordHandlerMock
+            ->expects(self::never())
+            ->method('processPageOfContentElement');
+
+        $event = new DataHandlerRecordUpdateEvent('tt_content', 99);
+
+        $this->createListener()($event);
+    }
+
+    /**
      * Tests that the listener does not process a parent page when
      * the updated record is not a content element.
      */

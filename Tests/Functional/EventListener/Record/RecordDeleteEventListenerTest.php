@@ -20,6 +20,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
+use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\SearchEngineInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
@@ -144,6 +145,53 @@ final class RecordDeleteEventListenerTest extends AbstractFunctionalTestCase
         $event = new DataHandlerRecordDeleteEvent('tt_content', 1);
 
         ($this->subject)($event);
+    }
+
+    /**
+     * Tests that deleting a content element queues its page again, so the page
+     * document no longer carries the text of the deleted element.
+     */
+    #[Test]
+    public function invokeRequeuesPageOfDeletedContentElement(): void
+    {
+        $contentIndexerMock = $this->createMock(IndexerInterface::class);
+        $contentIndexerMock
+            ->method('getTable')
+            ->willReturn('tt_content');
+        $contentIndexerMock
+            ->method('withIndexingService')
+            ->willReturn($contentIndexerMock);
+        $contentIndexerMock
+            ->method('dequeueOne')
+            ->willReturn($contentIndexerMock);
+
+        $pageIndexerMock = $this->createMock(PageIndexer::class);
+        $pageIndexerMock
+            ->method('getTable')
+            ->willReturn('pages');
+        $pageIndexerMock
+            ->method('withIndexingService')
+            ->willReturn($pageIndexerMock);
+        $pageIndexerMock
+            ->method('isIncludeContentElements')
+            ->willReturn(true);
+        $pageIndexerMock
+            ->expects(self::once())
+            ->method('dequeueOne')
+            ->with(2)
+            ->willReturn($pageIndexerMock);
+        $pageIndexerMock
+            ->expects(self::once())
+            ->method('enqueueOne')
+            ->with(2);
+
+        $this->indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->willReturnCallback(
+                static fn (string $type): IndexerInterface => ($type === 'pages') ? $pageIndexerMock : $contentIndexerMock,
+            );
+
+        ($this->subject)(new DataHandlerRecordDeleteEvent('tt_content', 1));
     }
 
     /**
