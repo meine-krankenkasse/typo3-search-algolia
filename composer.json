@@ -128,6 +128,9 @@
         "ci:test:php:mutation": [
             "infection --configuration=Build/infection.json5"
         ],
+        "ci:test:php:jscpd": [
+            "npm run ci:test:jscpd"
+        ],
         "ci:test": [
             "@ci:test:php:lint",
             "@ci:test:php:cgl",
@@ -135,6 +138,7 @@
             "@ci:test:php:phpstan",
             "@ci:test:php:rector",
             "@ci:test:php:fractor",
+            "@ci:test:php:jscpd",
             "@ci:test:php:functional"
         ]
     }
