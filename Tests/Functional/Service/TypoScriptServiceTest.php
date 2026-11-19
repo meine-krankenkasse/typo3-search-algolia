@@ -11,29 +11,22 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\Service;
 
-use MeineKrankenkasse\Typo3SearchAlgolia\Exception\CliFallbackTypoScriptUnreadableException;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
+use TYPO3\CMS\Core\Configuration\SiteWriter;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
-
-use function file_exists;
-use function file_put_contents;
-use function sys_get_temp_dir;
-use function tempnam;
-use function unlink;
+use TYPO3\CMS\Extbase\Configuration\Exception\NoServerRequestGivenException;
 
 /**
  * Functional tests for TypoScriptService.
  *
  * Resolves the service through the real DI container without a bound
  * PSR-7/Extbase request, exactly the situation the index queue worker
- * console command runs in. This is what actually reproduces the
- * NoServerRequestGivenException fallback (a unit test with a mocked
+ * console command runs in. A unit test with a mocked
  * ConfigurationManagerInterface cannot exercise the real TypoScript
- * parsing that fallback performs).
+ * resolution of the websites that this situation needs.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -43,9 +36,10 @@ use function unlink;
 final class TypoScriptServiceTest extends AbstractFunctionalTestCase
 {
     /**
-     * Tests that getFieldMappingByType() still returns the extension's own
-     * shipped field mapping when no request is bound (CLI/scheduler context),
-     * instead of silently degrading to an empty array.
+     * Tests that getFieldMappingByType() returns the extension's own
+     * shipped field mapping when no request is bound (CLI/scheduler context)
+     * and the installation has no website, instead of degrading to an empty
+     * array.
      */
     #[Test]
     public function getFieldMappingByTypeResolvesShippedDefaultsWithoutBoundRequest(): void
@@ -67,8 +61,9 @@ final class TypoScriptServiceTest extends AbstractFunctionalTestCase
     }
 
     /**
-     * Tests that getAllowedFileExtensions() still returns the extension's own
-     * shipped allow-list when no request is bound (CLI/scheduler context).
+     * Tests that getAllowedFileExtensions() returns the extension's own
+     * shipped allow-list when no request is bound (CLI/scheduler context)
+     * and the installation has no website.
      */
     #[Test]
     public function getAllowedFileExtensionsResolvesShippedDefaultsWithoutBoundRequest(): void
@@ -79,101 +74,94 @@ final class TypoScriptServiceTest extends AbstractFunctionalTestCase
     }
 
     /**
-     * Tests that the CLI fallback parse result is memoized on the service
-     * instance instead of being re-read/re-parsed on every call. The
-     * scheduler worker command calls getTypoScriptConfiguration() once per
-     * queue item on a single long-lived TypoScriptService instance, so
-     * without memoization the bundled setup.typoscript would be re-parsed
-     * hundreds of times per run for an identical result.
-     *
-     * Uses a throwaway fixture file via the constructor's optional
-     * $cliFallbackSetupPath override, never the extension's real, source-
-     * checked-out setup.typoscript: that file is a symlinked composer
-     * "source" install shared across sessions, and mutating it directly
-     * (as an earlier version of this test did) risks leaving it corrupted
-     * if the process is killed between the rename and its cleanup.
-     *
-     * Proven behaviourally (not via reflection into private state): the
-     * fixture file is deleted between the two calls. If the fallback
-     * re-parsed on the second call, it would throw (a missing file makes
-     * file_get_contents() return false, which raises a
-     * CliFallbackTypoScriptUnreadableException, see
-     * getTypoScriptConfigurationThrowsWhenTheFallbackSetupIsUnreadableOnFirstCall()
-     * below). A passing second call therefore proves the result came from
-     * the memoized cache, not a fresh parse.
+     * Tests that the excludeColPos option of the first website applies when no
+     * request is bound, and that the conditions of its TypoScript are evaluated
+     * for that website.
      */
     #[Test]
-    public function getTypoScriptConfigurationMemoizesTheCliFallbackParseResult(): void
+    public function getExcludedColPosReadsTheTypoScriptOfTheFirstWebsiteWithoutBoundRequest(): void
     {
-        $fixturePath = $this->createTemporaryTypoScriptFixture(
-            'module.tx_typo3searchalgolia.indexer.pages.fields.title = title',
+        $this->createTwoWebsites();
+
+        self::assertSame(
+            [7],
+            $this->get(TypoScriptService::class)->getExcludedColPos('pages'),
         );
-
-        try {
-            $subject = $this->createSubjectWithFallbackPath($fixturePath);
-
-            $firstResult = $subject->getFieldMappingByType('pages');
-
-            self::assertSame(['title' => 'title'], $firstResult);
-
-            unlink($fixturePath);
-
-            self::assertSame($firstResult, $subject->getFieldMappingByType('pages'));
-        } finally {
-            if (file_exists($fixturePath)) {
-                unlink($fixturePath);
-            }
-        }
     }
 
     /**
-     * Tests that getTypoScriptConfiguration() throws a
-     * CliFallbackTypoScriptUnreadableException, rather than silently degrading
-     * to an empty configuration, when the CLI fallback's setup file cannot be
-     * read on the very first call (before any memoization has happened).
-     *
-     * No #[WithoutErrorHandler] needed here: the SUT suppresses the underlying
-     * file_get_contents() warning via its own scoped set_error_handler()/
-     * restore_error_handler() pair (see TypoScriptService::getCliFallbackTypoScript()),
-     * which fully intercepts the warning before PHPUnit's own error handler
-     * ever sees it, unlike a bare @-suppression.
+     * Tests that the field mapping of the first website is merged over the
+     * shipped defaults when no request is bound.
      */
     #[Test]
-    public function getTypoScriptConfigurationThrowsWhenTheFallbackSetupIsUnreadableOnFirstCall(): void
+    public function getFieldMappingByTypeAppliesTheFieldMappingOfTheFirstWebsiteWithoutBoundRequest(): void
     {
-        $subject = $this->createSubjectWithFallbackPath(
-            sys_get_temp_dir() . '/typo3-search-algolia-test-does-not-exist.typoscript',
+        $this->createTwoWebsites();
+
+        self::assertSame(
+            [
+                'title'       => 'subTitle',
+                'subtitle'    => 'subTitle',
+                'nav_title'   => 'navTitle',
+                'description' => 'description',
+                'abstract'    => 'teaser',
+                'author'      => 'author',
+                'keywords'    => 'keywords',
+            ],
+            $this->get(TypoScriptService::class)->getFieldMappingByType('pages'),
         );
-
-        $this->expectException(CliFallbackTypoScriptUnreadableException::class);
-
-        $subject->getFieldMappingByType('pages');
     }
 
     /**
-     * Creates a temporary TypoScript fixture file with the given content.
+     * Tests that the allowed file extensions of the first website apply when
+     * no request is bound.
      */
-    private function createTemporaryTypoScriptFixture(string $content): string
+    #[Test]
+    public function getAllowedFileExtensionsAppliesTheSettingOfTheFirstWebsiteWithoutBoundRequest(): void
     {
-        $path = tempnam(sys_get_temp_dir(), 'typo3-search-algolia-test-');
+        $this->createTwoWebsites();
 
-        self::assertNotFalse($path);
-
-        file_put_contents($path, $content);
-
-        return $path;
+        self::assertSame(
+            ['pdf', 'docx'],
+            $this->get(TypoScriptService::class)->getAllowedFileExtensions(),
+        );
     }
 
     /**
-     * Creates a TypoScriptService instance wired to the given fallback setup
-     * path instead of the extension's real, shipped setup.typoscript.
+     * Tests that resolving the TypoScript without a bound request neither
+     * leaves a request in the global state nor binds one to the shared
+     * configuration manager, because a bound request would switch every later
+     * Extbase configuration lookup of the process to backend mode.
      */
-    private function createSubjectWithFallbackPath(string $setupPath): TypoScriptService
+    #[Test]
+    public function resolvingTheTypoScriptLeavesNoRequestBehind(): void
     {
-        return new TypoScriptService(
-            $this->get(ConfigurationManagerInterface::class),
-            $this->get(TypoScriptStringFactory::class),
-            $setupPath,
-        );
+        $this->createTwoWebsites();
+
+        $requestBefore = $GLOBALS['TYPO3_REQUEST'] ?? null;
+
+        $this->get(TypoScriptService::class)->getExcludedColPos('pages');
+
+        self::assertSame($requestBefore, $GLOBALS['TYPO3_REQUEST'] ?? null);
+
+        $this->expectException(NoServerRequestGivenException::class);
+
+        $this->get(ConfigurationManagerInterface::class)
+            ->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
+    }
+
+    /**
+     * Creates two websites with their root pages and their own TypoScript
+     * templates, the first one sorted before the second one.
+     */
+    private function createTwoWebsites(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/pages_site_typoscript.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/sys_template_site_typoscript.csv');
+
+        $siteWriter = $this->get(SiteWriter::class);
+
+        $siteWriter->createNewBasicSite('first', 1, 'https://first.example.com/');
+        $siteWriter->createNewBasicSite('second', 40, 'https://second.example.com/');
     }
 }
