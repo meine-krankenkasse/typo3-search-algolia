@@ -23,7 +23,7 @@ relevant search results.
 
 ## Requirements
 - TYPO3 v14.3
-- PHP >=8.3 and <8.6
+- PHP >=8.3 and <8.6 with the `mbstring` extension
 - Algolia account with API credentials
 
 ## Versions

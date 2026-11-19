@@ -22,6 +22,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\PageIndexer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Resource\File;
@@ -201,41 +202,42 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
     }
 
     /**
-     * Tests that the listener extracts and sets the real text content of a
-     * PDF file, proving getFileContent() actually parses the file instead
-     * of always resolving to null.
+     * Builds an AfterDocumentAssembledEvent, its Document, and a matching
+     * FileRepository mock for a PDF file with the given identity and raw
+     * PDF bytes, the setup every PDF-content extraction test needs.
+     *
+     * @param int    $fileUid     The sys_file UID the event's record refers to
+     * @param string $fileName    The file name reported by the mocked File
+     * @param int    $fileSize    The file size reported by the mocked File
+     * @param string $pdfContents The raw PDF bytes returned by the mocked File's getContents()
+     *
+     * @return array{0: AfterDocumentAssembledEvent, 1: Document, 2: MockObject&FileRepository}
      */
-    #[Test]
-    public function invokeExtractsRealTextContentFromAPdfFile(): void
+    private function createPdfFileEvent(int $fileUid, string $fileName, int $fileSize, string $pdfContents): array
     {
-        $storageMock = $this->createMock(ResourceStorage::class);
-        $storageMock->method('getDriverType')
-            ->willReturn('Local');
+        $storageMock = self::createStub(ResourceStorage::class);
+        $storageMock->method('getDriverType')->willReturn('Local');
 
-        $pdfContents = file_get_contents(__DIR__ . '/Fixtures/text-content.pdf');
-        self::assertIsString($pdfContents);
-
-        $fileMock = $this->createMock(File::class);
+        $fileMock = self::createStub(File::class);
         $fileMock->method('getExtension')->willReturn('pdf');
         $fileMock->method('getMimeType')->willReturn('application/pdf');
-        $fileMock->method('getName')->willReturn('text-content.pdf');
-        $fileMock->method('getSize')->willReturn(strlen($pdfContents));
-        $fileMock->method('getPublicUrl')->willReturn('/fileadmin/text-content.pdf');
+        $fileMock->method('getName')->willReturn($fileName);
+        $fileMock->method('getSize')->willReturn($fileSize);
+        $fileMock->method('getPublicUrl')->willReturn('/fileadmin/' . $fileName);
         $fileMock->method('getStorage')->willReturn($storageMock);
         $fileMock->method('getContents')->willReturn($pdfContents);
 
         $fileRepositoryMock = $this->createMock(FileRepository::class);
         $fileRepositoryMock->method('findByUid')
-            ->with(5)
+            ->with($fileUid)
             ->willReturn($fileMock);
 
-        $indexerMock = $this->createMock(FileIndexer::class);
-        $indexerMock->method('getTable')
-            ->willReturn('sys_file_metadata');
+        $indexerMock = self::createStub(FileIndexer::class);
+        $indexerMock->method('getTable')->willReturn('sys_file_metadata');
 
-        $indexingServiceMock = $this->createMock(IndexingService::class);
+        $indexingServiceMock = self::createStub(IndexingService::class);
 
-        $record   = ['uid' => 42, 'file' => 5];
+        $record   = ['uid' => 42, 'file' => $fileUid];
         $document = new Document($indexerMock, $record);
 
         $event = new AfterDocumentAssembledEvent(
@@ -245,10 +247,130 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
             $record,
         );
 
-        $listener = new UpdateAssembledFileDocumentEventListener($fileRepositoryMock, $this->createMock(LoggerInterface::class));
+        return [$event, $document, $fileRepositoryMock];
+    }
+
+    /**
+     * Tests that the listener extracts and sets the real text content of a
+     * PDF file, proving getFileContent() actually parses the file instead
+     * of always resolving to null.
+     */
+    #[Test]
+    public function invokeExtractsRealTextContentFromAPdfFile(): void
+    {
+        $pdfContents = file_get_contents(__DIR__ . '/Fixtures/text-content.pdf');
+        self::assertIsString($pdfContents);
+
+        [$event, $document, $fileRepositoryMock] = $this->createPdfFileEvent(
+            5,
+            'text-content.pdf',
+            strlen($pdfContents),
+            $pdfContents,
+        );
+
+        $listener = new UpdateAssembledFileDocumentEventListener(
+            $fileRepositoryMock,
+            self::createStub(LoggerInterface::class),
+        );
+
         $listener($event);
 
         self::assertArrayHasKey('content', $document->getFields());
         self::assertStringContainsString('Algolia Mutation Test', $document->getFields()['content']);
+    }
+
+    /**
+     * Tests that the listener strips a line that recurs on every page of a
+     * PDF (a repeated document title acting as a header) from the extracted
+     * content field, while keeping each page's unique body text.
+     */
+    #[Test]
+    public function invokeStripsRecurringHeaderFromPdfContent(): void
+    {
+        [$event, $document, $fileRepositoryMock] = $this->createPdfFileEvent(
+            7,
+            'satzung.pdf',
+            1711,
+            (string) file_get_contents(__DIR__ . '/Fixtures/pdf-with-repeated-header.pdf'),
+        );
+
+        $listener = new UpdateAssembledFileDocumentEventListener(
+            $fileRepositoryMock,
+            self::createStub(LoggerInterface::class),
+        );
+
+        $listener($event);
+
+        $content = $document->getFields()['content'];
+
+        self::assertStringNotContainsString('Satzung der Krankenkasse', $content);
+        self::assertStringContainsString('Page 1 unique content marker.', $content);
+        self::assertStringContainsString('Page 2 unique content marker.', $content);
+        self::assertStringContainsString('Page 3 unique content marker.', $content);
+        self::assertStringContainsString('Page 4 unique content marker.', $content);
+    }
+
+    /**
+     * Tests that the listener correctly extracts and strips a recurring
+     * header from a real-world-shaped PDF: FlateDecode-compressed content
+     * streams and German umlaut text (WinAnsiEncoding), as a typical export
+     * (word processor, scanner OCR) would produce, rather than the plain
+     * uncompressed ASCII streams the other fixtures use.
+     */
+    #[Test]
+    public function invokeHandlesCompressedPdfWithUmlautsCorrectly(): void
+    {
+        [$event, $document, $fileRepositoryMock] = $this->createPdfFileEvent(
+            9,
+            'satzung-umlaute.pdf',
+            1481,
+            (string) file_get_contents(__DIR__ . '/Fixtures/pdf-with-umlauts-compressed.pdf'),
+        );
+
+        $listener = new UpdateAssembledFileDocumentEventListener(
+            $fileRepositoryMock,
+            self::createStub(LoggerInterface::class),
+        );
+
+        $listener($event);
+
+        $content = $document->getFields()['content'];
+
+        self::assertTrue(mb_check_encoding($content, 'UTF-8'), 'Extracted content must be valid UTF-8');
+        self::assertStringNotContainsString('Satzung der Krankenkasse für Versicherte', $content);
+        self::assertStringContainsString('Übersicht enthält wichtige Informationen für Mitglieder.', $content);
+        self::assertStringContainsString('Änderungen der Beiträge werden hier erläutert.', $content);
+        self::assertStringContainsString('Zusätzliche Leistungen für Familienangehörige sind möglich.', $content);
+    }
+
+    /**
+     * Tests that the listener truncates extracted PDF content that exceeds
+     * the configured maximum size, so the document still gets indexed
+     * instead of being rejected by the search engine as too big.
+     */
+    #[Test]
+    public function invokeTruncatesContentExceedingConfiguredByteLimit(): void
+    {
+        [$event, $document, $fileRepositoryMock] = $this->createPdfFileEvent(
+            8,
+            'long-document.pdf',
+            826,
+            (string) file_get_contents(__DIR__ . '/Fixtures/pdf-exceeding-content-limit.pdf'),
+        );
+
+        // The fixture extracts to well over 50 bytes of text, so a 50-byte
+        // limit forces truncation without needing an oversized fixture.
+        $listener = new UpdateAssembledFileDocumentEventListener(
+            $fileRepositoryMock,
+            self::createStub(LoggerInterface::class),
+            50,
+        );
+
+        $listener($event);
+
+        $content = $document->getFields()['content'];
+
+        self::assertLessThanOrEqual(50, strlen((string) $content));
+        self::assertTrue(mb_check_encoding($content, 'UTF-8'));
     }
 }
