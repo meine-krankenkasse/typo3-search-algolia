@@ -137,6 +137,7 @@ class UpdateAssembledPageDocumentEventListenerTest extends TestCase
         self::assertSame('www.example.com', $document->getFields()['site']);
         self::assertSame('https://www.example.com/test-page', $document->getFields()['url']);
         self::assertSame(1700000000, $document->getFields()['changed']);
+        self::assertArrayNotHasKey('categories', $document->getFields());
     }
 
     /**
