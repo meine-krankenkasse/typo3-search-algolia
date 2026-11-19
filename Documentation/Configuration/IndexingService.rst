@@ -42,10 +42,21 @@ different page trees into different indexes.
     selected in the indexing services.
 
 ..  warning::
-    The hidden state of a page is not applied to the records on it. Content
-    elements and news records on a hidden page are queued, and queued again
-    when they are saved. Keep pages that must stay out of the search out of
-    the pages selected in the indexing services.
+    The hidden state of a page is not applied to news records on it. A
+    news record is queued when it is saved, even if its page is hidden. The
+    Queue module and the requeue of categories skip hidden subpages of the
+    pages that are selected recursively, so they do not queue the news
+    records on such pages. Content elements on a hidden page, or on a page
+    excluded from the search, are not queued, see :ref:`indexers-queue`.
+    Keep pages that must stay out of the search out of the pages selected in
+    the indexing services.
+
+..  warning::
+    Store the indexing service records outside of page trees that are
+    moved to another site. The services are resolved after the move, so a
+    service that is stored inside the moved tree can already be taken for
+    one of the new site and then cannot remove the documents of the
+    former one, see :ref:`indexers-queue`.
 
 ..  _configuration-indexing-service-options:
 

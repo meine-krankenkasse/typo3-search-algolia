@@ -1,0 +1,3 @@
+be_groups,,,,,
+,uid,pid,title,tables_modify,tables_select,pagetypes_select
+,1,0,"Editors","pages,tt_content,sys_file_metadata","pages,tt_content,sys_file_metadata","1,254"
