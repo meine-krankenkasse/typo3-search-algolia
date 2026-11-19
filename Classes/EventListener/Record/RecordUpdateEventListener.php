@@ -16,7 +16,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandlerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepositoryInterface;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Traits\ContentElementPageTrait;
 
 /**
  * Event listener for handling record creation and update operations in the search indexing system.
@@ -43,6 +43,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
  */
 class RecordUpdateEventListener
 {
+    use ContentElementPageTrait;
+
     /**
      * The current record update event being processed.
      *
@@ -136,17 +138,10 @@ class RecordUpdateEventListener
         if ($this->isContentElementUpdate()) {
             // TODO Updating the page can be neglected if the changed content element is not taken
             //      into account in the page indexing service.
-            $pageId = $this->recordRepository
-                ->findPid(
-                    ContentIndexer::TABLE,
-                    $this->event->getRecordUid(),
-                );
-
-            // Process page update
-            if ($pageId !== false) {
-                $this->recordHandler
-                    ->processPageOfContentElement($rootPageId, $pageId);
-            }
+            $this->processPageOfContentElement(
+                $rootPageId,
+                $this->event->getRecordUid(),
+            );
         }
 
         // Handle the update of the page and its content elements
