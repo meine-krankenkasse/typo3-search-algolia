@@ -35,8 +35,6 @@ page indexer sends:
         -   The domain of the page's site.
     *   -   ``url``
         -   The URL of the page, if the page belongs to a site.
-    *   -   ``categories``
-        -   The titles of the categories assigned to the page.
     *   -   ``content``
         -   The text of the page's content elements, only if
             :confval:`indexing-service-include-content-elements` is set.
