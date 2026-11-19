@@ -1,0 +1,11 @@
+sys_template,,,,,,,,
+,uid,pid,title,root,clear,config,deleted,hidden
+,1,1,"First site",1,0,"[site(""identifier"") == ""first""]
+module.tx_typo3searchalgolia.indexer.pages.excludeColPos = 7
+module.tx_typo3searchalgolia.indexer.pages.fields.title = subTitle
+module.tx_typo3searchalgolia.indexer.sys_file_metadata.extensions = pdf, docx
+[END]
+[site(""identifier"") == ""second""]
+module.tx_typo3searchalgolia.indexer.pages.excludeColPos = 8
+[END]",0,0
+,2,40,"Second site",1,0,"module.tx_typo3searchalgolia.indexer.pages.excludeColPos = 9",0,0
