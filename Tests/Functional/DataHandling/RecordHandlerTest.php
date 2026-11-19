@@ -1603,6 +1603,82 @@ final class RecordHandlerTest extends AbstractFunctionalTestCase
         $this->subject->processContentElementsOfPage(2, true, []);
     }
 
+    /**
+     * Tests that processContentElementsOfPage() looks up the content elements on the
+     * page itself when the caller gives no list, and that the elements of the
+     * subpages are not part of it.
+     */
+    #[Test]
+    public function processContentElementsOfPageLooksUpTheElementsOnThePageWithoutAList(): void
+    {
+        $queued = [];
+
+        $contentIndexerMock = $this->createMock(ContentIndexer::class);
+        $contentIndexerMock->method('withExcludeHiddenPages')->willReturnSelf();
+        $contentIndexerMock
+            ->method('withIndexingService')
+            ->willReturn($contentIndexerMock);
+        $contentIndexerMock
+            ->method('dequeueMultiple')
+            ->willReturnSelf();
+        $contentIndexerMock
+            ->method('enqueueEligible')
+            ->willReturnCallback(
+                static function (array $uids) use (&$queued): array {
+                    $queued = $uids;
+
+                    return $uids;
+                },
+            );
+
+        $this->indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->willReturn($contentIndexerMock);
+
+        $this->subject->processContentElementsOfPage(2, false);
+
+        sort($queued);
+
+        self::assertSame([1, 2, 4, 5], $queued);
+    }
+
+    /**
+     * Tests that processContentElementsOfPage() takes the content elements on the page
+     * out of the queue when the caller gives no list and asks for their removal.
+     */
+    #[Test]
+    public function processContentElementsOfPageDequeuesTheElementsOnThePageWithoutAList(): void
+    {
+        $dequeued = [];
+
+        $contentIndexerMock = $this->createMock(ContentIndexer::class);
+        $contentIndexerMock
+            ->method('withIndexingService')
+            ->willReturn($contentIndexerMock);
+        $contentIndexerMock
+            ->method('getTable')
+            ->willReturn('tt_content');
+        $contentIndexerMock
+            ->method('dequeueMultiple')
+            ->willReturnCallback(
+                static function (array $uids) use (&$dequeued, $contentIndexerMock): IndexerInterface {
+                    $dequeued = $uids;
+
+                    return $contentIndexerMock;
+                },
+            );
+
+        $this->indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->willReturn($contentIndexerMock);
+
+        $this->subject->processContentElementsOfPage(2, true);
+
+        sort($dequeued);
+
+        self::assertSame([1, 2, 4, 5], $dequeued);
+    }
+
     // -----------------------------------------------------------------------
     // log context of a long list
     // -----------------------------------------------------------------------
