@@ -1,0 +1,12 @@
+sys_category,,,,,,,,
+,uid,pid,title,parent,deleted,hidden,starttime,endtime
+,20,1,"Parent",0,0,0,0,0
+,21,1,"Child A",20,0,0,0,0
+,22,1,"Child B",20,0,0,0,0
+,23,1,"Deleted Child",20,1,0,0,0
+,24,1,"Grandchild",22,0,0,0,0
+,25,1,"Unrelated",0,0,0,0,0
+,26,1,"Hidden Child",20,0,1,0,0
+,27,1,"Grandchild Of Hidden Child",26,0,0,0,0
+,28,1,"Scheduled Child",20,0,0,4102444800,0
+,29,1,"Expired Child",20,0,0,0,946684800

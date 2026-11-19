@@ -1,0 +1,4 @@
+pages,,,,,,,
+,uid,pid,title,is_siteroot,doktype,deleted,hidden,no_search
+,40,0,"Second Root Page",1,1,0,0,0
+,41,40,"Second Site Sub Page",0,1,0,0,0

@@ -1,0 +1,6 @@
+sys_category_record_mm,,,,
+,uid_local,uid_foreign,tablenames,fieldname
+,5,3,pages,categories
+,5,2,pages,topics
+,5,10,sys_file_metadata,categories
+,6,4,pages,categories
