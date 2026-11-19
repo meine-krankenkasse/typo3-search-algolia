@@ -18,6 +18,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteRefusedEve
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordMoveEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Utility\WorkspaceVersion;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -876,13 +877,6 @@ class DataHandlerHook
                 't3ver_state, t3ver_oid',
             );
 
-        if (
-            isset($record['t3ver_state'])
-            && ($record['t3ver_state'] !== VersionState::DEFAULT_STATE)
-        ) {
-            return true;
-        }
-
-        return isset($record['t3ver_oid']) && ($record['t3ver_oid'] !== 0);
+        return WorkspaceVersion::isDraft($record);
     }
 }
