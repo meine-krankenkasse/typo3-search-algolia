@@ -24,11 +24,8 @@ return [
         'tstamp'                   => 'tstamp',
         'crdate'                   => 'crdate',
         'delete'                   => 'deleted',
-        'versioningWS'             => false,
         'iconfile'                 => 'EXT:typo3_search_algolia/Resources/Public/Icons/Extension.svg',
-        'hideTable'                => false,
         'languageField'            => 'sys_language_uid',
-        'transOrigPointerField'    => 'l10n_parent',
         'transOrigDiffSourceField' => 'l10n_diffsource',
         'translationSource'        => 'l10n_source',
         'default_sortby'           => 'title ASC',
@@ -67,84 +64,6 @@ return [
         ],
     ],
     'columns' => [
-        'sys_language_uid' => [
-            'exclude' => true,
-            'label'   => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.language',
-            'config'  => ['type' => 'language'],
-        ],
-        'l10n_parent' => [
-            'displayCond' => 'FIELD:sys_language_uid:>:0',
-            'label'       => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
-            'config'      => [
-                'type'     => 'group',
-                'allowed'  => 'tx_typo3searchalgolia_domain_model_indexingservice',
-                'size'     => 1,
-                'maxitems' => 1,
-                'minitems' => 0,
-                'default'  => 0,
-            ],
-        ],
-        'l10n_source' => [
-            'config' => [
-                'type' => 'passthrough',
-            ],
-        ],
-        'l10n_diffsource' => [
-            'config' => [
-                'type'    => 'passthrough',
-                'default' => '',
-            ],
-        ],
-        'pid' => [
-            'label'  => 'pid',
-            'config' => [
-                'type' => 'passthrough',
-            ],
-        ],
-        'crdate' => [
-            'label'  => 'crdate',
-            'config' => [
-                'type' => 'datetime',
-            ],
-        ],
-        'tstamp' => [
-            'label'  => 'tstamp',
-            'config' => [
-                'type' => 'datetime',
-            ],
-        ],
-        'starttime' => [
-            'exclude' => true,
-            'label'   => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.starttime',
-            'config'  => [
-                'type'      => 'datetime',
-                'default'   => 0,
-                'behaviour' => [
-                    'allowLanguageSynchronization' => true,
-                ],
-            ],
-        ],
-        'endtime' => [
-            'exclude' => true,
-            'label'   => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.endtime',
-            'config'  => [
-                'type'    => 'datetime',
-                'default' => 0,
-                'range'   => [
-                    'upper' => mktime(
-                        0,
-                        0,
-                        0,
-                        1,
-                        1,
-                        2038,
-                    ),
-                ],
-                'behaviour' => [
-                    'allowLanguageSynchronization' => true,
-                ],
-            ],
-        ],
         'hidden' => [
             'l10n_mode' => 'exclude',
             'exclude'   => true,

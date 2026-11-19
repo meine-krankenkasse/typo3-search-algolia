@@ -15,7 +15,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\RecordHandler;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
+use MeineKrankenkasse\Typo3SearchAlgolia\Traits\ContentElementPageTrait;
 
 /**
  * Event listener for handling record deletion operations in the search indexing system.
@@ -43,6 +43,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\ContentIndexer;
  */
 class RecordDeleteEventListener
 {
+    use ContentElementPageTrait;
+
     /**
      * The current record delete event being processed.
      *
@@ -113,17 +115,10 @@ class RecordDeleteEventListener
 
         // Update page if required
         if ($this->isContentElementUpdate()) {
-            $pageId = $this->recordRepository
-                ->findPid(
-                    ContentIndexer::TABLE,
-                    $this->event->getRecordUid(),
-                );
-
-            // Process page update
-            if ($pageId !== false) {
-                $this->recordHandler
-                    ->processPageOfContentElement($rootPageId, $pageId);
-            }
+            $this->processPageOfContentElement(
+                $rootPageId,
+                $this->event->getRecordUid(),
+            );
         }
 
         // Handle the deletion of the page and its content elements
