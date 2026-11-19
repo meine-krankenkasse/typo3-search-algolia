@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Command;
 
+use Algolia\AlgoliaSearch\Exceptions\BadRequestException;
 use Doctrine\DBAL\Result;
 use MeineKrankenkasse\Typo3SearchAlgolia\Command\IndexQueueWorkerCommand;
 use MeineKrankenkasse\Typo3SearchAlgolia\Constants;
@@ -40,6 +41,7 @@ use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 
 use function array_values;
 use function count;
+use function preg_quote;
 
 /**
  * Unit tests for IndexQueueWorkerCommand.
@@ -168,6 +170,62 @@ class IndexQueueWorkerCommandTest extends TestCase
         $this->connectionPoolMock
             ->method('getQueryBuilderForTable')
             ->willReturn($queryBuilderMock);
+    }
+
+    /**
+     * Arranges a single queue item (table sys_file_metadata, record 8754,
+     * indexing service 2) so that it is returned by findAllLimited() and
+     * indexed via the given indexer, the setup every indexItems() test
+     * needs before adding its own, distinct expectations.
+     *
+     * @param IndexerInterface $indexer The indexer to return for the table of the queue item
+     *
+     * @return QueueItem The arranged queue item, for tests that assert on its removal
+     */
+    private function arrangeSingleQueueItem(IndexerInterface $indexer): QueueItem
+    {
+        $queueItem = (new QueueItem())
+            ->setTableName('sys_file_metadata')
+            ->setRecordUid(8754)
+            ->setServiceUid(2);
+
+        $this->stubFetchableRecord();
+
+        $this->queueItemRepositoryMock
+            ->method('findAllLimited')
+            ->willReturn($this->createQueueItemsResult([$queueItem]));
+
+        $this->indexingServiceRepositoryMock
+            ->method('findByUid')
+            ->with(2)
+            ->willReturn(new IndexingService());
+
+        $this->indexerFactoryMock
+            ->method('makeInstanceByType')
+            ->with('sys_file_metadata')
+            ->willReturn($indexer);
+
+        return $queueItem;
+    }
+
+    /**
+     * Runs the command for one batch, optionally with a logger.
+     *
+     * @param LoggerInterface|null $logger The logger to set on the command, none when omitted
+     */
+    private function runCommand(?LoggerInterface $logger = null): void
+    {
+        $command = $this->createCommand();
+
+        if ($logger instanceof LoggerInterface) {
+            $command->setLogger($logger);
+        }
+
+        // Normally supplied via the Services.yaml console.command tag
+        $command->setName('mkk:queue:index:worker');
+
+        $commandTester = new CommandTester($command);
+        $commandTester->execute(['--documentsToIndex' => 1]);
     }
 
     /**
@@ -332,5 +390,124 @@ class IndexQueueWorkerCommandTest extends TestCase
 
         $commandTester = new CommandTester($command);
         $commandTester->execute(['--documentsToIndex' => 2]);
+    }
+
+    /**
+     * Tests that a queue item is removed from the queue after it has been
+     * indexed successfully, which is the normal, non-error path.
+     */
+    #[Test]
+    public function indexItemsRemovesQueueItemAfterSuccessfulIndexing(): void
+    {
+        $indexerMock = $this->createMock(IndexerInterface::class);
+        $indexerMock
+            ->expects(self::once())
+            ->method('indexRecord')
+            ->willReturn(true);
+
+        $queueItem = $this->arrangeSingleQueueItem($indexerMock);
+
+        $this->queueItemRepositoryMock
+            ->expects(self::once())
+            ->method('remove')
+            ->with($queueItem);
+
+        $this->persistenceManagerMock
+            ->expects(self::once())
+            ->method('persistAll');
+
+        $this->runCommand();
+    }
+
+    /**
+     * Tests that a queue item whose record exceeds the search engine's
+     * record size limit is removed from the queue and logged, instead of
+     * being left in the queue where it would fail again on every future run.
+     */
+    #[Test]
+    public function indexItemsRemovesAndLogsQueueItemWhenRecordExceedsSizeLimit(): void
+    {
+        $indexerStub = self::createStub(IndexerInterface::class);
+        $indexerStub
+            ->method('indexRecord')
+            ->willThrowException(new BadRequestException('Record is too big.'));
+
+        $queueItem = $this->arrangeSingleQueueItem($indexerStub);
+
+        $this->queueItemRepositoryMock
+            ->expects(self::once())
+            ->method('remove')
+            ->with($queueItem);
+
+        $this->persistenceManagerMock
+            ->expects(self::once())
+            ->method('persistAll');
+
+        $loggerMock = $this->createMock(LoggerInterface::class);
+        $loggerMock
+            ->expects(self::once())
+            ->method('warning')
+            ->with(
+                self::identicalTo('Record exceeds search engine size limit, removed from queue without indexing'),
+                self::identicalTo([
+                    'tableName' => 'sys_file_metadata',
+                    'recordUid' => 8754,
+                    'exception' => 'Record is too big.',
+                ]),
+            );
+
+        $this->runCommand($loggerMock);
+    }
+
+    /**
+     * Tests that a too-big-record queue item is still removed even when no
+     * logger was ever set on the command, so the nullsafe logger call is
+     * genuinely optional.
+     */
+    #[Test]
+    public function indexItemsRemovesQueueItemWhenRecordExceedsSizeLimitWithoutLoggerSet(): void
+    {
+        $indexerStub = self::createStub(IndexerInterface::class);
+        $indexerStub
+            ->method('indexRecord')
+            ->willThrowException(new BadRequestException('Record is too big.'));
+
+        $queueItem = $this->arrangeSingleQueueItem($indexerStub);
+
+        $this->queueItemRepositoryMock
+            ->expects(self::once())
+            ->method('remove')
+            ->with($queueItem);
+
+        $this->persistenceManagerMock
+            ->expects(self::once())
+            ->method('persistAll');
+
+        $this->runCommand();
+    }
+
+    /**
+     * Tests that a BadRequestException whose message does not indicate an
+     * oversized record is not swallowed, since it may signal a different,
+     * unexpected problem that should not be silently ignored.
+     */
+    #[Test]
+    public function indexItemsRethrowsBadRequestExceptionForOtherReasons(): void
+    {
+        $indexerStub = self::createStub(IndexerInterface::class);
+        $indexerStub
+            ->method('indexRecord')
+            ->willThrowException(new BadRequestException('Invalid API key.'));
+
+        $this->arrangeSingleQueueItem($indexerStub);
+
+        $this->queueItemRepositoryMock
+            ->expects(self::never())
+            ->method('remove');
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessageMatches('/' . preg_quote('Invalid API key.', '/') . '/');
+
+        $this->runCommand();
     }
 }

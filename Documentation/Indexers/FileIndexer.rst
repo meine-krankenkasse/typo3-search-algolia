@@ -59,7 +59,22 @@ file indexer sends:
         -   The public URL of the file, without the leading slash for
             files in a local storage.
     *   -   ``content``
-        -   The extracted text, only for PDF files.
+        -   The extracted text, only for PDF files. See
+            :ref:`indexers-file-content`.
+
+..  _indexers-file-content:
+
+PDF content
+===========
+
+Lines that repeat at the top or bottom of most pages, such as a document
+title or a footer, are removed from the extracted text. This detection
+needs a document with a few pages, shorter documents keep all their lines.
+
+The text is then shortened to stay within the record size limit of Algolia,
+without cutting a multi-byte character in half. Text beyond that point is
+not searchable. A record that Algolia still rejects as too big is handled by the
+worker, see :ref:`indexers-queue`.
 
 The mapped metadata fields and the allowed file extensions default to:
 
