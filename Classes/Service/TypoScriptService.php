@@ -20,6 +20,7 @@ use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\Configuration\Exception\NoServerRequestGivenException;
 
@@ -196,6 +197,48 @@ final class TypoScriptService implements TypoScriptServiceInterface, LoggerAware
         }
 
         return [];
+    }
+
+    /**
+     * Returns the colPos values whose content elements are excluded from indexing.
+     *
+     * The values are read from the comma-separated TypoScript option
+     * "module.tx_typo3searchalgolia.indexer.<indexerType>.excludeColPos". Entries are
+     * accepted in plain integer notation only, everything else (letters, decimals,
+     * leading zeros, a plus sign) is ignored, so a typo can never be misread as colPos 0.
+     * An empty or missing option returns an empty array, meaning nothing is excluded.
+     *
+     * @param string $indexerType The indexer type, e.g. "pages"
+     *
+     * @return int[] The colPos values to exclude
+     */
+    #[Override]
+    public function getExcludedColPos(string $indexerType): array
+    {
+        $typoscriptConfiguration = $this->getTypoScriptConfiguration();
+
+        if (
+            !isset($typoscriptConfiguration['indexer'][$indexerType]['excludeColPos'])
+            || !is_string($typoscriptConfiguration['indexer'][$indexerType]['excludeColPos'])
+        ) {
+            return [];
+        }
+
+        $excludedColPos = [];
+
+        $entries = GeneralUtility::trimExplode(
+            ',',
+            $typoscriptConfiguration['indexer'][$indexerType]['excludeColPos'],
+            true,
+        );
+
+        foreach ($entries as $entry) {
+            if (MathUtility::canBeInterpretedAsInteger($entry)) {
+                $excludedColPos[] = (int) $entry;
+            }
+        }
+
+        return $excludedColPos;
     }
 
     /**

@@ -17,6 +17,28 @@ Excluding a page
 Disable :guilabel:`Include in Search` in the page properties to keep a
 page out of the index. The option is on the :guilabel:`Behavior` tab.
 
+..  _indexers-page-exclude-colpos:
+
+Excluding content columns
+=========================
+
+The TypoScript option ``excludeColPos`` leaves the content elements of the
+given columns out of the page's ``content`` field. It only has an effect if
+:confval:`indexing-service-include-content-elements` is set.
+
+The value is a comma-separated list of ``colPos`` values in plain integer
+notation. Entries in any other notation, such as letters, decimals, leading
+zeros or a plus sign, are ignored, so a typo is never read as column ``0``. If
+the option is empty or not set, content elements of every column are indexed.
+
+..  code-block:: typoscript
+    :caption: Leave the content elements of column 9999 out of the page content
+
+    module.tx_typo3searchalgolia.indexer.pages.excludeColPos = 9999
+
+The extension does not assign a value itself, so a value set by a site package
+stays in effect.
+
 ..  _indexers-page-fields:
 
 Fields
