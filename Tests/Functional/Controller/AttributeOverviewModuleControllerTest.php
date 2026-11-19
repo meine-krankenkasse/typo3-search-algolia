@@ -948,12 +948,12 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
 
     /**
      * Verifies the positive "occurs on" framing that replaces the dropped
-     * SchemaGapDetector's negatively-framed "missing on" list: 'categories'
-     * is set only by UpdateAssembledPageDocumentEventListener (grepped,
-     * no other listener touches it), so its row must carry exactly one
-     * occurrence entry (pages), the absence of tt_content/News/
-     * sys_file_metadata among its occurrences already communicates "not
-     * carried by these tables" without a separate gap list.
+     * SchemaGapDetector's negatively-framed "missing on" list: an attribute
+     * that only the document of the pages table carries (injected onto
+     * exactly that document) must carry exactly one occurrence entry
+     * (pages), the absence of tt_content/News/sys_file_metadata among its
+     * occurrences already communicates "not carried by these tables"
+     * without a separate gap list.
      */
     #[Test]
     public function attributeOverviewShowsExactlyOneOccurrenceForAnAttributePresentOnOnlyOneTable(): void
@@ -963,35 +963,47 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/tx_news_domain_model_news.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
 
-        $subject = $this->createDrivenSubject(['id' => 0]);
+        $injectingDocumentBuilder = new ArrayFieldInjectingDocumentBuilder(
+            $this->get(EventDispatcherInterface::class),
+            $this->get(TypoScriptService::class),
+            $this->get(DocumentBuilder::class),
+            'pages',
+            'pageOnlyField',
+            ['value'],
+        );
+
+        $subject = $this->createDrivenSubject(
+            ['id' => 0],
+            $injectingDocumentBuilder,
+        );
 
         $body = $this->callIndexActionAndAssertOk($subject);
 
-        $categoriesRowHtml = $this->extractAttributeRowHtml(
+        $pageOnlyRowHtml = $this->extractAttributeRowHtml(
             $body,
-            'categories',
+            'pageOnlyField',
         );
 
         self::assertStringContainsString(
             '<code>pages</code>',
-            $categoriesRowHtml,
+            $pageOnlyRowHtml,
         );
         self::assertStringNotContainsString(
             '<code>tt_content</code>',
-            $categoriesRowHtml,
+            $pageOnlyRowHtml,
         );
         self::assertStringNotContainsString(
             '<code>tx_news_domain_model_news</code>',
-            $categoriesRowHtml,
+            $pageOnlyRowHtml,
         );
 
         self::assertSame(
             1,
             substr_count(
-                $categoriesRowHtml,
+                $pageOnlyRowHtml,
                 '<span class="badge">',
             ),
-            'The "categories" row must carry exactly one occurrence entry.',
+            'The "pageOnlyField" row must carry exactly one occurrence entry.',
         );
     }
 
@@ -1007,7 +1019,7 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
      * fixtures/configuration: the TypoScript-mapped target names (title,
      * subTitle, navTitle, description, teaser, author, keywords,
      * authorEmail, alternative) and the listener-set field names (site,
-     * url, categories, content) are two disjoint sets in
+     * url, content) are two disjoint sets in
      * Configuration/TypoScript/setup.typoscript and Classes/EventListener/
      * respectively, verified by reading both.
      */
@@ -1256,28 +1268,40 @@ final class AttributeOverviewModuleControllerTest extends AbstractFunctionalTest
     }
 
     /**
-     * Verifies array-valued fields (e.g. 'categories', a string[]) are
-     * comma-joined for display, using a dedicated fixture whose
-     * auto-picked page carries two real, assigned categories.
+     * Verifies array-valued fields (a string[]) are comma-joined for
+     * display, using a field that is injected onto the document of the
+     * pages table and holds two strings.
      */
     #[Test]
     public function attributeOverviewFormatsAnArrayValuedFieldAsACommaJoinedExampleValue(): void
     {
-        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages_categories.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_pages.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/attribute_overview_indexing_services.csv');
 
-        $subject = $this->createDrivenSubject(['id' => 0]);
+        $injectingDocumentBuilder = new ArrayFieldInjectingDocumentBuilder(
+            $this->get(EventDispatcherInterface::class),
+            $this->get(TypoScriptService::class),
+            $this->get(DocumentBuilder::class),
+            'pages',
+            'stringListField',
+            ['Value A', 'Value B'],
+        );
+
+        $subject = $this->createDrivenSubject(
+            ['id' => 0],
+            $injectingDocumentBuilder,
+        );
 
         $body = $this->callIndexActionAndAssertOk($subject);
 
-        $categoriesRowHtml = $this->extractAttributeRowHtml(
+        $rowHtml = $this->extractAttributeRowHtml(
             $body,
-            'categories',
+            'stringListField',
         );
 
         $this->assertExampleValueCellContains(
-            'Category A, Category B',
-            $categoriesRowHtml,
+            'Value A, Value B',
+            $rowHtml,
         );
     }
 

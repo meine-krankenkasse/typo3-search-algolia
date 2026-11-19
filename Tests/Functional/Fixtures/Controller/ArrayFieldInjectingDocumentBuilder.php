@@ -34,11 +34,14 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * fixture simulates exactly such a listener by injecting the field directly
  * onto the already-assembled Document, the same object real listeners
  * mutate via the real AfterDocumentAssembledEvent.
+ *
+ * Tests that only need an array-valued field, or a field that exactly
+ * one table's document carries, use it with scalar items as well.
  */
 final class ArrayFieldInjectingDocumentBuilder extends AbstractDelegatingDocumentBuilder
 {
     /**
-     * @param array<int|string, mixed> $fieldValue The array value to inject, containing at least one non-scalar item
+     * @param array<int|string, mixed> $fieldValue The array value to inject
      */
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
