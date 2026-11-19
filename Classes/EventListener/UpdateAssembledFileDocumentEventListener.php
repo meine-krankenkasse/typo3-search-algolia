@@ -22,7 +22,6 @@ use Smalot\PdfParser\Parser;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileRepository;
 
-use function array_filter;
 use function array_map;
 
 /**
@@ -211,21 +210,9 @@ readonly class UpdateAssembledFileDocumentEventListener
         try {
             $pdf = $parser->parseContent($file->getContents());
 
-            // Smalot\PdfParser\Document::getText() itself guards against a null
-            // page entry ("In some cases, the $page variable may be null"), so
-            // getPages() is not guaranteed to only ever return Page instances.
-            // Not covered by a test: the installed smalot/pdfparser version
-            // filters non-Page entries out of Pages::getPages() internally
-            // before this code ever sees them, so a null entry is not
-            // currently reproducible through a real PDF fixture. Re-check
-            // with: grep -n -E 'instanceof (self|Page)'
-            // .build/vendor/smalot/pdfparser/src/Smalot/PdfParser/Pages.php
-            $pageTexts = array_filter(
-                array_map(
-                    static fn (?Page $page): ?string => $page?->getText(),
-                    $pdf->getPages(),
-                ),
-                static fn (?string $pageText): bool => $pageText !== null,
+            $pageTexts = array_map(
+                static fn (Page $page): string => $page->getText(),
+                $pdf->getPages(),
             );
 
             $content = ContentExtractor::removeRecurringLines($pageTexts);
