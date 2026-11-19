@@ -1,22 +1,33 @@
 {
-    "$schema": "https://raw.githubusercontent.com/kucherenko/jscpd/master/apps/jscpd/src/config.schema.json",
-    "path": [
-        "../Classes",
-        "../Configuration"
-    ],
-    "ignore": [
-        "**/*.min.js"
-    ],
     "format": [
         "php",
+        "markup",
+        "yaml",
         "typoscript",
-        "yaml"
+        "sql",
+        "json",
+        "css",
+        "scss",
+        "javascript",
+        "typescript"
     ],
+    "formatsExts": {
+        "typoscript": ["typoscript", "tsconfig"]
+    },
+    "mode": "weak",
+    "threshold": 0,
     "reporters": [
-        "consoleFull"
+        "console-full"
     ],
-    "output": "../.build/jscpd",
-    "threshold": 21,
-    "gitignore": true,
-    "absolute": false
+    "minTokens": 100,
+    "minLines": 5,
+    "pattern": "{Classes/**,Configuration/**,Resources/**,ext_*}",
+    "ignore": [
+        ".build/**",
+        "Tests/**",
+        "**/*.min.js",
+        "**/*.min.css",
+        "Resources/Public/Contrib/**"
+    ],
+    "exitCode": 1
 }
