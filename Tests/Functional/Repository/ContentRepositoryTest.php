@@ -17,6 +17,8 @@ use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 
+use function array_column;
+
 /**
  * Functional tests for ContentRepository.
  *
@@ -43,6 +45,18 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
     }
 
     /**
+     * Asserts that the given result rows carry exactly the expected uid values,
+     * ignoring order (the underlying query has no ORDER BY).
+     *
+     * @param int[]                            $expectedUids The uid values every returned row is expected to carry
+     * @param array<int, array<string, mixed>> $elements     The rows returned by findAllByPid() to check
+     */
+    private function assertUids(array $expectedUids, array $elements): void
+    {
+        self::assertEqualsCanonicalizing($expectedUids, array_column($elements, 'uid'));
+    }
+
+    /**
      * Tests that findAllByPid() returns all content elements
      * on a page with the requested field selection.
      */
@@ -51,7 +65,7 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
     {
         $elements = $this->subject->findAllByPid(2, ['uid', 'header', 'CType']);
 
-        self::assertCount(2, $elements);
+        $this->assertUids([1, 2, 4, 5], $elements);
     }
 
     /**
@@ -75,7 +89,7 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
     {
         $elements = $this->subject->findAllByPid(2, ['uid']);
 
-        self::assertCount(2, $elements);
+        $this->assertUids([1, 2, 4, 5], $elements);
         self::assertArrayHasKey('uid', $elements[0]);
         self::assertArrayNotHasKey('header', $elements[0]);
     }
@@ -89,8 +103,73 @@ final class ContentRepositoryTest extends AbstractFunctionalTestCase
     {
         $elements = $this->subject->findAllByPid(2, ['uid', 'CType'], ['text']);
 
-        self::assertCount(1, $elements);
-        self::assertSame('text', $elements[0]['CType']);
+        $this->assertUids([1, 4, 5], $elements);
+    }
+
+    /**
+     * Tests that findAllByPid() leaves out content elements on the excluded
+     * colPos values and keeps all others.
+     */
+    #[Test]
+    public function findAllByPidExcludesColPos(): void
+    {
+        $elements = $this->subject->findAllByPid(2, ['uid'], excludeColPos: [9999]);
+
+        $this->assertUids([1, 2, 5], $elements);
+    }
+
+    /**
+     * Tests that findAllByPid() correctly combines the content element type
+     * filter and the colPos exclusion, returning only elements matching both.
+     */
+    #[Test]
+    public function findAllByPidCombinesContentElementTypeAndExcludedColPos(): void
+    {
+        $elements = $this->subject->findAllByPid(
+            2,
+            ['uid', 'CType'],
+            ['text'],
+            [9999],
+        );
+
+        $this->assertUids([1, 5], $elements);
+    }
+
+    /**
+     * Tests that findAllByPid() excludes several colPos values at once, not
+     * just a single one.
+     */
+    #[Test]
+    public function findAllByPidExcludesMultipleColPosValues(): void
+    {
+        $elements = $this->subject->findAllByPid(2, ['uid'], excludeColPos: [9999, 2]);
+
+        $this->assertUids([1, 2], $elements);
+    }
+
+    /**
+     * Tests that findAllByPid() excludes elements on colPos 0, which must not
+     * be dropped as if no colPos had been passed.
+     */
+    #[Test]
+    public function findAllByPidExcludesColPosZero(): void
+    {
+        // The shared fixture has no colPos 0 row, so this test adds its own.
+        $this->getConnectionPool()
+            ->getConnectionForTable('tt_content')
+            ->insert('tt_content', [
+                'uid'     => 6,
+                'pid'     => 2,
+                'header'  => 'Main Column Content',
+                'CType'   => 'text',
+                'deleted' => 0,
+                'hidden'  => 0,
+                'colPos'  => 0,
+            ]);
+
+        $elements = $this->subject->findAllByPid(2, ['uid'], excludeColPos: [0]);
+
+        $this->assertUids([1, 2, 4, 5], $elements);
     }
 
     /**

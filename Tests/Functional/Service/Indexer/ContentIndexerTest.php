@@ -145,11 +145,11 @@ final class ContentIndexerTest extends AbstractFunctionalTestCase
     {
         $indexer = $this->contentIndexer->withIndexingService($this->indexingService);
 
-        // All 3 content elements are on pages within the recursive tree
-        // uid=1 (pid=2), uid=2 (pid=2), uid=3 (pid=3)
+        // All 5 content elements are on pages within the recursive tree
+        // uid=1 (pid=2), uid=2 (pid=2), uid=3 (pid=3), uid=4 (pid=2), uid=5 (pid=2)
         $result = $indexer->enqueueAll();
 
-        self::assertSame(3, $result);
+        self::assertSame(5, $result);
     }
 
     // -----------------------------------------------------------------------
