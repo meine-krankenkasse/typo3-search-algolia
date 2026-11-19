@@ -14,19 +14,21 @@ namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Hook;
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\CategoryRecordRequeuerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Hook\DataHandlerHook;
-use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use TYPO3\CMS\Core\Authentication\AccessCheckResult;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
+use TYPO3\CMS\Core\Type\VirtualRecord;
 
 /**
  * Unit tests for the category-related parts of DataHandlerHook.
@@ -37,13 +39,22 @@ use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
  */
 #[CoversClass(DataHandlerHook::class)]
 #[UsesClass(DataHandlerRecordDeleteEvent::class)]
-#[UsesClass(PageRepository::class)]
 final class DataHandlerHookTest extends TestCase
 {
     /**
      * The requeuer the hook delegates the category handling to.
      */
     private CategoryRecordRequeuerInterface&MockObject $requeuerMock;
+
+    /**
+     * The backend user of the test, working in the live workspace.
+     */
+    private BackendUserAuthentication&Stub $backendUserStub;
+
+    /**
+     * The page repository the hook reads the records from.
+     */
+    private PageRepositoryInterface&Stub $pageRepositoryStub;
 
     /**
      * The hook under test.
@@ -64,11 +75,22 @@ final class DataHandlerHookTest extends TestCase
         $backendUser->workspace = 0;
         $GLOBALS['BE_USER']     = $backendUser;
 
+        $this->backendUserStub    = $backendUser;
+        $this->pageRepositoryStub = self::createStub(PageRepositoryInterface::class);
+
+        // The live edit rules of the workspace of the user, as the real backend user applies them
+        $backendUser
+            ->method('workspaceAllowsLiveEditingInTable')
+            ->willReturnCallback(
+                static fn (string $table): bool => ($GLOBALS['BE_USER']->workspace === 0)
+                    || (bool) ($GLOBALS['TCA'][$table]['ctrl']['versioningWS_alwaysAllowLiveEdit'] ?? false),
+            );
+
         $this->requeuerMock = $this->createMock(CategoryRecordRequeuerInterface::class);
 
         $this->subject = new DataHandlerHook(
             self::createStub(EventDispatcherInterface::class),
-            new PageRepository(self::createStub(ConnectionPool::class)),
+            $this->pageRepositoryStub,
             self::createStub(TcaSchemaFactory::class),
             $this->requeuerMock,
         );
@@ -82,9 +104,34 @@ final class DataHandlerHookTest extends TestCase
     #[Override]
     protected function tearDown(): void
     {
-        unset($GLOBALS['BE_USER']);
+        unset(
+            $GLOBALS['BE_USER'],
+            $GLOBALS['TCA'],
+        );
 
         parent::tearDown();
+    }
+
+    /**
+     * Sets up the records and the permissions so that the user may update the category 39.
+     *
+     * @param DataHandler&Stub $dataHandler The DataHandler of the save
+     *
+     * @return void
+     */
+    private function grantUpdateOfCategory(DataHandler&Stub $dataHandler): void
+    {
+        $this->pageRepositoryStub
+            ->method('getPageRecord')
+            ->willReturnCallback(
+                static fn (string $table, int $uid): array => ['uid' => $uid, 'pid' => ($table === 'pages') ? 0 : 1],
+            );
+
+        $dataHandler->method('hasPermissionToUpdate')->willReturn(true);
+
+        $this->backendUserStub
+            ->method('checkRecordEditAccess')
+            ->willReturn(new AccessCheckResult(true));
     }
 
     /**
@@ -115,13 +162,136 @@ final class DataHandlerHookTest extends TestCase
             ->method('rememberAssignedRecords')
             ->with(39);
 
+        $dataHandler = self::createStub(DataHandler::class);
+        $this->grantUpdateOfCategory($dataHandler);
+
         $fieldArray = ['title' => 'Service'];
 
         $this->subject->processDatamap_preProcessFieldArray(
             $fieldArray,
             'sys_category',
             $id,
-            self::createStub(DataHandler::class),
+            $dataHandler,
+        );
+    }
+
+    /**
+     * A category that the user may not edit is not looked at, because
+     * DataHandler refuses the save and the lookup would be wasted work that the
+     * size of the datamap alone drives.
+     */
+    #[Test]
+    public function remembersNothingForACategoryTheUserMayNotEdit(): void
+    {
+        $this->pageRepositoryStub
+            ->method('getPageRecord')
+            ->willReturnCallback(
+                static fn (string $table, int $uid): array => ['uid' => $uid, 'pid' => ($table === 'pages') ? 0 : 1],
+            );
+
+        $dataHandler = $this->createMock(DataHandler::class);
+        $dataHandler
+            ->expects(self::once())
+            ->method('hasPermissionToUpdate')
+            ->with('sys_category', ['uid' => 1, 'pid' => 0])
+            ->willReturn(false);
+
+        $this->requeuerMock->expects(self::never())->method('rememberAssignedRecords');
+
+        $fieldArray = ['title' => 'Service'];
+
+        $this->subject->processDatamap_preProcessFieldArray(
+            $fieldArray,
+            'sys_category',
+            39,
+            $dataHandler,
+        );
+    }
+
+    /**
+     * A category stored at the root has no parent page, so the permission to update it is
+     * checked against the root page.
+     */
+    #[Test]
+    public function aCategoryAtTheRootIsCheckedAgainstTheRootPage(): void
+    {
+        $this->pageRepositoryStub
+            ->method('getPageRecord')
+            ->willReturn(['uid' => 39, 'pid' => 0]);
+
+        $dataHandler = $this->createMock(DataHandler::class);
+        $dataHandler
+            ->expects(self::once())
+            ->method('hasPermissionToUpdate')
+            ->with('sys_category', VirtualRecord::RootPage)
+            ->willReturn(false);
+
+        $this->requeuerMock->expects(self::never())->method('rememberAssignedRecords');
+
+        $fieldArray = ['title' => 'Service'];
+
+        $this->subject->processDatamap_preProcessFieldArray(
+            $fieldArray,
+            'sys_category',
+            39,
+            $dataHandler,
+        );
+    }
+
+    /**
+     * A category whose record the user has no access to is not looked at,
+     * although the permission on its page is given.
+     */
+    #[Test]
+    public function remembersNothingForACategoryTheRecordAccessRefuses(): void
+    {
+        $this->pageRepositoryStub
+            ->method('getPageRecord')
+            ->willReturnCallback(
+                static fn (string $table, int $uid): array => ['uid' => $uid, 'pid' => 1],
+            );
+
+        $dataHandler = self::createStub(DataHandler::class);
+        $dataHandler->method('hasPermissionToUpdate')->willReturn(true);
+
+        $this->backendUserStub
+            ->method('checkRecordEditAccess')
+            ->willReturn(new AccessCheckResult(false, 'No access'));
+
+        $this->requeuerMock->expects(self::never())->method('rememberAssignedRecords');
+
+        $fieldArray = ['title' => 'Service'];
+
+        $this->subject->processDatamap_preProcessFieldArray(
+            $fieldArray,
+            'sys_category',
+            39,
+            $dataHandler,
+        );
+    }
+
+    /**
+     * A category that does not exist has nothing to remember.
+     */
+    #[Test]
+    public function remembersNothingForACategoryThatDoesNotExist(): void
+    {
+        $this->pageRepositoryStub
+            ->method('getPageRecord')
+            ->willReturn([]);
+
+        $dataHandler = self::createStub(DataHandler::class);
+        $dataHandler->method('hasPermissionToUpdate')->willReturn(true);
+
+        $this->requeuerMock->expects(self::never())->method('rememberAssignedRecords');
+
+        $fieldArray = ['title' => 'Service'];
+
+        $this->subject->processDatamap_preProcessFieldArray(
+            $fieldArray,
+            'sys_category',
+            39,
+            $dataHandler,
         );
     }
 
@@ -152,13 +322,17 @@ final class DataHandlerHookTest extends TestCase
     ): void {
         $this->requeuerMock->expects(self::never())->method('rememberAssignedRecords');
 
+        // DataHandler accepts the save, so only the guards of the hook decide
+        $dataHandler = self::createStub(DataHandler::class);
+        $this->grantUpdateOfCategory($dataHandler);
+
         $fieldArray = ['title' => 'Service'];
 
         $this->subject->processDatamap_preProcessFieldArray(
             $fieldArray,
             $table,
             $id,
-            self::createStub(DataHandler::class),
+            $dataHandler,
         );
     }
 
@@ -168,9 +342,14 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function remembersNothingInAWorkspace(): void
     {
-        $GLOBALS['BE_USER']->workspace = 1;
+        $GLOBALS['BE_USER']->workspace                          = 1;
+        $GLOBALS['TCA']['sys_category']['ctrl']['versioningWS'] = true;
 
         $this->requeuerMock->expects(self::never())->method('rememberAssignedRecords');
+
+        // DataHandler accepts the save, so only the guards of the hook decide
+        $dataHandler = self::createStub(DataHandler::class);
+        $this->grantUpdateOfCategory($dataHandler);
 
         $fieldArray = ['title' => 'Service'];
 
@@ -178,7 +357,36 @@ final class DataHandlerHookTest extends TestCase
             $fieldArray,
             'sys_category',
             39,
-            self::createStub(DataHandler::class),
+            $dataHandler,
+        );
+    }
+
+    /**
+     * A workspace user changes the live records of a table that allows the live
+     * edit in every workspace, so its assignments are remembered.
+     */
+    #[Test]
+    public function remembersTheAssignedRecordsOfATableThatAlwaysAllowsTheLiveEdit(): void
+    {
+        $GLOBALS['BE_USER']->workspace                                              = 1;
+        $GLOBALS['TCA']['sys_category']['ctrl']['versioningWS']                     = true;
+        $GLOBALS['TCA']['sys_category']['ctrl']['versioningWS_alwaysAllowLiveEdit'] = true;
+
+        $this->requeuerMock
+            ->expects(self::once())
+            ->method('rememberAssignedRecords')
+            ->with(39);
+
+        $dataHandler = self::createStub(DataHandler::class);
+        $this->grantUpdateOfCategory($dataHandler);
+
+        $fieldArray = ['title' => 'Service'];
+
+        $this->subject->processDatamap_preProcessFieldArray(
+            $fieldArray,
+            'sys_category',
+            39,
+            $dataHandler,
         );
     }
 
@@ -238,6 +446,46 @@ final class DataHandlerHookTest extends TestCase
     }
 
     /**
+     * The records of a table without workspace support have no version fields, so a move
+     * command for one of them looks for no live record of a version.
+     */
+    #[Test]
+    public function aMoveOfARecordOfATableWithoutWorkspaceSupportLooksForNoVersionOfIt(): void
+    {
+        $requestedFields = [];
+
+        $pageRepository = self::createStub(PageRepositoryInterface::class);
+        $pageRepository
+            ->method('getPageRecord')
+            ->willReturnCallback(
+                static function (string $table, int $uid, string $fields = '*') use (&$requestedFields): array {
+                    $requestedFields[] = $fields;
+
+                    return [];
+                },
+            );
+
+        $subject = new DataHandlerHook(
+            self::createStub(EventDispatcherInterface::class),
+            $pageRepository,
+            self::createStub(TcaSchemaFactory::class),
+            $this->requeuerMock,
+        );
+
+        $this->requeuerMock->expects(self::never())->method('requeue');
+
+        $subject->processCmdmap_postProcess(
+            'move',
+            'be_groups',
+            900,
+            '0',
+            self::createStub(DataHandler::class),
+        );
+
+        self::assertNotContains('t3ver_oid', $requestedFields);
+    }
+
+    /**
      * Once all operations are done, the records remembered for the datamap's
      * existing categories are dropped. A save DataHandler refused never
      * reaches the requeue, so its snapshot would otherwise stay behind.
@@ -270,7 +518,8 @@ final class DataHandlerHookTest extends TestCase
     #[Test]
     public function requeuesNoNewCategoriesInAWorkspace(): void
     {
-        $GLOBALS['BE_USER']->workspace = 1;
+        $GLOBALS['BE_USER']->workspace                          = 1;
+        $GLOBALS['TCA']['sys_category']['ctrl']['versioningWS'] = true;
 
         $dataHandler                        = self::createStub(DataHandler::class);
         $dataHandler->substNEWwithIDs       = ['NEW1' => 40];

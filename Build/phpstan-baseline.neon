@@ -16,24 +16,6 @@ parameters:
 			path: ../Classes/EventListener/UpdateAssembledFileDocumentEventListener.php
 
 		-
-			message: '#^Call to method getRecordId\(\) on an unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
-			identifier: class.notFound
-			count: 1
-			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php
-
-		-
-			message: '#^Call to method getTable\(\) on an unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
-			identifier: class.notFound
-			count: 1
-			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php
-
-		-
-			message: '#^PHPDoc tag @var for variable \$event contains unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
-			identifier: class.notFound
-			count: 1
-			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php
-
-		-
 			message: '#^Parameter \#1 \$collectionIds of method MeineKrankenkasse\\Typo3SearchAlgolia\\Repository\\FileCollectionRepository\:\:findAllByCollectionUids\(\) expects array\<int\>, array\<int, string\> given\.$#'
 			identifier: argument.type
 			count: 1

@@ -17,7 +17,7 @@ use Override;
 
 /**
  * Test double for a custom indexer that implements IndexerInterface
- * directly, with exactly the method set IndexerInterface had in 3.0.0, and
+ * directly, with exactly the method set IndexerInterface has, and
  * not InScopeRecordUidProviderInterface. Every call is delegated to a real,
  * container-resolved indexer instance.
  *
@@ -25,7 +25,7 @@ use Override;
  * reports such an indexer as STATUS_SCOPE_NOT_SUPPORTED instead of
  * failing. Since every method carries #[Override], this class also stops
  * loading as soon as IndexerInterface gains or loses a method, which pins
- * the interface to its 3.0.0 method set.
+ * the interface to its current method set.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -149,12 +149,12 @@ final readonly class ScopelessIndexer implements IndexerInterface
      *
      * @param int[] $recordUids The record UIDs to add to the queue
      *
-     * @return int The real indexer's result
+     * @return int[] The real indexer's result
      */
     #[Override]
-    public function enqueueMultiple(array $recordUids): int
+    public function enqueueEligible(array $recordUids): array
     {
-        return $this->realIndexer->enqueueMultiple($recordUids);
+        return $this->realIndexer->enqueueEligible($recordUids);
     }
 
     /**

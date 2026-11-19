@@ -69,6 +69,14 @@ services:
             -   name: event.listener
                 identifier: 'typo3-search-algolia/record-delete-event-listener'
                 event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/record-deleted-event-listener'
+                method: onDeleted
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeletedEvent
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/record-delete-refused-event-listener'
+                method: onRefused
+                event: MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteRefusedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Record\CategoryChangeEventListener:
         tags:
@@ -83,13 +91,18 @@ services:
                 identifier: 'typo3-search-algolia/resource-after-file-added-event-listener'
                 event: TYPO3\CMS\Core\Resource\Event\AfterFileAddedEvent
 
-    # Listens to the *before* event: by the time AfterFileDeletedEvent fires, TYPO3 core
-    # has already removed the sys_file_metadata row, so the metadata UID can no longer be
-    # resolved and the search index would never be told to remove the document.
-    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\BeforeFileDeletedEventListener:
+    # The before event reads the metadata UID of the file, because TYPO3 core removes the
+    # sys_file_metadata row before AfterFileDeletedEvent fires. The after event then reports
+    # the deletion, ordered after the core listener that removes the processed files.
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileDeletedEventListener:
         tags:
             -   name: event.listener
+                identifier: 'typo3-search-algolia/resource-after-file-deleted-event-listener'
+                event: TYPO3\CMS\Core\Resource\Event\AfterFileDeletedEvent
+                after: 'delete-processed-files-after-delete'
+            -   name: event.listener
                 identifier: 'typo3-search-algolia/resource-before-file-deleted-event-listener'
+                method: onBeforeDeleted
                 event: TYPO3\CMS\Core\Resource\Event\BeforeFileDeletedEvent
 
     MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileCopiedEventListener:

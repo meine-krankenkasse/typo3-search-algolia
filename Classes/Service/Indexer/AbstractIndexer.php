@@ -31,8 +31,12 @@ use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+use function array_chunk;
+use function array_flip;
 use function array_map;
 use function array_slice;
+use function array_unique;
+use function array_values;
 
 /**
  * Abstract base class for all indexers.
@@ -84,6 +88,17 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
      * signature subclasses override.
      */
     protected int $queueItemRecordLimit = 0;
+
+    /**
+     * The page UIDs that the indexing service selects, while a list of records is queued.
+     *
+     * The walk through the selected page tree is the same for every block of a long list,
+     * so it is read once for the list. The value is only held during enqueueEligible(), a
+     * tree can change between two calls.
+     *
+     * @var int[]|null
+     */
+    private ?array $pagesOfQueueRun = null;
 
     /**
      * Constructor for the abstract indexer.
@@ -289,9 +304,12 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
      * This method creates a queue item for a specific record, marking it
      * for indexing in the next indexing run.
      *
+     * A record that is already in the queue counts as queued, so the result
+     * is zero only for a record that is not eligible for this indexer.
+     *
      * @param int $recordUid The unique identifier of the record to add to the queue
      *
-     * @return int The number of records successfully added to the queue (0 or 1)
+     * @return int 1 if the record is in the queue, 0 if it is not eligible for indexing
      *
      * @throws RuntimeException If no indexing service is set
      * @throws Exception        If a database error occurs
@@ -309,34 +327,58 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
             return 0;
         }
 
-        return $this->queueItemRepository
+        $this->queueItemRepository
             ->insert($queueItemRecord);
+
+        return 1;
     }
 
     /**
-     * Adds multiple records to the indexing queue.
+     * Adds those of the given records that this indexer accepts to the indexing queue.
      *
-     * This method creates queue items for a set of records, marking them
-     * for indexing in the next indexing run.
+     * @param int[] $recordUids The UIDs of the records to add to the queue
      *
-     * @param int[] $recordUids An array of record UIDs to add to the queue
-     *
-     * @return int The number of records successfully added to the queue
+     * @return int[] The UIDs of the records that this indexer accepts and that are in the queue now
      *
      * @throws RuntimeException If no indexing service is set
      * @throws Exception        If a database error occurs
      */
     #[Override]
-    public function enqueueMultiple(array $recordUids): int
+    public function enqueueEligible(array $recordUids): array
     {
         if (!($this->indexingService instanceof IndexingService)) {
             throw new RuntimeException('Missing indexing service instance.');
         }
 
-        return $this->queueItemRepository
-            ->bulkInsert(
-                $this->initQueueItemRecords($recordUids),
-            );
+        // The lookup of a long list is made in blocks, so that no statement holds every UID.
+        // An empty list has no block, so it queues nothing and does not mean every record
+        $blocks = array_chunk(
+            array_values(
+                array_unique($recordUids),
+            ),
+            Constants::IN_LIST_BLOCK_SIZE,
+        );
+
+        // The selected page tree is read once for all blocks
+        $this->pagesOfQueueRun = ($blocks !== []) ? $this->getPages() : null;
+
+        $accepted = [];
+
+        try {
+            foreach ($blocks as $block) {
+                $records = $this->initQueueItemRecords($block);
+
+                $this->queueItemRepository->bulkInsert($records);
+
+                foreach ($records as $record) {
+                    $accepted[] = (int) $record['record_uid'];
+                }
+            }
+        } finally {
+            $this->pagesOfQueueRun = null;
+        }
+
+        return $accepted;
     }
 
     /**
@@ -467,9 +509,15 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable($this->getTable());
 
+        // The pages of a queue run are known already. Their list stays out of the statement of
+        // every block, and the rows are matched against it afterwards.
+        $matchPagesAfterwards = ($recordUids !== [])
+            && ($this->pagesOfQueueRun !== null)
+            && ($this->pagesOfQueueRun !== []);
+
         $constraints = array_merge(
             [],
-            $this->getPagesQueryConstraint($queryBuilder),
+            $matchPagesAfterwards ? [] : $this->getPagesQueryConstraint($queryBuilder),
             $this->getAdditionalQueryConstraints($queryBuilder),
         );
 
@@ -480,9 +528,35 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
             );
         }
 
-        return $this
-            ->fetchRecords($queryBuilder, $constraints, $this->queueItemRecordLimit)
+        $rows = $this
+            ->fetchRecords(
+                $queryBuilder,
+                $constraints,
+                $this->queueItemRecordLimit,
+                $matchPagesAfterwards,
+            )
             ->fetchAllAssociative();
+
+        if (!$matchPagesAfterwards) {
+            return $rows;
+        }
+
+        $pages   = array_flip($this->pagesOfQueueRun ?? []);
+        $records = [];
+
+        foreach ($rows as $row) {
+            $pageUid = ($this->getTable() === PageIndexer::TABLE)
+                ? (int) $row['record_uid']
+                : (int) $row['page_uid'];
+
+            unset($row['page_uid']);
+
+            if (isset($pages[$pageUid])) {
+                $records[] = $row;
+            }
+        }
+
+        return $records;
     }
 
     /**
@@ -508,13 +582,14 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
      * unspecified, so a capped result could silently omit the table's actual
      * most-recently-changed record whenever the table has more in-scope rows
      * than the limit. The unbounded case (no limit, used by enqueueAll() and
-     * enqueueMultiple() for the real indexing pipeline) intentionally keeps
+     * enqueueEligible() for the real indexing pipeline) intentionally keeps
      * no ORDER BY, this would only add cost with no behavioral benefit since
      * every in-scope row is fetched anyway.
      *
      * @param QueryBuilder $queryBuilder The query builder to use for the query
      * @param string[]     $constraints  An array of SQL constraint expressions
      * @param int          $limit        Maximum number of rows to fetch (via SQL LIMIT), 0 for unbounded
+     * @param bool         $withPageUid  Whether the page of the record is selected as page_uid as well
      *
      * @return Result The database query result object
      */
@@ -522,13 +597,13 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
         QueryBuilder $queryBuilder,
         array $constraints,
         int $limit = 0,
+        bool $withPageUid = false,
     ): Result {
         // Set up the query restrictions
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DefaultRestrictionContainer::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class))
-        ;
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
 
         // Get the field statement for determining when a record was last changed
         $changedFieldStatement = $this->getChangedFieldStatement();
@@ -545,6 +620,10 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
             $changedFieldStatement . ' AS changed',
             "'" . $this->getPriority() . "' AS priority",
         ];
+
+        if ($withPageUid) {
+            $selectLiterals[] = ($this->getTable() === PageIndexer::TABLE) ? 'uid AS page_uid' : 'pid AS page_uid';
+        }
 
         // Build the query
         $queryBuilder
@@ -643,6 +722,10 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
      */
     private function getPages(): array
     {
+        if ($this->pagesOfQueueRun !== null) {
+            return $this->pagesOfQueueRun;
+        }
+
         // Get individually selected pages
         $pagesSingle = GeneralUtility::intExplode(
             ',',
