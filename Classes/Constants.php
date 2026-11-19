@@ -40,4 +40,19 @@ class Constants
      * recursively collecting subpages for indexing operations.
      */
     public const int MAX_PAGE_TREE_DEPTH = 99;
+
+    /**
+     * The number of values that one database query holds in a list of UIDs.
+     *
+     * A list that is longer is asked for in blocks, because the list of a single
+     * statement is limited by the database.
+     */
+    public const int IN_LIST_BLOCK_SIZE = 1000;
+
+    /**
+     * The page type of a recycler page.
+     *
+     * Not every supported core version declares a constant for the type, so the number is kept here.
+     */
+    public const int DOKTYPE_RECYCLER = 255;
 }
