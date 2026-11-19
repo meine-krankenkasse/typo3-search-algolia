@@ -48,9 +48,9 @@ final class IndexingServiceRepositoryTest extends AbstractFunctionalTestCase
      * returned rows happen to come back in that order.
      *
      * A plain "assert the returned rows are uid-ascending" check would NOT
-     * be discriminating here: the table's 'uid' column is declared as
-     * "int(11) unsigned NOT NULL auto_increment, PRIMARY KEY (uid)"
-     * (ext_tables.sql), which on the SQLite backend used by these
+     * be discriminating here: the table's 'uid' column is the auto
+     * increment primary key that TYPO3 derives from the TCA ctrl section,
+     * which on the SQLite backend used by these
      * functional tests (Build/FunctionalTests.xml) becomes the rowid
      * alias, so SQLite always returns a plain, unindexed table scan in
      * ascending uid order, independent of the physical row insertion

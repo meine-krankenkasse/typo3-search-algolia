@@ -533,9 +533,7 @@ abstract class AbstractIndexer implements IndexerInterface, InScopeRecordUidProv
         // Get the field statement for determining when a record was last changed
         $changedFieldStatement = $this->getChangedFieldStatement();
 
-        if ($changedFieldStatement === null) {
-            $changedFieldStatement = 0;
-        }
+        $changedFieldStatement ??= 0;
 
         // Get the current indexing service UID
         $serviceUid = $this->indexingService?->getUid() ?? 0;
