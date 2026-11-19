@@ -14,21 +14,3 @@ parameters:
 			identifier: method.deprecated
 			count: 1
 			path: ../Classes/EventListener/UpdateAssembledFileDocumentEventListener.php
-
-		-
-			message: '#^Call to method getRecordId\(\) on an unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
-			identifier: class.notFound
-			count: 1
-			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php
-
-		-
-			message: '#^Call to method getTable\(\) on an unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
-			identifier: class.notFound
-			count: 1
-			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php
-
-		-
-			message: '#^PHPDoc tag @var for variable \$event contains unknown class TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent\.$#'
-			identifier: class.notFound
-			count: 1
-			path: ../Classes/EventListener/Workspace/AfterRecordPublishedEventListener.php

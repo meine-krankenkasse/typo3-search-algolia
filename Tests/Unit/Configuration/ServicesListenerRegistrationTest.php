@@ -32,6 +32,7 @@ use TYPO3\CMS\Core\Resource\Event\AfterFileMovedEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileRenamedEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileReplacedEvent;
 use TYPO3\CMS\Core\Resource\Event\BeforeFileDeletedEvent;
+use TYPO3\CMS\Workspaces\Event\AfterRecordPublishedEvent;
 
 use function array_keys;
 use function array_map;
@@ -152,7 +153,7 @@ final class ServicesListenerRegistrationTest extends TestCase
             'AfterFileMovedEventListener::__invoke'                        => AfterFileMovedEvent::class,
             'AfterFileRenamedEventListener::__invoke'                      => AfterFileRenamedEvent::class,
             'AfterFileReplacedEventListener::__invoke'                     => AfterFileReplacedEvent::class,
-            'AfterRecordPublishedEventListener::__invoke'                  => 'TYPO3\\CMS\\Workspaces\\Event\\AfterRecordPublishedEvent',
+            'AfterRecordPublishedEventListener::__invoke'                  => AfterRecordPublishedEvent::class,
         ];
 
         self::assertEqualsCanonicalizing(

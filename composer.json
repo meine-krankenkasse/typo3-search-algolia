@@ -48,7 +48,8 @@
         "rector/rector": "^2.8.5",
         "saschaegerer/phpstan-typo3": "^2.0",
         "ssch/typo3-rector": "^3.0",
-        "typo3/testing-framework": "^9.0"
+        "typo3/cms-workspaces": "^13.4",
+    "typo3/testing-framework": "^9.0"
     },
     "suggest": {
         "typo3/cms-workspaces": "Required for workspace support and automatic reindexing when publishing workspace records"

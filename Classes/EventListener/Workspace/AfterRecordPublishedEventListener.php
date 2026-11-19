@@ -88,9 +88,12 @@ readonly class AfterRecordPublishedEventListener
 
         // The event is guaranteed to be AfterRecordPublishedEvent at runtime
         /** @var \TYPO3\CMS\Workspaces\Event\AfterRecordPublishedEvent $event */
+        /** @var int<1, max> $recordUid */
+        $recordUid = $event->getRecordId();
+
         $this->eventDispatcher
             ->dispatch(
-                new DataHandlerRecordUpdateEvent($event->getTable(), $event->getRecordId()),
+                new DataHandlerRecordUpdateEvent($event->getTable(), $recordUid),
             );
     }
 }
