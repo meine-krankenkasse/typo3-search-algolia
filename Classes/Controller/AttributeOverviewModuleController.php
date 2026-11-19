@@ -469,8 +469,8 @@ class AttributeOverviewModuleController extends AbstractBaseModuleController
 
     /**
      * Formats one document field's raw value for safe, readable display in
-     * the attribute overview table: an array (e.g. the 'categories' field, a
-     * string[]) is comma-joined, any other scalar is cast to a string, and
+     * the attribute overview table: an array (e.g. a string[] that a listener
+     * sets) is comma-joined, any other scalar is cast to a string, and
      * the result is truncated with a trailing ellipsis marker if it exceeds
      * EXAMPLE_VALUE_MAX_LENGTH characters, so one outsized value (e.g. the
      * 'content' field's full aggregated page text) cannot dominate the
