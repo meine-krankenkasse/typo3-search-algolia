@@ -37,6 +37,15 @@ interface TypoScriptServiceInterface
     public function getFieldMappingByType(string $indexerType): array;
 
     /**
+     * Returns the colPos values whose content elements are excluded from indexing.
+     *
+     * @param string $indexerType The indexer type the option is configured for, e.g. "pages"
+     *
+     * @return int[] The colPos values to exclude, empty if nothing is excluded
+     */
+    public function getExcludedColPos(string $indexerType): array;
+
+    /**
      * Returns the file extensions allowed for indexing.
      *
      * @return string[] Array of allowed file extensions
