@@ -90,7 +90,7 @@ final readonly class TypoScriptService implements TypoScriptServiceInterface
      * repository query. The method is only reached when the configuration
      * manager found no request, so there is no global request to preserve.
      *
-     * @return array<string, mixed>
+     * @return array<string, mixed> The TypoScript configuration of the first website
      */
     private function getTypoScriptWithoutRequest(): array
     {

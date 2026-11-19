@@ -172,8 +172,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      * 4. Updates the last execution time in the queue status service
      * 5. Displays a success message upon completion
      *
-     * The method handles error cases gracefully, particularly for records that
-     * exceed size limits in the search engine.
+     * A record that the search engine rejects as too big is logged and removed
+     * from the queue without being indexed.
      *
      * @param int $documentsToIndex The maximum number of documents to process in this batch
      *
@@ -219,7 +219,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                 }
 
                 // The record still exceeds the search engine's size limit
-                // (for file records, even after content truncation; other
+                // (for file records even after content truncation, other
                 // record types have no truncation step and may simply be
                 // inherently oversized). Log it, then fall through to the
                 // same removal as a successful run, instead of leaving it

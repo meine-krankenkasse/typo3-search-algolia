@@ -38,7 +38,7 @@ use function array_reverse;
  * @link    https://www.netresearch.de
  */
 #[CoversTrait(FileEligibilityTrait::class)]
-class FileEligibilityTraitTest extends TestCase
+final class FileEligibilityTraitTest extends TestCase
 {
     private FileEligibilityTraitTestSubject $subject;
 
