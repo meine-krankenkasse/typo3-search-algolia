@@ -52,7 +52,7 @@ class Constants
     /**
      * The page type of a recycler page.
      *
-     * The core declares the type up to one version line only, so the number is kept here.
+     * Not every supported core version declares a constant for the type, so the number is kept here.
      */
     public const int DOKTYPE_RECYCLER = 255;
 }

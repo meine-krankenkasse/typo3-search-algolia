@@ -94,14 +94,15 @@ class RecordUpdateEventListener
      * 4. Updates the record in the indexing queue to ensure it will be re-indexed with its new content
      * 5. For content elements, also processes the page that contains the element
      *    to ensure that page's index entry is updated to reflect the changes to the content
-     * 6. For pages, also processes the content elements on the page and, when the state
-     *    they inherit changed, its subpages
-     *    to ensure that the entire page tree is properly indexed
+     * 6. For pages, also processes the content elements on the page and, when the state that
+     *    the page passes on to its subpages changed, the subpages, to ensure that the page tree
+     *    is properly indexed
      *
      * The method handles different types of records differently:
      * - Regular records are simply updated in the queue and index
      * - Content elements trigger an update of their parent page's index entry
-     * - Pages trigger updates of all their content elements and subpages
+     * - Pages trigger an update of their content elements and, when the state that they pass
+     *   on to their subpages changed, of their subpages
      *
      * @param DataHandlerRecordUpdateEvent $event The record update event containing information about the created or modified record
      *
@@ -366,8 +367,8 @@ class RecordUpdateEventListener
      *
      * This helper method checks if the table name of the updated record is 'pages',
      * which indicates that the record is a page. Pages require special handling when
-     * updated, as all content elements on the page and all subpages need to be
-     * processed to ensure that the entire page tree is properly indexed.
+     * updated, as the content elements on the page and, in some cases, its subpages need
+     * to be processed to ensure that the page tree is properly indexed.
      *
      * This method is used in the __invoke method to determine whether additional
      * processing is needed for content elements and subpages when a page is updated.
