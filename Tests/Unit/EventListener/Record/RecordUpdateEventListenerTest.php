@@ -20,6 +20,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AbstractFileEven
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\RecordRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Utility\PublicationWindow;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -39,6 +40,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 #[CoversClass(RecordUpdateEventListener::class)]
 #[UsesClass(AbstractFileEventListener::class)]
 #[UsesClass(DataHandlerRecordUpdateEvent::class)]
+#[UsesClass(PublicationWindow::class)]
 final class RecordUpdateEventListenerTest extends TestCase
 {
     private MockObject&RecordHandlerInterface $recordHandlerMock;
