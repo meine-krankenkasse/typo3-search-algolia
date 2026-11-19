@@ -208,7 +208,7 @@ class TypoScriptServiceTest extends TestCase
                 'tx_typo3searchalgolia.' => [
                     'indexer.' => [
                         'pages.' => [
-                            'excludeColPos' => '9999x,abc,,1.5,5',
+                            'excludeColPos' => '9999x,abc,,1.5,007,+5,5',
                         ],
                     ],
                 ],

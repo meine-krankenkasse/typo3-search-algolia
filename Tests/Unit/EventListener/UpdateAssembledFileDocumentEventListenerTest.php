@@ -341,7 +341,10 @@ class UpdateAssembledFileDocumentEventListenerTest extends TestCase
 
         $content = $document->getFields()['content'];
 
+        // The cut is made on a character boundary, so at most one multi-byte
+        // character is lost at the end
         self::assertLessThanOrEqual(50, strlen((string) $content));
+        self::assertGreaterThanOrEqual(47, strlen((string) $content));
         self::assertTrue(mb_check_encoding($content, 'UTF-8'));
     }
 }
