@@ -60,10 +60,11 @@ page of each indexer.
 ..  warning::
     When the console command ``mkk:queue:index:worker``, which sends the
     records to Algolia, runs on the command line (cron or the scheduler
-    command), it has no site context. It reads only the TypoScript shipped
-    with the extension, so changes to the mapping or to the allowed file
-    extensions in your site TypoScript are not applied when records are
-    indexed.
+    command), it has no request. It reads the TypoScript of the first
+    website in the page tree, together with the conditions that apply to
+    that website. The TypoScript of any further website is not read, so
+    settings that differ between websites are not applied when records of
+    the other websites are indexed.
 
 ..  note::
     Anyone holding the search key of your frontend can retrieve every
@@ -104,6 +105,4 @@ Records are indexed through the indexing queue:
     scheduler task, processes the queue and sends the records to Algolia.
     A record that Algolia rejects as too big is logged as a warning and
     removed from the queue without being indexed, so that it does not fail
-    again on every run. An item whose processing fails because the command
-    cannot read the TypoScript shipped with the extension stays in the queue
-    and is processed on the next run.
+    again on every run.
