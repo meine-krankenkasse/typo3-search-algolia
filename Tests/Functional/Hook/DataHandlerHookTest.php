@@ -49,6 +49,18 @@ final class DataHandlerHookTest extends AbstractFunctionalTestCase
     use RegistersEventSpyTrait;
 
     /**
+     * Core extensions required for the tests. The workspaces extension is loaded, because the
+     * hook tells the versions of a workspace apart from live records only then.
+     *
+     * @var array<non-empty-string>
+     */
+    protected array $coreExtensionsToLoad = [
+        'extbase',
+        'fluid',
+        'workspaces',
+    ];
+
+    /**
      * Imports the page tree, the page indexing service, an admin user and a
      * category assigned to pages 2 and 3.
      *
@@ -969,8 +981,8 @@ final class DataHandlerHookTest extends AbstractFunctionalTestCase
     /**
      * A DataHandler that acts for a user of a workspace announces nothing,
      * although the global backend user works in the live workspace, because the
-     * commands of that user do not touch the live record. The delete and the move
-     * are covered.
+     * commands of that user do not touch the live record. The delete, the move
+     * and the requeue of a saved category are covered.
      */
     #[Test]
     public function aWorkspaceUserOfTheDataHandlerAnnouncesNothingWhileTheGlobalUserIsLive(): void
@@ -987,11 +999,13 @@ final class DataHandlerHookTest extends AbstractFunctionalTestCase
 
         $this->runForUser($workspaceUser, [], ['sys_category' => [50 => ['delete' => 1]]]);
         $this->runForUser($workspaceUser, [], ['pages' => [3 => ['move' => 1]]]);
+        $this->runForUser($workspaceUser, ['sys_category' => [50 => ['items' => 'pages_2']]], []);
 
         self::assertSame([], $deleteSpy->events);
         self::assertSame([], $deletedSpy->events);
         self::assertSame([], $refusedSpy->events);
         self::assertSame([], $moveSpy->events);
+        self::assertSame([], $this->findQueuedPageUids());
     }
 
     /**
