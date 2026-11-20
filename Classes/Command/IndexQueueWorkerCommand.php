@@ -168,7 +168,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      *    - Creates an appropriate indexer instance for the record type
      *    - Retrieves the indexing service configuration
      *    - Indexes the record using the indexer and service configuration
-     *    - Removes the processed item from the queue
+     *    - Removes the item from the queue, except an item that failed because the
+     *      bundled TypoScript setup could not be read, which stays for the next run
      *    - Updates the progress bar and registry
      * 4. Updates the last execution time in the queue status service
      * 5. Displays a success message upon completion
