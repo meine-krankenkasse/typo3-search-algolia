@@ -95,3 +95,8 @@ Records are indexed through the indexing queue:
     subpages and the records on them.
 *   The console command ``mkk:queue:index:worker``, usually run as a
     scheduler task, processes the queue and sends the records to Algolia.
+    A record that Algolia rejects as too big is logged as a warning and
+    removed from the queue without being indexed, so that it does not fail
+    again on every run. An item whose processing fails because the command
+    cannot read the TypoScript shipped with the extension stays in the queue
+    and is processed on the next run.

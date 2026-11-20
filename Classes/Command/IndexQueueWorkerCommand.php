@@ -168,7 +168,8 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      *    - Creates an appropriate indexer instance for the record type
      *    - Retrieves the indexing service configuration
      *    - Indexes the record using the indexer and service configuration
-     *    - Removes the processed item from the queue
+     *    - Removes the item from the queue, except an item that failed because the
+     *      bundled TypoScript setup could not be read, which stays for the next run
      *    - Updates the progress bar and registry
      * 4. Updates the last execution time in the queue status service
      * 5. Displays a success message upon completion
@@ -206,6 +207,9 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             $indexingService = $this->indexingServiceRepository
                 ->findByUid($item->getServiceUid());
 
+            // An item that failed for an environment-level reason stays in the queue
+            $retryLater = false;
+
             try {
                 // Perform indexing using each separate indexing service
                 if ($indexingService instanceof IndexingService) {
@@ -214,22 +218,32 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                         $record,
                     );
                 }
-
-                // Remove index item from queue
-                $this->queueItemRepository->remove($item);
-                $this->persistenceManager->persistAll();
             } catch (BadRequestException $exception) {
-                // TODO Track indexing errors and display failed records in backend
-
-                // Ignore errors of type "Record is too big"
                 if (!str_contains($exception->getMessage(), 'Record is too big')) {
                     throw $exception;
                 }
+
+                // The record still exceeds the search engine's size limit
+                // (for file records, even after content truncation; other
+                // record types have no truncation step and may simply be
+                // inherently oversized). Log it, then fall through to the
+                // same removal as a successful run, instead of leaving it
+                // in place where it would fail again on every future run.
+                $this->logger?->warning(
+                    'Record exceeds search engine size limit, removed from queue without indexing',
+                    [
+                        'tableName' => $item->getTableName(),
+                        'recordUid' => $item->getRecordUid(),
+                        'exception' => $exception->getMessage(),
+                    ],
+                );
             } catch (CliFallbackTypoScriptUnreadableException $exception) {
                 // An environment-level failure (the bundled TypoScript setup could
                 // not be read, see TypoScriptService::getCliFallbackTypoScript()) must
                 // not abort the whole batch. Log it and move on; this item is not
                 // removed from the queue, so it is retried on the next run.
+                $retryLater = true;
+
                 $this->logger?->error(
                     'Skipping queue item due to an environment-level failure: {message}',
                     [
@@ -238,6 +252,12 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                         'recordUid' => $item->getRecordUid(),
                     ],
                 );
+            }
+
+            if (!$retryLater) {
+                // Remove index item from queue
+                $this->queueItemRepository->remove($item);
+                $this->persistenceManager->persistAll();
             }
 
             $progressBar->advance();

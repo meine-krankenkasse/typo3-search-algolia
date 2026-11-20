@@ -42,7 +42,7 @@ Requirements
 ============
 
 *   TYPO3 v14.3
-*   PHP 8.3 or later, up to 8.5
+*   PHP 8.3 or later, up to 8.5, with the ``mbstring`` extension
 *   An Algolia account with an application ID and an API key
 *   EXT:news, only if news articles should be indexed
 
