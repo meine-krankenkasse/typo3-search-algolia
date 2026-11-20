@@ -1,3 +1,52 @@
+# 3.2.0
+
+## BREAKING
+
+- WEB-1588: The page document no longer carries the `categories` field. Derive the categories with `CategoryLookupInterface::findAssignedToRecord()` and a field name
+- WEB-1588: `CategoryLookupInterface::findAssignedToRecord()` takes an optional field name as its last parameter, so every implementation of the interface has to add it
+- WEB-1588: The constructor of `UpdateAssembledPageDocumentEventListener` no longer takes a `CategoryLookupInterface` argument
+- WEB-1588: The queue worker reads the TypoScript of the first website. The file fallback and `CliFallbackTypoScriptUnreadableException` are removed, `TypoScriptService` is a readonly class that no longer implements `LoggerAwareInterface`, its constructor takes the configuration manager and the `PageRepositoryInterface`, and `PageRepositoryInterface::getFirstSiteRootPageId()` is new, so every implementation of the interface has to follow
+- WEB-1588: Add `TypoScriptServiceInterface::getExcludedColPos()` and give `ContentRepositoryInterface::findAllByPid()` the fourth parameter `$excludeColPos`, so every implementation of these interfaces has to follow
+- WEB-1588: `ContentExtractor` can no longer be instantiated, its constructor is private. Call its static methods
+- WEB-1588: The constructor of `DataHandlerHook` takes a `PageRepositoryInterface` instead of the `PageRepository` and a `CategoryRecordRequeuerInterface`, and the constructor of `UpdateAssembledFileDocumentEventListener` takes the optional content size limit
+- WEB-1588: The tables of the search engines and of the indexing services drop `transOrigPointerField` (the column `l10n_parent`), the version setting and `hideTable` from their TCA, remove the unused fields `starttime` and `endtime`, and no longer define the standard columns that TYPO3 derives from their TCA `ctrl` section. Run the database comparison on update
+- WEB-1587: Remove `BeforeFileDeletedEventListener`, `AfterFileDeletedEventListener` now registers both events. Check the listener ids in `Configuration/Services.yaml` before overriding them
+- WEB-1587: Replace `SearchEngineInterface::documentDelete()` and `deleteFromIndex()` by `documentDeleteMany()` and `deleteManyFromIndex()`
+- WEB-1587: `RecordHandlerInterface` replaces `updateRecordInQueue()` by `updateRecordsInQueue()`, `deleteRecord()` by `removeRecords()` and `deleteRecords()` by `removeRecordsFromTargets()`, adds `resolveIndexerTargets()` and gives `processContentElementsOfPage()` the optional third parameter `$contentElementUids`
+- WEB-1587: `IndexerInterface::enqueueMultiple()` is replaced by `enqueueEligible()`, which returns an array
+- WEB-1587: Add `PageRepositoryInterface::hasPageRecord()` and `getDescendantPageIds()`, so every implementation of the interface has to follow
+- WEB-1587: Add `findTranslationUids()`, `findUidsByPids()`, `findUidsByPidAndLanguage()`, `findExistingUids()`, `findUidsWhere()` and `findDependentUids()` to `RecordRepositoryInterface`, so every implementation of the interface has to follow
+- WEB-1587: `DataHandlerRecordDeleteEvent` no longer means that the record is deleted, because DataHandler may still refuse the command, and it is also dispatched when a workspace delete is published. It now extends `AbstractDataHandlerRecordEvent`, and a listener that has to react to a record that was really deleted has to listen to the new `DataHandlerRecordDeletedEvent`. The new `DataHandlerRecordDeleteRefusedEvent` announces a refused delete, and `DataHandlerRecordUpdateEvent` takes the optional argument `$isNew`
+- WEB-1587: `DataHandlerRecordMoveEvent::getTargetPid()` returns the stored parent page of the moved record and no longer the command value, which is negative when the record is placed after another record. The event is also dispatched for a move that DataHandler declines afterwards
+- WEB-1587: The constructors of `EnqueueOneController`, `RecordHandler`, `RecordMoveEventListener` and `AfterRecordPublishedEventListener` take further arguments
+
+## MISC
+
+- WEB-1588: Read the TypoScript of the first website in the queue worker, so the field mapping, the allowed file extensions and the `excludeColPos` option of the website apply when records are indexed from the command line
+- WEB-1588: Add the TypoScript option `excludeColPos` to leave the content elements of the given columns out of the page's full-text content
+- WEB-1588: Shorten the text extracted from a PDF to stay within the record size limit of the search engine, and remove lines that repeat on most pages first
+- WEB-1588: Log a record that the search engine rejects as too big and remove it from the queue instead of failing on every run
+- WEB-1588: Require the mbstring extension
+- WEB-1588: Queue the records of a system category and of its subcategories again when the category is saved or deleted, and add an event to collect further records
+- WEB-1588: Rename the label ids `index_queue.table.column.indexingServices` to `index_queue.table.column.indexingService` and `index_queue.indexingServicess.available` to `index_queue.indexingServices.available`, so a site package that overrides them has to follow
+- WEB-1588: Repair the CI checks of the TYPO3-14 line
+- WEB-1587: Remove the documents of records that were deleted, hidden, moved or are no longer accepted by an indexing service
+- WEB-1587: Leave pages of type recycler and files in recycler folders out of the index
+- WEB-1587: Skip a record that is already queued for the same table, record and indexing service instead of failing the whole queue operation, so `IndexerInterface::enqueueOne()` returns 1 for a record that is already queued, `QueueItemRepository::insert()` returns 0 for it and `QueueItemRepository::bulkInsert()` returns the number of rows that were added
+- WEB-1587: Leave content elements of hidden pages, pages excluded from the search and pages outside their publication window out of the queue
+- WEB-1587: Decide the subtree of a moved or saved page again with the indexing services of the site it belongs to
+- WEB-1587: Handle the publish of a workspace delete or move like the command itself
+- WEB-1587: Remove the documents of a deleted page together with its subpages, content elements, translations and inline children
+- WEB-1587: Remove documents in blocks and stop after repeated failures of the search engine
+- WEB-1587: Check the same permissions for queueing a single file as the context menu entry does
+- WEB-1587: Live records of workspace-enabled tables no longer count as drafts when the workspaces extension is loaded
+- WEB-1567: Point the TER manual link to the rendered documentation
+- GH-41: Keep the `symfony/var-exporter` pin in the development requirements only, so a project that requires the extension is no longer forced to lower var-exporter and cache
+
+## Contributors
+
+- Rico Sonntag
+
 # 3.1.0
 
 ## FIX
