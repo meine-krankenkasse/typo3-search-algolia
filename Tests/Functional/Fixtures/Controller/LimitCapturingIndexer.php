@@ -121,9 +121,9 @@ final readonly class LimitCapturingIndexer implements IndexerInterface, InScopeR
     }
 
     #[Override]
-    public function enqueueMultiple(array $recordUids): int
+    public function enqueueEligible(array $recordUids): array
     {
-        return $this->realIndexer->enqueueMultiple($recordUids);
+        return $this->realIndexer->enqueueEligible($recordUids);
     }
 
     #[Override]

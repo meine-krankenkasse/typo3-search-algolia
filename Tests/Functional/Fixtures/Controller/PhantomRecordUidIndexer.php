@@ -100,9 +100,9 @@ final readonly class PhantomRecordUidIndexer implements IndexerInterface, InScop
     }
 
     #[Override]
-    public function enqueueMultiple(array $recordUids): int
+    public function enqueueEligible(array $recordUids): array
     {
-        return $this->realIndexer->enqueueMultiple($recordUids);
+        return $this->realIndexer->enqueueEligible($recordUids);
     }
 
     #[Override]

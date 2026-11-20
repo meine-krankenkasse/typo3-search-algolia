@@ -146,28 +146,31 @@ interface IndexerInterface extends SingletonInterface
      * for indexing in the next indexing run. This is useful when a record
      * has been created or updated and needs to be indexed.
      *
+     * A record that is already in the queue counts as queued, so the result
+     * is zero only for a record that is not eligible for this indexer.
+     *
      * @param int $recordUid The unique identifier of the record to add to the queue
      *
-     * @return int The number of records successfully added to the queue (0 or 1)
+     * @return int 1 if the record is in the queue, 0 if it is not eligible for indexing
      *
      * @throws RuntimeException If no indexing service is set or if there's an error adding to the queue
      */
     public function enqueueOne(int $recordUid): int;
 
     /**
-     * Adds multiple records to the indexing queue.
+     * Adds those of the given records that this indexer accepts to the indexing queue.
      *
-     * This method creates queue items for a set of records, marking them
-     * for indexing in the next indexing run. This is useful when multiple
-     * records have been created or updated and need to be indexed.
+     * It tells which records were accepted, so that a caller can decide about the
+     * rest. A record that is already in the queue counts as accepted. An empty list
+     * accepts nothing.
      *
-     * @param int[] $recordUids An array of record UIDs to add to the queue
+     * @param int[] $recordUids The UIDs of the records to add to the queue
      *
-     * @return int The number of records successfully added to the queue
+     * @return int[] The UIDs of the records that this indexer accepts and that are in the queue now
      *
      * @throws RuntimeException If no indexing service is set or if there's an error adding to the queue
      */
-    public function enqueueMultiple(array $recordUids): int;
+    public function enqueueEligible(array $recordUids): array;
 
     /**
      * Adds all eligible records of this indexer's type to the indexing queue.
