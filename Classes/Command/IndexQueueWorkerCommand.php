@@ -17,7 +17,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Exception\CliFallbackTypoScriptUnreadableException;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
 use Override;
@@ -168,8 +167,7 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
      *    - Creates an appropriate indexer instance for the record type
      *    - Retrieves the indexing service configuration
      *    - Indexes the record using the indexer and service configuration
-     *    - Removes the item from the queue, except an item that failed because the
-     *      bundled TypoScript setup could not be read, which stays for the next run
+     *    - Removes the processed item from the queue
      *    - Updates the progress bar and registry
      * 4. Updates the last execution time in the queue status service
      * 5. Displays a success message upon completion
@@ -207,9 +205,6 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
             $indexingService = $this->indexingServiceRepository
                 ->findByUid($item->getServiceUid());
 
-            // An item that failed for an environment-level reason stays in the queue
-            $retryLater = false;
-
             try {
                 // Perform indexing using each separate indexing service
                 if ($indexingService instanceof IndexingService) {
@@ -237,28 +232,11 @@ class IndexQueueWorkerCommand extends Command implements LoggerAwareInterface, P
                         'exception' => $exception->getMessage(),
                     ],
                 );
-            } catch (CliFallbackTypoScriptUnreadableException $exception) {
-                // An environment-level failure (the bundled TypoScript setup could
-                // not be read, see TypoScriptService::getCliFallbackTypoScript()) must
-                // not abort the whole batch. Log it and move on; this item is not
-                // removed from the queue, so it is retried on the next run.
-                $retryLater = true;
-
-                $this->logger?->error(
-                    'Skipping queue item due to an environment-level failure: {message}',
-                    [
-                        'message'   => $exception->getMessage(),
-                        'tableName' => $item->getTableName(),
-                        'recordUid' => $item->getRecordUid(),
-                    ],
-                );
             }
 
-            if (!$retryLater) {
-                // Remove index item from queue
-                $this->queueItemRepository->remove($item);
-                $this->persistenceManager->persistAll();
-            }
+            // Remove index item from queue
+            $this->queueItemRepository->remove($item);
+            $this->persistenceManager->persistAll();
 
             $progressBar->advance();
 
