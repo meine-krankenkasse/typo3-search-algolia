@@ -12,7 +12,11 @@ declare(strict_types=1);
 namespace MeineKrankenkasse\Typo3SearchAlgolia\Tests\Unit\Hook;
 
 use MeineKrankenkasse\Typo3SearchAlgolia\DataHandling\CategoryRecordRequeuerInterface;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\AbstractDataHandlerRecordEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeletedEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordDeleteRefusedEvent;
+use MeineKrankenkasse\Typo3SearchAlgolia\Event\DataHandlerRecordUpdateEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Hook\DataHandlerHook;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use Override;
@@ -38,7 +42,11 @@ use TYPO3\CMS\Core\Type\VirtualRecord;
  * @link    https://www.netresearch.de
  */
 #[CoversClass(DataHandlerHook::class)]
+#[UsesClass(AbstractDataHandlerRecordEvent::class)]
+#[UsesClass(DataHandlerRecordDeletedEvent::class)]
 #[UsesClass(DataHandlerRecordDeleteEvent::class)]
+#[UsesClass(DataHandlerRecordDeleteRefusedEvent::class)]
+#[UsesClass(DataHandlerRecordUpdateEvent::class)]
 final class DataHandlerHookTest extends TestCase
 {
     /**
@@ -55,6 +63,27 @@ final class DataHandlerHookTest extends TestCase
      * The page repository the hook reads the records from.
      */
     private PageRepositoryInterface&Stub $pageRepositoryStub;
+
+    /**
+     * The class, table and UID of every event that the hook of a test dispatched.
+     *
+     * @var list<array{class-string, string, int}>
+     */
+    private array $dispatchedEvents = [];
+
+    /**
+     * The records that exist and are not deleted, by table and UID.
+     *
+     * @var array<string, array<int, true>>
+     */
+    private array $liveRecords = [];
+
+    /**
+     * The records that are marked as deleted, by table and UID.
+     *
+     * @var array<string, array<int, true>>
+     */
+    private array $deletedRecords = [];
 
     /**
      * The hook under test.
@@ -528,5 +557,306 @@ final class DataHandlerHookTest extends TestCase
         $this->requeuerMock->expects(self::never())->method('requeue');
 
         $this->subject->processDatamap_afterAllOperations($dataHandler);
+    }
+
+    /**
+     * Creates a hook that records the events it dispatches and reads the state of the records
+     * from the properties of the test at the time of every lookup.
+     *
+     * @return DataHandlerHook The hook under test
+     */
+    private function createCollectingHook(): DataHandlerHook
+    {
+        $this->pageRepositoryStub
+            ->method('hasPageRecord')
+            ->willReturnCallback(
+                fn (string $table, int $uid, bool $useDeleteClause = true): bool => isset($this->liveRecords[$table][$uid])
+                    || (!$useDeleteClause && isset($this->deletedRecords[$table][$uid])),
+            );
+
+        $dispatcher = self::createStub(EventDispatcherInterface::class);
+        $dispatcher
+            ->method('dispatch')
+            ->willReturnCallback(
+                function (object $event): object {
+                    if (
+                        ($event instanceof AbstractDataHandlerRecordEvent)
+                        || ($event instanceof DataHandlerRecordUpdateEvent)
+                    ) {
+                        $this->dispatchedEvents[] = [$event::class, $event->getTable(), $event->getRecordUid()];
+                    }
+
+                    return $event;
+                },
+            );
+
+        $this->requeuerMock->expects(self::never())->method('rememberAssignedRecords');
+
+        return new DataHandlerHook(
+            $dispatcher,
+            $this->pageRepositoryStub,
+            self::createStub(TcaSchemaFactory::class),
+            $this->requeuerMock,
+        );
+    }
+
+    /**
+     * A delete of a live record is announced before the command and, once DataHandler
+     * removed the record, as deleted.
+     */
+    #[Test]
+    public function aDeleteOfALiveRecordIsAnnouncedAsDeletedOnceDataHandlerRemovedIt(): void
+    {
+        $this->liveRecords['tt_content'][5] = true;
+
+        $hook        = $this->createCollectingHook();
+        $dataHandler = self::createStub(DataHandler::class);
+
+        $hook->processCmdmap_preProcess('delete', 'tt_content', 5, '', $dataHandler);
+
+        self::assertSame([[DataHandlerRecordDeleteEvent::class, 'tt_content', 5]], $this->dispatchedEvents);
+
+        unset($this->liveRecords['tt_content'][5]);
+
+        $hook->processCmdmap_postProcess('delete', 'tt_content', 5, '', $dataHandler);
+
+        self::assertSame(
+            [
+                [DataHandlerRecordDeleteEvent::class, 'tt_content', 5],
+                [DataHandlerRecordDeletedEvent::class, 'tt_content', 5],
+            ],
+            $this->dispatchedEvents,
+        );
+    }
+
+    /**
+     * A delete that leaves the record live is announced as refused, so that what was
+     * collected for it is discarded.
+     */
+    #[Test]
+    public function aDeleteThatLeavesTheRecordIsAnnouncedAsRefused(): void
+    {
+        $this->liveRecords['tt_content'][5] = true;
+
+        $hook        = $this->createCollectingHook();
+        $dataHandler = self::createStub(DataHandler::class);
+
+        $hook->processCmdmap_preProcess('delete', 'tt_content', 5, '', $dataHandler);
+        $hook->processCmdmap_postProcess('delete', 'tt_content', 5, '', $dataHandler);
+
+        self::assertSame(
+            [
+                [DataHandlerRecordDeleteEvent::class, 'tt_content', 5],
+                [DataHandlerRecordDeleteRefusedEvent::class, 'tt_content', 5],
+            ],
+            $this->dispatchedEvents,
+        );
+    }
+
+    /**
+     * A delete of a record that was no live record before the command is no delete of a
+     * document, so it is announced as refused.
+     */
+    #[Test]
+    public function aDeleteOfARecordThatWasNotLiveIsAnnouncedAsRefused(): void
+    {
+        $hook        = $this->createCollectingHook();
+        $dataHandler = self::createStub(DataHandler::class);
+
+        $hook->processCmdmap_preProcess('delete', 'tt_content', 5, '', $dataHandler);
+        $hook->processCmdmap_postProcess('delete', 'tt_content', 5, '', $dataHandler);
+
+        self::assertSame(
+            [
+                [DataHandlerRecordDeleteEvent::class, 'tt_content', 5],
+                [DataHandlerRecordDeleteRefusedEvent::class, 'tt_content', 5],
+            ],
+            $this->dispatchedEvents,
+        );
+    }
+
+    /**
+     * A delete command of a user whose workspace cannot change the live record announces nothing.
+     */
+    #[Test]
+    public function aDeleteInAWorkspaceThatCannotChangeTheLiveRecordIsNotAnnounced(): void
+    {
+        $GLOBALS['BE_USER']->workspace                        = 1;
+        $GLOBALS['TCA']['tt_content']['ctrl']['versioningWS'] = true;
+
+        $this->liveRecords['tt_content'][5] = true;
+
+        $hook        = $this->createCollectingHook();
+        $dataHandler = self::createStub(DataHandler::class);
+
+        $hook->processCmdmap_preProcess('delete', 'tt_content', 5, '', $dataHandler);
+        $hook->processCmdmap_postProcess('delete', 'tt_content', 5, '', $dataHandler);
+
+        self::assertSame([], $this->dispatchedEvents);
+    }
+
+    /**
+     * A DataHandler that runs for another user than the global one decides by that user.
+     */
+    #[Test]
+    public function aDataHandlerOfAnotherUserDecidesByThatUser(): void
+    {
+        $otherUser            = self::createStub(BackendUserAuthentication::class);
+        $otherUser->workspace = 1;
+        $otherUser->method('workspaceAllowsLiveEditingInTable')->willReturn(false);
+
+        $dataHandler          = self::createStub(DataHandler::class);
+        $dataHandler->BE_USER = $otherUser;
+
+        $this->liveRecords['tt_content'][5] = true;
+
+        $hook = $this->createCollectingHook();
+
+        $hook->processCmdmap_preProcess('delete', 'tt_content', 5, '', $dataHandler);
+        $hook->processCmdmap_postProcess('delete', 'tt_content', 5, '', $dataHandler);
+
+        self::assertSame([], $this->dispatchedEvents);
+    }
+
+    /**
+     * Provides keys of a delete command and the events that the command announces.
+     *
+     * @return iterable<string, array{int|string, list<array{class-string, string, int}>}>
+     */
+    public static function deleteCommandKeys(): iterable
+    {
+        yield 'key zero reads as no record' => [0, []];
+        yield 'text reads as no record' => ['abc', []];
+        yield 'record one is a record' => [
+            1,
+            [
+                [DataHandlerRecordDeleteEvent::class, 'tt_content', 1],
+                [DataHandlerRecordDeleteRefusedEvent::class, 'tt_content', 1],
+            ],
+        ];
+    }
+
+    /**
+     * A key that reads as no record is no command for a record, while the first UID is one.
+     *
+     * @param int|string                             $key      The key of the delete command
+     * @param list<array{class-string, string, int}> $expected The events that the command announces
+     */
+    #[Test]
+    #[DataProvider('deleteCommandKeys')]
+    public function aDeleteCommandIsAnnouncedOnlyForAKeyThatReadsAsARecord(int|string $key, array $expected): void
+    {
+        $hook        = $this->createCollectingHook();
+        $dataHandler = self::createStub(DataHandler::class);
+
+        $hook->processCmdmap_preProcess('delete', 'tt_content', $key, '', $dataHandler);
+        $hook->processCmdmap_postProcess('delete', 'tt_content', $key, '', $dataHandler);
+
+        self::assertSame($expected, $this->dispatchedEvents);
+    }
+
+    /**
+     * Provides the state of a record before and after a command, and the events of the command.
+     *
+     * @return iterable<string, array{string, bool, bool, list<array{class-string, string, int}>}>
+     */
+    public static function undeleteStates(): iterable
+    {
+        $update = [[DataHandlerRecordUpdateEvent::class, 'tt_content', 7]];
+
+        yield 'deleted record that is live afterwards' => ['undelete', true, true, $update];
+        yield 'record that was live already' => ['undelete', false, true, []];
+        yield 'deleted record that stays deleted' => ['undelete', true, false, []];
+        yield 'another command' => ['copy', true, true, []];
+    }
+
+    /**
+     * An undelete is announced as an update only for a record that was deleted before the
+     * command and is live afterwards.
+     *
+     * @param string                                 $command       The DataHandler command
+     * @param bool                                   $deletedBefore Whether the record is marked as deleted before the command
+     * @param bool                                   $liveAfter     Whether the record is live after the command
+     * @param list<array{class-string, string, int}> $expected      The events that the command announces
+     */
+    #[Test]
+    #[DataProvider('undeleteStates')]
+    public function anUndeleteIsAnnouncedAsAnUpdateOnlyForARecordThatCameBack(
+        string $command,
+        bool $deletedBefore,
+        bool $liveAfter,
+        array $expected,
+    ): void {
+        if ($deletedBefore) {
+            $this->deletedRecords['tt_content'][7] = true;
+        } else {
+            $this->liveRecords['tt_content'][7] = true;
+        }
+
+        $hook        = $this->createCollectingHook();
+        $dataHandler = self::createStub(DataHandler::class);
+
+        $hook->processCmdmap_preProcess($command, 'tt_content', 7, '', $dataHandler);
+
+        unset($this->deletedRecords['tt_content'][7], $this->liveRecords['tt_content'][7]);
+
+        if ($liveAfter) {
+            $this->liveRecords['tt_content'][7] = true;
+        } else {
+            $this->deletedRecords['tt_content'][7] = true;
+        }
+
+        $hook->processCmdmap_postProcess($command, 'tt_content', 7, '', $dataHandler);
+
+        self::assertSame($expected, $this->dispatchedEvents);
+    }
+
+    /**
+     * Provides the command, the table and whether the record is live after the command,
+     * and whether the category is requeued.
+     *
+     * @return iterable<string, array{string, string, bool, bool}>
+     */
+    public static function categoryDeletes(): iterable
+    {
+        yield 'category that is gone' => ['delete', 'sys_category', false, true];
+        yield 'category that is still live' => ['delete', 'sys_category', true, false];
+        yield 'record of another table that is gone' => ['delete', 'tt_content', false, false];
+        yield 'another command on a category that is gone' => ['move', 'sys_category', false, false];
+    }
+
+    /**
+     * The records of a category are requeued once the category really is deleted.
+     *
+     * @param string $command    The DataHandler command
+     * @param string $table      The table of the record
+     * @param bool   $liveAfter  Whether the record is live after the command
+     * @param bool   $isRequeued Whether the category is requeued
+     */
+    #[Test]
+    #[DataProvider('categoryDeletes')]
+    public function aCategoryIsRequeuedOnlyOnceItIsReallyDeleted(
+        string $command,
+        string $table,
+        bool $liveAfter,
+        bool $isRequeued,
+    ): void {
+        $this->liveRecords[$table][39] = true;
+
+        $hook        = $this->createCollectingHook();
+        $dataHandler = self::createStub(DataHandler::class);
+
+        $this->requeuerMock
+            ->expects($isRequeued ? self::once() : self::never())
+            ->method('requeue')
+            ->with(39);
+
+        $hook->processCmdmap_preProcess($command, $table, 39, '', $dataHandler);
+
+        if (!$liveAfter) {
+            unset($this->liveRecords[$table][39]);
+        }
+
+        $hook->processCmdmap_postProcess($command, $table, 39, '', $dataHandler);
     }
 }
