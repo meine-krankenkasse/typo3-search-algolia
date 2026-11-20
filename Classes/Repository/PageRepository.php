@@ -297,4 +297,49 @@ readonly class PageRepository implements PageRepositoryInterface
 
         return 0;
     }
+
+    /**
+     * Returns the root page of the first website in the page tree.
+     *
+     * The pages are ordered by their sorting like in the page tree. A hidden
+     * or deleted root page and the workspace versions of a root page are not
+     * considered, so the result is always the live record of a website.
+     *
+     * @return int The UID of the root page, or 0 if the page tree has no website
+     *
+     * @throws Exception If a database error occurs during the query
+     */
+    #[Override]
+    public function getFirstSiteRootPageId(): int
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
+
+        $queryBuilder
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
+            ->add(GeneralUtility::makeInstance(HiddenRestriction::class))
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, 0));
+
+        $rootPageId = $queryBuilder
+            ->select('uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'is_siteroot',
+                    $queryBuilder->createNamedParameter(1, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->eq(
+                    'sys_language_uid',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+                ),
+            )
+            ->orderBy('sorting')
+            ->addOrderBy('uid')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
+
+        return ($rootPageId === false) ? 0 : (int) $rootPageId;
+    }
 }

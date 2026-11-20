@@ -21,6 +21,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Repository\CategoryRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileCollectionRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\FileRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\SearchEngineFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\FileCollectionService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\Indexer\AbstractIndexer;
@@ -35,7 +36,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
 use ReflectionProperty;
 use RuntimeException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -47,8 +47,6 @@ use TYPO3\CMS\Core\Resource\MetaDataAspect;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Site\SiteFinder;
-use TYPO3\CMS\Core\TypoScript\Tokenizer\TokenizerInterface;
-use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 use function array_search;
@@ -84,10 +82,7 @@ final class FileIndexerTest extends TestCase
     {
         return new TypoScriptService(
             $configurationManager ?? self::createStub(ConfigurationManagerInterface::class),
-            new TypoScriptStringFactory(
-                self::createStub(ContainerInterface::class),
-                self::createStub(TokenizerInterface::class),
-            ),
+            self::createStub(PageRepositoryInterface::class),
         );
     }
 
@@ -791,10 +786,7 @@ final class FileIndexerTest extends TestCase
 
         return new TypoScriptService(
             $configurationManagerMock,
-            new TypoScriptStringFactory(
-                self::createStub(ContainerInterface::class),
-                self::createStub(TokenizerInterface::class),
-            ),
+            self::createStub(PageRepositoryInterface::class),
         );
     }
 

@@ -1,0 +1,8 @@
+pages,,,,,,,,,,
+,uid,pid,title,is_siteroot,doktype,sorting,deleted,hidden,sys_language_uid,l10n_parent
+,5,0,"Deleted site root",1,1,64,1,0,0,0
+,6,0,"Hidden site root",1,1,128,0,1,0,0
+,7,0,"Page that is no site root",0,1,192,0,0,0,0
+,10,0,"Second site root",1,1,512,0,0,0,0
+,20,0,"First site root",1,1,256,0,0,0,0
+,30,0,"Translation of a site root",1,1,32,0,0,1,20

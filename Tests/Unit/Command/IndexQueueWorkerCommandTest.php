@@ -19,7 +19,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\IndexingService;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Model\QueueItem;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\IndexingServiceRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Domain\Repository\QueueItemRepository;
-use MeineKrankenkasse\Typo3SearchAlgolia\Exception\CliFallbackTypoScriptUnreadableException;
 use MeineKrankenkasse\Typo3SearchAlgolia\IndexerFactory;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\QueueStatusServiceInterface;
@@ -53,7 +52,6 @@ use function preg_quote;
 #[CoversClass(IndexQueueWorkerCommand::class)]
 #[UsesClass(QueueItem::class)]
 #[UsesClass(IndexingService::class)]
-#[UsesClass(CliFallbackTypoScriptUnreadableException::class)]
 class IndexQueueWorkerCommandTest extends TestCase
 {
     private MockObject&PersistenceManagerInterface $persistenceManagerMock;
@@ -299,97 +297,6 @@ class IndexQueueWorkerCommandTest extends TestCase
 
         // The command should be created without errors when IndexerFactory is injected
         self::assertInstanceOf(IndexQueueWorkerCommand::class, $command);
-    }
-
-    /**
-     * Tests that a CliFallbackTypoScriptUnreadableException raised by one queue
-     * item's indexer does not abort the whole batch: the failing item is logged
-     * and skipped (left in the queue for retry), while the next item in the same
-     * run is still processed to completion (removed from the queue, persisted).
-     */
-    #[Test]
-    public function indexItemsSkipsAFailingItemAndProcessesTheNextOne(): void
-    {
-        $failingItem = (new QueueItem())
-            ->setTableName('pages')
-            ->setRecordUid(1)
-            ->setServiceUid(1);
-        $succeedingItem = (new QueueItem())
-            ->setTableName('pages')
-            ->setRecordUid(2)
-            ->setServiceUid(1);
-
-        $this->queueItemRepositoryMock
-            ->method('findAllLimited')
-            ->willReturn($this->createQueueItemsResult([$failingItem, $succeedingItem]));
-
-        $this->stubFetchableRecord();
-
-        $indexingService = new IndexingService();
-
-        $this->indexingServiceRepositoryMock
-            ->method('findByUid')
-            ->with(1)
-            ->willReturn($indexingService);
-
-        $failingIndexerMock = self::createStub(IndexerInterface::class);
-        $failingIndexerMock
-            ->method('indexRecord')
-            ->willThrowException(
-                new CliFallbackTypoScriptUnreadableException('Unable to read the bundled TypoScript setup.'),
-            );
-
-        $succeedingIndexerMock = self::createStub(IndexerInterface::class);
-        $succeedingIndexerMock
-            ->method('indexRecord')
-            ->willReturn(true);
-
-        $this->indexerFactoryMock
-            ->method('makeInstanceByType')
-            ->with('pages')
-            ->willReturnOnConsecutiveCalls(
-                $failingIndexerMock,
-                $succeedingIndexerMock,
-            );
-
-        // The failing item must NOT be removed from the queue (it is retried on
-        // the next run); only the succeeding one is.
-        $this->queueItemRepositoryMock
-            ->expects(self::once())
-            ->method('remove')
-            ->with($succeedingItem);
-
-        $this->persistenceManagerMock
-            ->expects(self::once())
-            ->method('persistAll');
-
-        // The batch must run to completion (not abort after the failing item).
-        $this->queueStatusServiceMock
-            ->expects(self::once())
-            ->method('setLastExecutionTime');
-
-        $loggerMock = $this->createMock(LoggerInterface::class);
-        $loggerMock
-            ->expects(self::once())
-            ->method('error')
-            ->with(
-                'Skipping queue item due to an environment-level failure: {message}',
-                self::callback(
-                    static fn (array $context): bool => ($context['tableName'] ?? null) === 'pages'
-                        && ($context['recordUid'] ?? null) === 1
-                        && ($context['message'] ?? null) === 'Unable to read the bundled TypoScript setup.',
-                ),
-            );
-
-        $command = $this->createCommand();
-        $command->setLogger($loggerMock);
-        // Normally supplied via the Services.yaml console.command tag; set
-        // explicitly here since the command is constructed directly, not
-        // resolved through the DI container.
-        $command->setName('mkk:queue:index:worker');
-
-        $commandTester = new CommandTester($command);
-        $commandTester->execute(['--documentsToIndex' => 2]);
     }
 
     /**

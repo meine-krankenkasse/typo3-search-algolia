@@ -18,6 +18,7 @@ use MeineKrankenkasse\Typo3SearchAlgolia\Event\AfterDocumentAssembledEvent;
 use MeineKrankenkasse\Typo3SearchAlgolia\Model\Document;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\ContentRepository;
 use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepository;
+use MeineKrankenkasse\Typo3SearchAlgolia\Repository\PageRepositoryInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\IndexerInterface;
 use MeineKrankenkasse\Typo3SearchAlgolia\Service\TypoScriptService;
 use Override;
@@ -26,10 +27,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use TYPO3\CMS\Core\TypoScript\Tokenizer\TokenizerInterface;
-use TYPO3\CMS\Core\TypoScript\TypoScriptStringFactory;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 
 /**
@@ -70,10 +68,7 @@ class DocumentBuilderTest extends TestCase
 
         $typoScriptService = new TypoScriptService(
             $this->configurationManagerMock,
-            new TypoScriptStringFactory(
-                self::createStub(ContainerInterface::class),
-                self::createStub(TokenizerInterface::class),
-            ),
+            self::createStub(PageRepositoryInterface::class),
         );
 
         $this->builder = new DocumentBuilder(
