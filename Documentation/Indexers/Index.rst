@@ -89,6 +89,15 @@ Records are indexed through the indexing queue:
     service that covers them, whatever site the service belongs to. Saving
     a hidden page, or one with :guilabel:`Include in Search` disabled,
     removes its content elements from the queue and the index instead.
+*   Saving or deleting a category queues the records assigned to it, and
+    those assigned to its subcategories, again, because an indexed document
+    can carry values derived from its categories. A record whose assignment
+    the save removed is queued as well. The records stay in the index and
+    searchable until the worker has indexed them again. Changes made in a
+    workspace are not considered. An extension can add records that reference
+    a category in another way, for example through a plain column, by
+    listening to the event
+    ``MeineKrankenkasse\Typo3SearchAlgolia\Event\CollectCategoryRecordsEvent``.
 *   The :guilabel:`Queue` backend module queues all records of the
     selected indexing services. It skips hidden subpages of the pages
     selected in :guilabel:`Pages (recursively)`, together with their
