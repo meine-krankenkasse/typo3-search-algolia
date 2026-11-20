@@ -75,4 +75,16 @@ interface PageRepositoryInterface
      * @return int The UID of the root page, or 0 if no root page could be determined
      */
     public function getRootPageId(int $pageId): int;
+
+    /**
+     * Returns the root page of the first website in the page tree.
+     *
+     * Only live root pages that are neither hidden nor deleted are considered,
+     * and the first one by the sorting of the page tree wins.
+     *
+     * @return int The UID of the root page, or 0 if the page tree has no website
+     *
+     * @throws Exception If a database error occurs during the query
+     */
+    public function getFirstSiteRootPageId(): int;
 }

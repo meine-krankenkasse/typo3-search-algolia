@@ -22,7 +22,7 @@ use TYPO3\CMS\Core\Exception\Page\PageNotFoundException;
  * Functional tests for PageRepository.
  *
  * Tests page tree operations with real database queries: getRootPageId,
- * getPageIdsRecursive, getPageRecord, findTitle.
+ * getPageIdsRecursive, getPageRecord, findTitle, getFirstSiteRootPageId.
  *
  * @author  Rico Sonntag <rico.sonntag@netresearch.de>
  * @license Netresearch https://www.netresearch.de
@@ -226,5 +226,37 @@ final class PageRepositoryTest extends AbstractFunctionalTestCase
         $title = $this->subject->findTitle(999);
 
         self::assertSame('', $title);
+    }
+
+    /**
+     * Tests that getFirstSiteRootPageId() returns the website that comes first
+     * in the page tree by its sorting, although another website has the lower
+     * UID. A deleted, a hidden and a translated root page with a lower sorting
+     * and a page that is no root page are not considered.
+     */
+    #[Test]
+    public function getFirstSiteRootPageIdReturnsTheLiveWebsiteThatComesFirstInThePageTree(): void
+    {
+        $this->getConnectionPool()
+            ->getConnectionForTable('pages')
+            ->truncate('pages');
+
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/Database/pages_site_roots.csv');
+
+        self::assertSame(20, $this->subject->getFirstSiteRootPageId());
+    }
+
+    /**
+     * Tests that getFirstSiteRootPageId() returns zero when the page tree has
+     * no website, so the caller reads only the global TypoScript.
+     */
+    #[Test]
+    public function getFirstSiteRootPageIdReturnsZeroWithoutWebsite(): void
+    {
+        $this->getConnectionPool()
+            ->getConnectionForTable('pages')
+            ->truncate('pages');
+
+        self::assertSame(0, $this->subject->getFirstSiteRootPageId());
     }
 }
