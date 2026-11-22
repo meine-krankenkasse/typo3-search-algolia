@@ -254,7 +254,10 @@ class RecordUpdateEventListener
         // switched the extension off on a page that stays hidden
         if (
             !$fieldsNamed
-            && ($updatedFields !== [] || !$extends && !$hidden)
+            && (
+                ($updatedFields !== [])
+                || (!$extends && !$hidden)
+            )
         ) {
             return null;
         }
