@@ -35,7 +35,6 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 
-use function implode;
 use function preg_quote;
 
 /**
