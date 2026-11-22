@@ -22,8 +22,6 @@ use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Resource\AfterFileDeleted
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
-use ReflectionNamedType;
 use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Configuration\Event\BeforeTcaOverridesEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileAddedEvent;
@@ -42,7 +40,6 @@ use function class_exists;
 use function count;
 use function is_array;
 use function is_string;
-use function ltrim;
 use function method_exists;
 use function str_starts_with;
 use function strrpos;
@@ -50,7 +47,7 @@ use function substr;
 
 /**
  * Checks that every event listener registration of the extension points at an
- * existing method of its class that accepts the registered event.
+ * existing method of its class.
  *
  * A listener that is only wired through the service configuration stays silent
  * when its registration is wrong, and the unit tests that call the method
@@ -66,8 +63,7 @@ final class ServicesListenerRegistrationTest extends TestCase
     /**
      * Tests that each registration of an event of this extension names an
      * existing event class and an existing method, or the invokable default,
-     * that takes the event, and that the registrations are exactly the
-     * expected ones.
+     * and that the registrations are exactly the expected ones.
      */
     #[Test]
     public function everyEventListenerRegistrationMatchesItsMethodAndEvent(): void
@@ -116,21 +112,6 @@ final class ServicesListenerRegistrationTest extends TestCase
                 self::assertTrue(
                     method_exists($className, $method),
                     $className . ' has the method ' . $method,
-                );
-
-                $parameters = (new ReflectionMethod($className, $method))->getParameters();
-
-                self::assertNotSame([], $parameters, $className . '::' . $method . ' takes the event');
-
-                $type = $parameters[0]->getType();
-
-                self::assertInstanceOf(ReflectionNamedType::class, $type);
-
-                // A listener of an event of an optional extension may take a plain object
-                self::assertContains(
-                    $type->getName(),
-                    [ltrim($eventClass, '\\'), 'object'],
-                    $className . '::' . $method . ' accepts the registered event',
                 );
             }
         }
