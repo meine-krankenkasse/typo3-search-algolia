@@ -48,6 +48,22 @@ Without it, indexing still works, but publishing from a workspace does
 not queue the published records. With it, the publish of a deleted or
 moved record is handled like the live command, see :ref:`indexers-queue`.
 
+..  _installation-lowlevel:
+
+Configuration module
+====================
+
+To inspect the configuration under :guilabel:`System > Configuration`,
+install the lowlevel extension:
+
+..  code-block:: bash
+
+    composer require typo3/cms-lowlevel
+
+The module then shows the Algolia API key blinded, see
+:ref:`configuration-credentials`. The extension works without the
+package.
+
 ..  _installation-uninstall:
 
 Uninstallation

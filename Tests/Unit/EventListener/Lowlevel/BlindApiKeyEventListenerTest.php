@@ -36,7 +36,12 @@ final class BlindApiKeyEventListenerTest extends TestCase
     public function blindsTheApiKeyOfTheConfigurationVariables(): void
     {
         $event = new ModifyBlindedConfigurationOptionsEvent(
-            ['TYPO3_CONF_VARS' => ['DB' => ['password' => '******']]],
+            [
+                'TYPO3_CONF_VARS' => [
+                    'DB'         => ['password' => '******'],
+                    'EXTENSIONS' => ['other_extension' => ['apiKey' => '******']],
+                ],
+            ],
             'confVars',
         );
 
@@ -46,7 +51,10 @@ final class BlindApiKeyEventListenerTest extends TestCase
             [
                 'TYPO3_CONF_VARS' => [
                     'DB'         => ['password' => '******'],
-                    'EXTENSIONS' => ['typo3_search_algolia' => ['apiKey' => '******']],
+                    'EXTENSIONS' => [
+                        'other_extension'      => ['apiKey' => '******'],
+                        'typo3_search_algolia' => ['apiKey' => '******'],
+                    ],
                 ],
             ],
             $event->getBlindedConfigurationOptions(),
