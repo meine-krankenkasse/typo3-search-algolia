@@ -68,7 +68,7 @@ To inspect the configuration in the TYPO3 backend, install the lowlevel extensio
 composer require typo3/cms-lowlevel
 ```
 
-The extension blinds the Algolia API key in the Configuration module of this package. It works without it too.
+This extension then shows the Algolia API key blinded in the Configuration module. It also works without the lowlevel extension.
 
 ## Releasing
 

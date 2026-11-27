@@ -61,8 +61,8 @@ install the lowlevel extension:
     composer require typo3/cms-lowlevel
 
 The module then shows the Algolia API key blinded, see
-:ref:`configuration-credentials`. The extension works without the
-package.
+:ref:`configuration-credentials`. This extension also works without
+the lowlevel extension.
 
 ..  _installation-uninstall:
 
