@@ -15,8 +15,8 @@ use MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Lowlevel\BlindApiKeyEvent
 use MeineKrankenkasse\Typo3SearchAlgolia\Tests\Functional\AbstractFunctionalTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use Psr\EventDispatcher\EventDispatcherInterface;
-use TYPO3\CMS\Lowlevel\Event\ModifyBlindedConfigurationOptionsEvent;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Lowlevel\ConfigurationModuleProvider\ProviderRegistry;
 
 /**
  * Functional test for the registration of BlindApiKeyEventListener in the real
@@ -41,19 +41,32 @@ final class BlindApiKeyEventListenerTest extends AbstractFunctionalTestCase
     ];
 
     /**
-     * Tests that the dispatched event reaches the listener through the service
-     * configuration and comes back with the API key blinded.
+     * Tests that the provider of the configuration variables, which the module
+     * reads, returns the API key blinded and the application ID as configured.
      */
     #[Test]
-    public function theDispatchedEventBlindsTheApiKey(): void
+    public function theConfigurationProviderBlindsTheApiKey(): void
     {
-        $event = $this->get(EventDispatcherInterface::class)
-            ->dispatch(new ModifyBlindedConfigurationOptionsEvent([], 'confVars'));
+        // The registry builds every provider, among them one whose toolbar items
+        // need a backend user.
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/Database/be_users.csv');
+        $this->setUpBackendUser(1);
 
-        self::assertInstanceOf(ModifyBlindedConfigurationOptionsEvent::class, $event);
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['typo3_search_algolia'] = [
+            'apiKey' => 'secret-api-key',
+            'appId'  => 'application-id',
+        ];
+
+        $configuration = $this->get(ProviderRegistry::class)
+            ->getProvider('confVars')
+            ->getConfiguration();
+
         self::assertSame(
-            ['TYPO3_CONF_VARS' => ['EXTENSIONS' => ['typo3_search_algolia' => ['apiKey' => '******']]]],
-            $event->getBlindedConfigurationOptions(),
+            [
+                'apiKey' => '******',
+                'appId'  => 'application-id',
+            ],
+            ArrayUtility::getValueByPath($configuration, 'EXTENSIONS/typo3_search_algolia'),
         );
     }
 }

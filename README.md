@@ -61,6 +61,15 @@ composer require typo3/cms-workspaces
 
 Without this extension, the search indexer will still work but won't automatically queue records when publishing from workspaces.
 
+### Configuration Module
+To inspect the configuration in the TYPO3 backend, install the lowlevel extension:
+
+```bash
+composer require typo3/cms-lowlevel
+```
+
+The extension blinds the Algolia API key in the Configuration module of this package. It works without it too.
+
 ## Releasing
 
 1. Bump the `version` in `ext_emconf.php`
