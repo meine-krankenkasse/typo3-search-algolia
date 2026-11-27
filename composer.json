@@ -48,10 +48,12 @@
         "saschaegerer/phpstan-typo3": "^3.1",
         "ssch/typo3-rector": "^3.0",
         "symfony/var-exporter": "^7.2.5",
+        "typo3/cms-lowlevel": "^14.3",
         "typo3/cms-workspaces": "^14.3",
         "typo3/testing-framework": "^9.0"
     },
     "suggest": {
+        "typo3/cms-lowlevel": "Provides the Configuration module, in which the extension blinds its API key",
         "typo3/cms-workspaces": "Required for workspace support and automatic reindexing when publishing workspace records"
     },
     "config": {

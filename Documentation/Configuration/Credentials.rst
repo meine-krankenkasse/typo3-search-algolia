@@ -39,3 +39,7 @@ Both values are shown in the Algolia dashboard.
     Do not use the Admin API key, and do not use this key in the frontend.
     Keep it out of version control, for example by reading it from an
     environment variable as shown above.
+
+If ``typo3/cms-lowlevel`` is installed, the backend module
+:guilabel:`System > Configuration` shows the API key as ``******``. The
+application ID stays visible.

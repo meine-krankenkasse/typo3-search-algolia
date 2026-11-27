@@ -31,6 +31,7 @@ use TYPO3\CMS\Core\Resource\Event\AfterFileMovedEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileRenamedEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileReplacedEvent;
 use TYPO3\CMS\Core\Resource\Event\BeforeFileDeletedEvent;
+use TYPO3\CMS\Lowlevel\Event\ModifyBlindedConfigurationOptionsEvent;
 use TYPO3\CMS\Workspaces\Event\AfterRecordPublishedEvent;
 
 use function array_keys;
@@ -136,6 +137,7 @@ final class ServicesListenerRegistrationTest extends TestCase
             'AfterFileRenamedEventListener::__invoke'                      => AfterFileRenamedEvent::class,
             'AfterFileReplacedEventListener::__invoke'                     => AfterFileReplacedEvent::class,
             'AfterRecordPublishedEventListener::__invoke'                  => AfterRecordPublishedEvent::class,
+            'BlindApiKeyEventListener::__invoke'                           => ModifyBlindedConfigurationOptionsEvent::class,
             'BeforeTcaOverridesEventListener::__invoke'                    => BeforeTcaOverridesEvent::class,
         ];
 
