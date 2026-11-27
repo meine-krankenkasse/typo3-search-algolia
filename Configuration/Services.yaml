@@ -136,6 +136,13 @@ services:
                 identifier: 'typo3-search-algolia/workspace-after-record-published-event-listener'
                 event: TYPO3\CMS\Workspaces\Event\AfterRecordPublishedEvent
 
+    # Lowlevel event listeners (optional - requires typo3/cms-lowlevel)
+    MeineKrankenkasse\Typo3SearchAlgolia\EventListener\Lowlevel\BlindApiKeyEventListener:
+        tags:
+            -   name: event.listener
+                identifier: 'typo3-search-algolia/lowlevel-blind-api-key-event-listener'
+                event: TYPO3\CMS\Lowlevel\Event\ModifyBlindedConfigurationOptionsEvent
+
     # Scheduler event listeners
     # Runs after core's own AddSchedulableCommandsAsNativeTaskTypes listener,
     # which auto-registers the queue worker command as a scheduler task type
